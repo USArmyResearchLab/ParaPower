@@ -1,22 +1,6 @@
 % UIWAIT makes ThermalParameterV1 wait for user response (see UIRESUME)
 % uiwait(handles.SimpleOptimizedTab);
 % --- Callback function for clicking on tab
-function ClickOnTab(hObject,~,handles)
-m = str2double(get(hObject,'Tag'));
-
-for i = 1:handles.TabsNumber
-    n = num2str(i);
-    if i == m
-        set(handles.(['a',n]),'Color',handles.selectedTabColor)
-        set(handles.(['t',n]),'BackgroundColor',handles.selectedTabColor)
-        set(handles.(['tab',n,'Panel']),'Visible','on')
-    else
-        set(handles.(['a',n]),'Color',handles.unselectedTabColor)
-        set(handles.(['t',n]),'BackgroundColor',handles.unselectedTabColor)
-        set(handles.(['tab',n,'Panel']),'Visible','off')
-    end
-end
-
 %----System Parameters Panel------------------------------------------------
 % Number of Layers Edit Callback
 function numlayersedit_Callback(hObject, eventdata, handles)
