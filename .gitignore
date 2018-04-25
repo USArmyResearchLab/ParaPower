@@ -1,0 +1,5 @@
+#Ignore files in this directory
+*~
+*.bak
+*.asv
+thumbs.db
