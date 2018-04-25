@@ -4,6 +4,8 @@ function [Tres, Stress] = ParaPowerThermal(NL,NR,NC,h,Ta,dx,dy,dz,Tproc,Mat,Q,de
 % module
 % Establish global variables
 global NL NR NC h Mat kond dx dy dz A B Ta Q cte E nu nlsub delta_t rho spht
+
+
 kond=matprops(:,1)';
 cte=matprops(:,2)';
 E=matprops(:,3)';

@@ -217,7 +217,12 @@ end
 % Manage panels (place them in the correct position and manage visibilities)
 set(handles.tab1Panel,'Units','normalized');
 pan1pos=get(handles.tab1Panel,'Position');                                  % retrieves position of panel 1, used to place all additonal panels
-pan1pos(1,3)=0.58;
+pan1pos(3)=0.58;
+tab1pos=get(handles.tab1text,'position');
+tab11pos=get(handles.tab11text,'position');
+pan1pos(1)=tab1pos(1);
+pan1pos(3)=tab11pos(1)+tab11pos(3)-tab1pos(1);
+
 set(handles.(['tab','1','Panel']),'Position',pan1pos);
 pan1pos=get(handles.tab1Panel,'Position'); 
 % pan1pos(4)=handles.FigHeight;
@@ -3252,4 +3257,32 @@ guidata(hObject,handles)
 function pararadiotxt_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to pararadiotxt (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called\
+
+% --- Executes during object Creation, before destroying properties.
+function tab1Panel_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to tab1Panel (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+% --- Executes during object Creation, before destroying properties.
+
+% --- Executes during object creation, after setting all properties.
+function imaget1_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to imaget1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
+
+% Hint: place code in OpeningFcn to populate imaget1
+ axes(hObject)
+ imshow('arl_logo.png');
+
+
+% --- Executes during object creation, after setting all properties.
+function imageb1_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to imageb1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: place code in OpeningFcn to populate imageb1
+ axes(hObject)
+ imshow('US_Army_logo_and_RDECOM.jpg');
