@@ -1460,82 +1460,6 @@ function radiobutton14_Callback(hObject, eventdata, handles)
 % Hint: get(hObject,'Value') returns toggle state of radiobutton14
 
 
-% --- Executes on button press in pubfeatbutt.
-function [handles] = pubfeatbutt_Callback(hObject, eventdata, handles)                  %Organizes constraint, BC, and parameter tables to display the correct pop menues and content. 
-% Defined as a button so other areas of code can call and force and update
-% of table definitions. 
-set(handles.runbutt,'enable','on')
-    count1=1;                                                                   % initilize count for publishing unique layout geometry parameters
-    count=1;                                                                % initialize count for finding layers that have a layout used
-    handles.layerdata=get(handles.layertable,'data');                       % retrieves layer data 
-    handles.layerrnames=get(handles.layertable,'rowname');                  % retrives layer table row names ie layers used
-    handles.layerdata=[handles.layerrnames handles.layerdata];              % combines layer info into one matrix for reference
-    [ld,~]=size(handles.layerdata);                                         % finds rows and columns of layer data ie numlayers
-    for i=1:ld                                                              %loop seeks to find layers that use layouts 
-        templayoutname=handles.layerdata{i,4};                              % finds the layout designation for each layer                                        
-       handles.layerdata{i,4}=[templayoutname(1,1) templayoutname(1,end)];  % removes all but first and last characters to leave B. or L# 
-    if strcmp(templayoutname(1,1),'L')==1                                   % if the layer is designated by L# it is a layout geometry 
-           layoutlayers(count,:)=handles.layerdata(i,:);                    % stores the layers numbers and corresponding layout for that layer in a matrix
-           count=count+1;
-    end
-    end
-    
-    for i=1:handles.NLayouts                                                % itterates between the total number of unique layouts
-        n=num2str(i);                                                       % defines n as the itteration or tab number 
-    handles.(['layout' n 'featdata'])=get(handles.(['layout' n 'feattable']),'data'); % retrieves the layout feature data of current itterations tab
-if iscell(handles.(['layout' n 'featdata']))==1
-    handles.(['layout' n 'featdata'])=cell2mat(handles.(['layout' n 'featdata'])); %%*****
-end
-
-    handles.(['layout' n 'rnames'])=get(handles.(['layout' n 'feattable']),'rowname'); % retrieves row names of feature data
-        [llay,~]=size(handles.(['layout' n 'featdata']));                   % finds rows and columns of feat data
-    for ii=1:llay                                                           %loop seeks to find all feature vairations in all active layouts. itteratates through the number of unique features
-for iii=1:handles.(['layout' n 'featdata'])(ii,1)                           % itterates through the qunaity of each unique feature
-featnum=handles.(['layout' n 'rnames']){ii,1};                              % defines the feature number for layout, ie Feature 1, Feature 2....
-    layoutgeopara{count1,1}=['L',n,' F ',featnum(1,end),'.', num2str(iii)]; % stores layout geometry paramerters as [Layout Number Feature Number]
-        count1=count1+1;                                                    % itterates for next entry in layout geometry 
-end
-    end
-    end
-    [lx,~]=size(layoutlayers);                                              % finds total number of layers that use layouts
-    [ly,~]=size(layoutgeopara);                                             % finds total number of unique layout geometries 
-    count2=1;                                                               % initalizes count for congrigation of all geometry parameters in each layer
-for i=1:lx                                                                  %loop seeks to define all layer and layout combinations for parametric selection. loops through all layers that use a layout as thier geometric input
-        xtemp=layoutlayers{i,1};                                            % stores a temporary variable of layer number 
-      for ii=1:ly                                                           % itterates through all possible geometry layouts that layer could have
-            ytemp=layoutgeopara{ii,1};                                      % stores a temporary variable of the layout number and feature that this itteration is checking 
-      if strcmp(layoutlayers{i,4},ytemp(1,1:2)) ==1                         % checks to see if this layout number is equal to the layout used on this itterations layer
-          handles.featlist{count2,1}=['L',xtemp(1,end),'.',ytemp(1,2:end)];          % if so store the geometry parameters as Layer Number.Layout Number Feature Number
-          count2=count2+1;                                                  % itterate for next solution
-      end
-      end
-end
-handles.constfeatlist=['System';handles.featlist];
-handles.constlinkedfeatlist=[handles.featlist;'N/A'];
-handles.constsyslist=['System';handles.layerrnames;handles.envcnames'];
-handles.constlinkedsyslist=['N/A';handles.layerrnames;handles.envcnames'];
-
-handles.bclinkedfeatlist=[handles.featlist','N/A'];
-handles.bcsyslist=['System';handles.layerrnames;handles.envcnames']';
-handles.bclinkedsyslist=[handles.layerrnames',handles.envcnames,'N/A'];
-
-handles.parafeatlist=[handles.featlist ;'Base']';
-handles.paralinkedgeofeatlist=[handles.featlist;handles.NA]';
-handles.parasyslist=[handles.layerrnames; handles.envcnames';'System']';
-handles.paralinkedsyslist=[handles.layerrnames; handles.envcnames';'System';handles.NA]';
-handles.paramatlist=['System';handles.layerrnames; handles.featlist]';
-    
-set(handles.featconsttable,'columnformat',({handles.featconsttype,handles.constfeatlist',handles.constlinkedfeatlist','numeric'}));
-set(handles.sysconsttable,'columnformat',({handles.sysconsttype,handles.constsyslist',handles.constlinkedsyslist','numeric'}));
-
-set(handles.featbctable,'columnformat',({handles.featbctype,handles.featlist',handles.bclinkedfeatlist,'numeric','numeric','numeric'}),'columneditable',true);
-set(handles.sysbctable,'columnformat',({handles.sysbctype,handles.bcsyslist, handles.bclinkedsyslist,'numeric','numeric','numeric'}),'columneditable',true);
-
-set(handles.geoparatable,'columneditable',true,'columnformat',({handles.geoparatype handles.parafeatlist handles.paralinkedgeofeatlist 'numeric' 'numeric' 'numeric'}),'RowName',handles.pararnames,'ColumnName',handles.paracnames);
-set(handles.assortparatable,'columneditable',true,'columnformat',({handles.assortedparatype handles.parasyslist handles.paralinkedsyslist 'numeric' 'numeric' 'numeric'}),'RowName',handles.pararnames,'ColumnName',handles.paracnames);
-set(handles.matparatable,'columneditable',true,'columnformat',({handles.paramatlist handles.matlist' ['N/A',handles.matparatype] 'numeric' 'numeric' 'numeric'}),'ColumnName',handles.matparacnames,'RowName',handles.pararnames);
-guidata(hObject,handles);
-
 
 
 % --- Executes on button press in addfeatbcbutt.
@@ -2974,9 +2898,4 @@ set(handles.(['layout',handles.n,'geotable']),'RowName',geomat(:,1),'data',geoma
 guidata(hObject,handles)
 
 
-% --- Executes during object creation, after setting all properties.
-function pararadiotxt_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to pararadiotxt (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called\
 
