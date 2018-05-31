@@ -1,5 +1,0 @@
-These are a list of features and enhancements to make to the code.
-
-1.) Files from Thermal pulled in to Working directory.  Are those the correct ones or should it be stress2.0?
-    Overlapping files in Stress2.0 & Thermal are identical (except for a few commented out sections)
-	

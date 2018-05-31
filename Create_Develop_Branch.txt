@@ -1,1 +1,0 @@
-This file is created just signify that I'm creating a developmental branch to differentiate it from the production branch which is the "master."

@@ -1,257 +1,6 @@
-function varargout = ThermalParameterV1(varargin)
-%{    
-    HOW TO CREATE A NEW TAB
-    1. Create or copy PANEL and TEXT objects in GUI
-    2. Rename tag of PANEL to "tabNPanel" and TEXT for "tabNtext", where N
-    - is a sequential number. 
-    Example: tab3Panel, tab3text, tab4Panel, tab4text etc.  
-    3. Add to Tab Code - Settings in m-file of GUI a name of the tab to
-    TabNames variable
-    Version: 1.0
-    First created: January 18, 2016
-    Last modified: January 18, 2016
-    Author: WFAToolbox (http://wfatoolbox.com)
-%}
-
-% Begin initialization cde - DO NOT EDIT
-gui_Singleton = 1;
-gui_State = struct('gui_Name',       mfilename, ...
-                   'gui_Singleton',  gui_Singleton, ...
-                   'gui_OpeningFcn', @ThermalParameterV1_OpeningFcn, ...
-                   'gui_OutputFcn',  @ThermalParameterV1_OutputFcn, ...
-                   'gui_LayoutFcn',  [] , ...
-                   'gui_Callback',   []);
-if nargin && ischar(varargin{1})
-    gui_State.gui_Callback = str2func(varargin{1});
-end
-
-if nargout
-    [varargout{1:nargout}] = gui_mainfcn(gui_State, varargin{:});
-else
-    gui_mainfcn(gui_State, varargin{:});
-end
-% End initialization code - DO NOT EDIT
-
-
-% --- Executes just before ThermalParameterV1 is made visible.
-function ThermalParameterV1_OpeningFcn(hObject, eventdata, handles, varargin)
-% This function has no output args, see OutputFcn.
-% hObject    handle to figure
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-% varargin   command line arguments to ThermalParameterV1 (see VARARGIN)
-% set(handles.tab4text,'enable','off')
-% Choose default command line output for ThermalParameterV1
-handles.output = hObject;
-% set(handles.loadprofilepop,'String',popdetails());
-handles.delta_t=0;
-handles.transteps=1;
-handles.TempResults=zeros(1,1);
-handles.StressResults=zeros(1,1);
-handles.removeencap=get(handles.removeencapradio,'value');
-set(handles.autoconstbaseradio,'enable','off')
-handles.basefiggroup=[handles.PCbaseradio, handles.autoconstbaseradio handles.basegeotable];
-handles.sysgeogroup=[handles.solutionstatic, handles.viewsystembutt, handles.savesysplot];
-handles.layerslicegroup=[handles.solutionstatic,handles.devmeshdensitystatic,handles.devmeshslider,handles.savelayerplot,handles.viewlayerbutt,handles.plotpop,handles.layerslicestatic];
-handles.constgroup=[handles.featconsttxt handles.addfeatconstbutt handles.removefeatconstbutt handles.featconsttable handles.sysconsttxt handles.addsysconstbutt handles.removesysconstbutt handles.sysconsttable];
-handles.bcgroup=[handles.featconsttxt handles.addfeatbcbutt handles.removefeatbcbutt handles.sysconsttxt handles.sysbcaddbutt handles.sysbcremovebutt handles.featbctable handles.sysbctable];
-handles.paragroup=[handles.featparatxt handles.addgeoparabutt handles.removegeoparabutt handles.sysparatxt handles.addassortparabutt handles.removeassortparabutt handles.matparatxt handles.addmatparabutt handles.removematparabutt handles.geoparatable handles.assortparatable handles.matparatable];
-handles.resultsgroup=[handles.dispmodeltxt handles.solutionpop handles.viewsolutionbutt handles.viewallresultsbutt handles.loopradio handles.highlightsolradio handles.removeencaptxt handles.removeencapradio handles.saveresultsbutt handles.plotresultsstatic handles.resultplotpop handles.saveresultplot handles.resultstable];
-set(handles.resultsgroup,'enable','off')
-set(handles.sysgeogroup,'enable','off')
-set(handles.basefiggroup,'enable','off')
-set(handles.bcgroup,'enable','off')
-set(handles.layerslicegroup,'enable','off')
-set(handles.paragroup,'enable','off')
-
-set(handles.constgroup,'enable','off')
-set(handles.envtable,'enable','off');
-set(handles.layertable,'enable','off');
-% set(handles.runbutt,'enable','off');
-
-% set(handles.basegeotable,'enable','off');
-% set(handles.envtable,'enable','off');
-
-% set(handles.layout1numfeatstatic,'enable','off');
-% set(handles.layout1numfeatedit,'enable','off');
-% set(handles.layout1confbutt,'enable','off');
-% set(handles.layout1feattable,'enable','off');
-% set(handles.layout1geotable,'enable','off');
-% set(handles.layout1confquant,'enable','off');
-% set(handles.clearlayout1butt,'enable','off');
-% set(handles.layer1geotipstatic,'enable','off');
-% set(handles.saveprofbutt,'enable','off');
-% set(handles.saveprofedit,'enable','off');
-
-% axes(handles.imagetl);
-% imshow('US_Army_logo_and_RDECOM.jpg');
-% axes(handles.imagebl)
-% imshow('arl_logo.jpg');
-handles.tabstatus=zeros(1,8);
-set(handles.tab9radio,'Value',0);
-set(handles.tab8radio,'Value',0);
-[handles.matprops,handles.matlist,handles.matcolors,handles.kond,handles.cte,handles.E,handles.nu,handles.rho,handles.spht]=matlibfun();                             %load material property matrix and material list from function               
-[handles.basernames,handles.layerrnames, handles.layercnames, handles.envrnames, handles.envcnames,handles.geornames,handles.featcnames,handles.geocnames, handles.layoutpop,handles.basecnames,handles.basePCcnames,handles.paracnames,handles.pararnames,handles.matparacnames,handles.matparatype,handles.bccnames,handles.bcrnames,...
-    handles.featbctype,handles.sysbctype,handles.geoparatype,handles.assortedparatype,handles.msm,handles.NA,handles.bcfeat,handles.proftemplate,handles.solutionpoptxt,handles.constcnames,handles.featconsttype,handles.sysconsttype,handles.resultsrnames,handles.resultpoptxt]= tables();
-handles.layoutpopactive=handles.layoutpop(1:2,1);
-set(handles.resultplotpop,'string',handles.resultpoptxt,'value',1)
-set(handles.basegeotable,'columneditable',true ,'columnformat',({'logical' 'numeric' 'numeric' 'numeric' 'numeric' 'numeric'}),'RowName',handles.basernames,'ColumnName',handles.basecnames);
-set(handles.envtable,'columnformat',{'numeric' 'numeric' 'numeric' 'numeric' 'numeric' 'numeric'},'RowName',handles.envrnames,'ColumnName',handles.envcnames,'columneditable',true);
-set(handles.layertable,'columneditable',[true true true],'columnformat',({handles.matlist' 'numeric' handles.layoutpopactive'}),'RowName',handles.layerrnames,'ColumnName',handles.layercnames); %pre-define only frist two columns as editable for layer table ie. materail and thickness
-set(handles.geoparatable,'columneditable',true,'columnformat',({handles.geoparatype handles.NA handles.NA 'numeric' 'numeric' 'numeric'}),'RowName',handles.pararnames,'ColumnName',handles.paracnames);
-handles.assortedpara=[handles.NA; handles.layerrnames; handles.envrnames]';
-set(handles.assortparatable,'columneditable',true,'columnformat',({handles.assortedparatype handles.assortedpara handles.assortedpara 'numeric' 'numeric' 'numeric'}),'RowName',handles.pararnames,'ColumnName',handles.paracnames);
-set(handles.matparatable,'columneditable',true,'columnformat',({handles.layerrnames' handles.matlist' ['N/A',handles.matparatype] 'numeric' 'numeric' 'numeric'}),'ColumnName',handles.matparacnames,'RowName',handles.pararnames);
-
-set(handles.featbctable,'columneditable',true,'columnformat',({handles.featbctype handles.bcfeat handles.bcfeat 'numeric' 'numeric'}),'RowName',handles.bcrnames,'columnname',handles.bccnames);
-set(handles.sysbctable,'columneditable',true,'columnformat',({handles.sysbctype handles.bcfeat handles.bcfeat 'numeric' 'numeric'}),'RowName',handles.bcrnames,'columnname',handles.bccnames);
-set(handles.resultstable,'columneditable',false,'columnname',handles.resultsrnames);
-
-set(handles.featconsttable,'columneditable',true,'columnformat',({handles.featconsttype handles.NA handles.NA 'numeric' 'numeric'}),'RowName',handles.pararnames,'ColumnName', handles.constcnames);
-set(handles.sysconsttable,'columneditable',true,'columnformat',({handles.sysconsttype handles.NA handles.NA 'numeric' 'numeric'}),'RowName',handles.pararnames,'ColumnName', handles.constcnames);
-
-%----Initialize Layout Tabs
-for i=1:6
-%     if i==2
-%     else
-    n=num2str(i);
-    set(handles.(['tab',n,'radio']),'value',0);
-    set(handles.(['layout',n,'feattable']),'columneditable',true,'RowName',handles.geornames,'ColumnName',handles.featcnames,'enable','off');
-    set(handles.(['layout',n,'geotable']),'columneditable',[true true true true true true],'columnformat',({handles.matlist' 'numeric' 'numeric' 'numeric' 'numeric' 'numeric'}),'RowName',handles.geornames,'ColumnName',handles.geocnames,'enable','off');
-    handles.(['layout',n,'featdata'])=get(handles.(['layout',n,'feattable']),'data');
-    handles.(['layout',n,'geodata'])=get(handles.(['layout',n,'geotable']),'data');
-    set(handles.(['layout',n,'numfeatedit']),'enable','off');
-    set(handles.(['layout',n,'confbutt']),'enable','off')
-    set(handles.(['layout',n,'confquant']),'enable','off')
-    set(handles.(['clearlayout',n,'butt']),'enable','off')
-%     end
-% handles.layer1geodata=get(handles.layout1geotable,'data');
-end
-% handles.layer1featdata=get(handles.layout1geotable,'data');
-% handles.layer1geodata=get(handles.layout1geotable,'data');
-
-handles.resultplotname=handles.resultpoptxt{1,1};
-
-%% Tabs Code
-% Settings
-TabFontSize = 10;
-TabNames = {'Layout 1','Layout 2','Layout 3','Layout 4','Layout 5','Layout 6','Constraints','Boundary Cond.','Parameters','Groupings','Results'};
-% FigWidth = 0.265;
-FigWidth = .625;                                                            % Width of the GUI window
-% handles.FigHeight=0.3;
-% Figure resize
-set(handles.SimpleOptimizedTab,'Units','normalized')
-pos = get(handles.SimpleOptimizedTab, 'Position');
-% pos(1)=1
-% pos(2)=1
-% pos(4)=1;
-% handles.pos=pos;
-set(handles.tab1Panel,'Units','normalized')
-% n='1'
-% pan1pos=[ .2    .2  0.5    0.5]
-%  set(handles.(['tab',n,'Panel']),'Position',pan1pos)
-set(handles.SimpleOptimizedTab, 'Position', [pos(1) pos(2) FigWidth+0.035 pos(4)]) % [left up width height] Position on screen
-
-% Tabs Execution
-handles = TabsFun(handles,TabFontSize,TabNames);
-
-
-% Update handles structure
-guidata(hObject, handles);
-
 % UIWAIT makes ThermalParameterV1 wait for user response (see UIRESUME)
 % uiwait(handles.SimpleOptimizedTab);
-
-% --- TabsFun creates axes and text objects for tabs
-function handles = TabsFun(handles,TabFontSize,TabNames)
-
-% Set the colors indicating a selected/unselected tab
-handles.selectedTabColor=get(handles.tab1Panel,'BackgroundColor');
-handles.unselectedTabColor=handles.selectedTabColor-0.1;
-
-% Create Tabs
-TabsNumber = length(TabNames);                                              % determines the number of tabs from length of cell array
-handles.TabsNumber = TabsNumber;
-TabColor = handles.selectedTabColor;
-% TabsNumber=TabsNumber-1
-% handles.TabsNumber = TabsNumber;
-%  TabNames=TabNames(1:end-1)
-for i = 1:TabsNumber
-    n = num2str(i);
-    % Get text objects position
-    set(handles.(['tab',n,'text']),'Units','normalized')
-    pos=get(handles.(['tab',n,'text']),'Position');
-% if i==7
-%     pos(1)=pos(1)+0.025;
-% end
-% pos(1)-pos(2)
-    % Create axes with callback function Tab Feautres
-    handles.(['a',n]) = axes('Units','normalized',...
-                    'Box','on',...
-                    'XTick',[],...
-                    'YTick',[],...
-                    'Color',TabColor,...
-                    'Position',[pos(1) pos(2) pos(3) pos(4)],...
-                    'Tag',n,...
-                    'ButtonDownFcn',[mfilename,'(''ClickOnTab'',gcbo,[],guidata(gcbo))']);
-% %       'Position',[0.001+pos(1)+i/250-0.002 pos(2) pos(3)+0.02 pos(4)+0.01],...              
-%  'Position',[pos(3)+0.05,pos(2)/2+pos(4)],...
-    % Create text with callback function Tab text features
-    handles.(['t',n]) = text('String',TabNames{i},...
-                    'Units','normalized',...
-                    'Position',[pos(3),pos(4)],...
-                    'HorizontalAlignment','left',...
-                    'VerticalAlignment','bottom',...
-                    'Margin',.00001,...
-                    'FontSize',TabFontSize,...
-                    'Backgroundcolor',TabColor,...
-                    'Tag',n,...
-                    'ButtonDownFcn',[mfilename,'(''ClickOnTab'',gcbo,[],guidata(gcbo))']);
-
-    TabColor = handles.unselectedTabColor;
-end
-            
-% Manage panels (place them in the correct position and manage visibilities)
-set(handles.tab1Panel,'Units','normalized')
-pan1pos=get(handles.tab1Panel,'Position');                                  % retrieves position of panel 1, used to place all additonal panels
-% pan1pos(4)=handles.FigHeight;
-% pan1pos=[ 0    0  0.5    0.5]
-set(handles.tab1text,'Visible','off')
-for i = 2:TabsNumber
-    n = num2str(i);
-    set(handles.(['tab',n,'Panel']),'Units','normalized')
-    set(handles.(['tab',n,'Panel']),'Position',pan1pos)
-    set(handles.(['tab',n,'Panel']),'Visible','off')
-    set(handles.(['tab',n,'text']),'Visible','off')
-end
-
 % --- Callback function for clicking on tab
-function ClickOnTab(hObject,~,handles)
-m = str2double(get(hObject,'Tag'));
-
-for i = 1:handles.TabsNumber;
-    n = num2str(i);
-    if i == m
-        set(handles.(['a',n]),'Color',handles.selectedTabColor)
-        set(handles.(['t',n]),'BackgroundColor',handles.selectedTabColor)
-        set(handles.(['tab',n,'Panel']),'Visible','on')
-    else
-        set(handles.(['a',n]),'Color',handles.unselectedTabColor)
-        set(handles.(['t',n]),'BackgroundColor',handles.unselectedTabColor)
-        set(handles.(['tab',n,'Panel']),'Visible','off')
-    end
-end
-
-% --- Outputs from this function are returned to the command line.
-function varargout = ThermalParameterV1_OutputFcn(hObject, eventdata, handles) 
-% varargout  cell array for returning output args (see VARARGOUT);
-% hObject    handle to figure
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Get default command line output from handles structure
-varargout{1} = handles.output;
-
 %----System Parameters Panel------------------------------------------------
 % Number of Layers Edit Callback
 function numlayersedit_Callback(hObject, eventdata, handles)
@@ -458,7 +207,7 @@ handles.zlayout=zlayout;
 handles.bmat=bmat;
 handles.layerstack=layerstack;
 % Parametric variation
-tic
+tic;
 R3=1;
 R4=0;
 R7=1;
@@ -729,7 +478,7 @@ cla reset;
 resultplot(toggles,handles.geomaster,handles.georow,handles.TempMaster,handles.StressMaster,solnum,viewall,handles.resultplotname,handles.highlightsol,handles.resultsdata)
 handles.resultsplothold=figure('visible','off');
 resultplot(toggles,handles.geomaster,handles.georow,handles.TempMaster,handles.StressMaster,solnum,viewall,handles.resultplotname,handles.highlightsol,handles.resultsdata)
-toc
+toc;
 guidata(hObject, handles);
 
 % --- Executes on button press in loadprofilebutt.
@@ -749,10 +498,8 @@ if status==0
     return
 end
 clearguibutt_Callback(hObject, eventdata, handles)
-set(handles.runbutt,'enable','on');
+% set(handles.runbutt,'enable','on');
 set(handles.sysconfbutt,'string','Update System');
-set(handles.PCbaseradio,'enable','on');
-set(handles.basegeotable,'enable','on');
 set(handles.envtable,'enable','on');
 set(handles.layertable,'enable','on');
 set(handles.runbutt,'enable','on');
@@ -828,21 +575,34 @@ end
 set(handles.geoparatable,'data',handles.geoparadata);                       % set tables
 set(handles.assortparatable,'data',handles.assortparadata);
 set(handles.matparatable,'data',handles.matparadata);
+if isnan(handles.h(1,1))~=1
 handles.envdata(1,:)=num2cell(handles.h);                                   % build env data matrix
+else
+    handles.envdata(1,:)=cell(1,6);
+end
+if isnan(handles.Ta(1,1))~=1
 handles.envdata(2,:)=num2cell(handles.Ta);
+else
+    handles.envdata(2,:)=cell(1,6);
+end
 set(handles.envtable,'data',handles.envdata);                               % set env table with env data
+if isnan(handles.layerdata{1,1})~=1
 set(handles.layertable,'data',handles.layerdata(:,1:3));                    % set editable column of layer data
 handles.layoutint=cell2mat(handles.layerdata(:,4));
-
 layerrnames=handles.layerrnames(1:handles.NL);                              % update the needed number of layers
-set(handles.plotpop,'Value',1)       ;                                       % resets plot pop up menu to a vlaue of 1 or else if the index shortens matlab will become stuck on an index that now doesn't exist.
-set(handles.plotpop,'string',layerrnames)  ;                                 % assigns plotpop up menu's text to that of all the included layers in a material stack up 
-
+set(handles.plotpop,'Value',1);                                       % resets plot pop up menu to a vlaue of 1 or else if the index shortens matlab will become stuck on an index that now doesn't exist.
+set(handles.plotpop,'string',layerrnames);                                 % assigns plotpop up menu's text to that of all the included layers in a material stack up 
+end
+% if isnan(handles.basegeo{1,1})~=1
+%     pause
 if length(handles.basegeo)<5
     set(handles.PCbaseradio,'value',1);
+    set(handles.PCbaseradio,'enable','on');
     PCbaseradio_Callback(hObject, eventdata, handles)                       % internally clicks radio button to initiate the check on it's value. If 1 will change to border definition
 end
+set(handles.basegeotable,'enable','on');
 set(handles.basegeotable,'data',handles.basegeo);                           % set base geometry table
+% end
 R1=1;
 R2=0;
 for i=1:handles.NLayouts                                                    % loop through layout tabs
@@ -860,16 +620,18 @@ for i=1:handles.NLayouts                                                    % lo
     set(handles.(['layout',handles.n,'confquant']),'enable','on')
     set(handles.(['clearlayout',handles.n,'butt']),'enable','on')
 end
+if isnan(handles.layerdata{1,1})~=1
 for i=1:handles.NL
     matlocation=strcmp(handles.matlist',handles.layerdata(i,1));            % Finds material location in material library matrix
 matmatrix = matlocation*handles.matprops;                                   % Creats matrix with only values of selected material, all others are equal to zero
-matrow=removeconstantrows(matmatrix); 
+matrow=removeconstantrows(matmatrix);
 for ii=4:9                                                                   %ittereations used between columns #:#
     handles.layerdata(i,ii)=num2cell(matrow(1,ii-3));                          %inputs material properties for the selected layer in columns #:#
 end
 end
 set(handles.layertable,'data',handles.layerdata,'RowName',layerrnames,'ColumnName',handles.layercnames);
 [handles]=pubfeatbutt_Callback(hObject, eventdata, handles);                               %publishes all feature types into parametric geometry and associated pop menues. 
+end
 guidata(hObject,handles)
 
 
@@ -912,19 +674,35 @@ basegeo=[cb basegeo];
       if  i==10
       else
       tabstatus(1,i)=get(handles.(['tab' num2str(i) 'radio']),'value');
+      if i==7 && tabstatus(1,i)==1
+      handles.Constdata=[get(handles.featconsttable,'data');get(handles.sysconsttable,'data')];
+      else     
+      handles.Constdata=cell(1,4);
+      end
+      if i==8 && tabstatus(1,i)==1
+      handles.BCdata=[get(handles.featbctable,'data');get(handles.sysbctable,'data')];
+      else
+      handles.BCdata=cell(1,5);
+      end
+      if i==9 && tabstatus(1,i)==1
+      handles.paradata=[get(handles.geoparatable,'data');get(handles.assortparatable,'data')];
+      else
+      handles.paradata=cell(1,6);
+      end
+      if i==10 && tabstatus(1,i)==1
+      handles.groupdata=cell(1,5);
+      else
+      handles.groupdata=cell(1,5);
+      end
       end
   end
-   handles.Constdata=[get(handles.featconsttable,'data');get(handles.sysconsttable,'data')];
-   handles.BCdata=[get(handles.featbctable,'data');get(handles.sysbctable,'data')];
-   handles.paradata=[get(handles.geoparatable,'data');get(handles.assortparatable,'data')];
-   handles.groupdata=cell(1,5);
   [NConst,~]=size(handles.Constdata);
   [NBC,~]=size(handles.BCdata);
   [NP,~]=size(handles.paradata);
   [NG,~]=size(handles.groupdata);
   handles.results=cell(1,5);
   NLayouts=sum(tabstatus(1,1:6));
-  raw(11,2:6)=num2cell([NLayouts,NConst,NBC,NP,NG]); %%
+  raw(11,2:6)=num2cell([NLayouts,NConst,NBC,NP,NG]);
   raw(12,2:11)=num2cell(tabstatus);
   featdata=cell(NLayouts,10);
   geodata=cell(20,8);
@@ -988,9 +766,12 @@ status(1,2)=xlswrite(outname,handles.TempResults,'Temperature Results');
 status(1,3)=xlswrite(outname,handles.StressResults,'Stress Results');
 resultsdata=get(handles.resultstable,'data');
 resultsdata=num2cell(resultsdata);
+if cellfun('isempty',resultsdata{1,1})==1
+    return
+else
 [rd,~]=size(resultsdata);
 resultsrnames=cell(rd,1);
-temprnames=get(handles.resultstable,'rowname');
+temprnames=get(handles.resultstable,'rowname')
 tempcnames=get(handles.resultstable,'columnname'); %%**
 [rt,~]=size(temprnames);
 resultsrnames(1:rt,1)=temprnames;
@@ -998,6 +779,7 @@ if rd==rt
 resultsdata=[resultsrnames,resultsdata];
 resultsdata=[[cell(1,1),tempcnames];resultsdata];
 status(1,4)=xlswrite(outname,resultsdata,'Module Results');
+end
 end
 % % if sum(status(1,:))~=4
 % %    errordlg(['Unable to save propperly, please ensure' newline...
@@ -1266,11 +1048,12 @@ function [handles]=autobase(handles)
 
 %----PC Base Radio Button Callback
 function PCbaseradio_Callback(hObject, eventdata, handles)
+tt=handles.layoutpopactive
 if get(hObject,'Value')==1
     set(handles.autoconstbaseradio,'enable','on')
     set(handles.basegeotable,'data',cell(1,2),'columnname',handles.basePCcnames,'columnformat',{'numeric','numeric'},'columneditable',[true true]) %updates base table to have only two cells for len and wid
 %     templayoutpop=[handles.layoutpop(1,1);handles.layoutpop(3:end,1)];      % base on PC selection layer table layout pop menu must be updated to only display P.C and layouts
-if strcmp(handles.layoutpopactive(2,1),'Base U.D.')==1
+if strcmp(handles.layoutpopactive,'Base U.D.')==1
     handles.layoutpopactive=handles.layoutpop(1,1);
 else
     handles.layoutpopactive=[handles.layoutpop(1,1);handles.layoutpopactive(2:end,1)];   
@@ -2298,8 +2081,10 @@ end
 axes(handles.resultsplot)
 cla reset; 
 resultplot(toggles,handles.geomaster,handles.georow,handles.TempMaster,handles.StressMaster,solnum,viewall,handles.resultplotname,handles.highlightsol,handles.resultsdata)
-handles.resultsplothold=figure('visible','off');
-resultplot(toggles,handles.geomaster,handles.georow,handles.TempMaster,handles.StressMaster,solnum,viewall,handles.resultplotname,handles.highlightsol,handles.resultsdata)
+% % axes(handles.resultsplothold)
+% % cla reset; 
+% % handles.resultsplothold=figure('visible','off');
+% % resultplot(toggles,handles.geomaster,handles.georow,handles.TempMaster,handles.StressMaster,solnum,viewall,handles.resultplotname,handles.highlightsol,handles.resultsdata)
 for i=1:loop
     set(handles.solutionstatic,'string',handles.solutionpoptxt(1,solindex));
 R1=(handles.georow*(solindex-1))+1;
@@ -2395,7 +2180,7 @@ cla(handles.resultsplot,'reset')
 set(handles.numlayersedit,'String','')
 set(handles.tprocedit,'String','')
 set(handles.nodetempedit,'String','')
-set(handles.PCbaseradio,'value',1)
+set(handles.PCbaseradio,'value',0)
 [handles.basernames,handles.layerrnames, handles.layercnames, handles.envrnames, handles.envcnames,handles.geornames,handles.featcnames,handles.geocnames, handles.layoutpop,handles.basecnames,handles.basePCcnames,handles.paracnames,handles.pararnames,handles.matparacnames,handles.matparatype,handles.bccnames,handles.bcrnames,...
     handles.featbctype,handles.sysbctype,handles.geoparatype,handles.assortedparatype,handles.msm,handles.NA,handles.bcfeat,handles.proftemplate,handles.solutionpoptxt,handles.constcnames,handles.featconsttype,handles.sysconsttype,handles.resultsrnames,handles.resultpoptxt]= tables();
 set(handles.basegeotable,'columneditable',true ,'columnformat',({'logical' 'numeric' 'numeric' 'numeric' 'numeric' 'numeric'}),'RowName',handles.basernames,'ColumnName',handles.basecnames,'data',cell(1,5));
@@ -2712,13 +2497,6 @@ handles.matparadata=get(handles.matparatable,'data'); % retrives data from assor
 [handles.matparadata]=removerow(handles.matparadata,handles.matparacurrentCell); % remove row function
 set(handles.matparatable,'data',handles.matparadata)                        % update table
 guidata(hObject,handles)                                                    % update tables
-
-%----Close App Callback----------------------------------------------------
-function closebutt_Callback(hObject, eventdata, handles)
-% hObject    handle to closebutt (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-clear all;close all;clc
 
 
 %----Remove Encapsulent Layer From Plot Radio
@@ -3196,61 +2974,9 @@ set(handles.(['layout',handles.n,'geotable']),'RowName',geomat(:,1),'data',geoma
 guidata(hObject,handles)
 
 
-% % % % --- Executes on button press in tab2radio.
-% % % function radiobutton26_Callback(hObject, eventdata, handles)
-% % % % hObject    handle to tab2radio (see GCBO)
-% % % % eventdata  reserved - to be defined in a future version of MATLAB
-% % % % handles    structure with handles and user data (see GUIDATA)
-% % % 
-% % % % Hint: get(hObject,'Value') returns toggle state of tab2radio
-% % % 
-% % % 
-% % % % --- Executes on button press in layout2confbutt.
-% % % function pushbutton80_Callback(hObject, eventdata, handles)
-% % % % hObject    handle to layout2confbutt (see GCBO)
-% % % % eventdata  reserved - to be defined in a future version of MATLAB
-% % % % handles    structure with handles and user data (see GUIDATA)
-% % % 
-% % % 
-% % % 
-% % % function edit28_Callback(hObject, eventdata, handles)
-% % % % hObject    handle to layout2numfeatedit (see GCBO)
-% % % % eventdata  reserved - to be defined in a future version of MATLAB
-% % % % handles    structure with handles and user data (see GUIDATA)
-% % % 
-% % % % Hints: get(hObject,'String') returns contents of layout2numfeatedit as text
-% % % %        str2double(get(hObject,'String')) returns contents of layout2numfeatedit as a double
-% % % 
-% % % 
-% % % % --- Executes during object creation, after setting all properties.
-% % % function edit28_CreateFcn(hObject, eventdata, handles)
-% % % % hObject    handle to layout2numfeatedit (see GCBO)
-% % % % eventdata  reserved - to be defined in a future version of MATLAB
-% % % % handles    empty - handles not created until after all CreateFcns called
-% % % 
-% % % % Hint: edit controls usually have a white background on Windows.
-% % % %       See ISPC and COMPUTER.
-% % % if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-% % %     set(hObject,'BackgroundColor','white');
-% % % end
-% % % 
-% % % 
-% % % % --- Executes on button press in layout2confquant.
-% % % function pushbutton81_Callback(hObject, eventdata, handles)
-% % % % hObject    handle to layout2confquant (see GCBO)
-% % % % eventdata  reserved - to be defined in a future version of MATLAB
-% % % % handles    structure with handles and user data (see GUIDATA)
-% % % 
-% % % 
-% % % % --- Executes on button press in clearlayout2butt.
-% % % function pushbutton82_Callback(hObject, eventdata, handles)
-% % % % hObject    handle to clearlayout2butt (see GCBO)
-% % % % eventdata  reserved - to be defined in a future version of MATLAB
-% % % % handles    structure with handles and user data (see GUIDATA)
-
-
 % --- Executes during object creation, after setting all properties.
 function pararadiotxt_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to pararadiotxt (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
+% handles    empty - handles not created until after all CreateFcns called\
+
