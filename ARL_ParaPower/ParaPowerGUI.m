@@ -1,3 +1,5 @@
+%This file and ParaPowerGUI.fig are released under the Apache 2.0 file (LICENSE_ASF2.txt) by Michael Rego
+
 function varargout = ParaPowerGUI(varargin)
 %{    
     HOW TO CREATE A NEW TAB
@@ -32,7 +34,7 @@ else
 end
 % End initialization code - DO NOT EDIT
 
-% --- Executes just before ParaPower V1.1 is made visible.
+% --- Executes just before ParaPower title is made visible.
 function ParaPowerGUI_OpeningFcn(hObject, eventdata, handles, varargin)
 % This function has no output args, see OutputFcn.
 % hObject    handle to figure
@@ -42,7 +44,7 @@ function ParaPowerGUI_OpeningFcn(hObject, eventdata, handles, varargin)
 % set(handles.tab4text,'enable','off')
 % Choose default command line output for ThermalParameterV1
 
-set(hObject,'Name','ParaPower V1.1')
+set(hObject,'Name','ParaPower V2.0.0')
 handles.output = hObject;
 % set(handles.loadprofilepop,'String',popdetails());
 handles.delta_t=0;
