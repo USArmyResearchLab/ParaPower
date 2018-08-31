@@ -46,7 +46,8 @@ Strprnt=zeros(Num_Row,Num_Col,Num_Lay); % Nodal stress results realigned to matc
 B_stead=zeros(Num_Lay*Num_Row*Num_Col,1); % Steady state contribution to the B vector, only needed for a transient solution.
 % B_Trans=zeros(Num_Lay*Num_Row*Num_Col,1);
 
-[A,B] = Resistance_Network(Num_Row,Num_Col,Num_Lay,A,B,Ta,Q,Mat,h,K,dx,dy,dz);
+[A,B] = Resistance_Network(Num_Row,Num_Col,Num_Lay,A,B,Ta,Mat,h,K,dx,dy,dz);
+
 
 
 if steps > 1
@@ -60,9 +61,18 @@ if steps > 1
                 Ind=(kk-1)*Num_Row*Num_Col+(ii-1)*Num_Col+jj;
                 Cap(ii,jj,kk)=mass(Mat(ii,jj,kk),dx(ii),dy(jj),dz(kk),RHO(ii,jj,kk),CP(ii,jj,kk),delta_t);
                 A(Ind,Ind)=A(Ind,Ind)-Cap(ii,jj,kk); %Includes Transient term in the A matrix
-                B(Ind)=B_stead(Ind)-Cap(ii,jj,kk)*T_init; %Includes Transient term in the B vector
+                B(Ind)=B_stead(Ind)-Cap(ii,jj,kk)*T_init+Q(ii,jj,kk,1); %Includes Transient term in the B vector
 %                 A_read(ii,jj,kk)=A_read_1(Ind);
 %                 B_read2(ii,jj,kk) = B(Ind);
+            end
+        end
+    end
+else
+    for kk=1:Num_Lay
+        for ii=1:Num_Row
+            for jj=1:Num_Col
+                Ind=(kk-1)*Num_Row*Num_Col+(ii-1)*Num_Col+jj;
+                B(Ind)=B_stead(Ind)+Q(ii,jj,kk,1);
             end
         end
     end
@@ -87,7 +97,7 @@ for it=1:steps
                 % Update B vector for next time step of a transient solution
                 if steps > 1
                     %                     B_Trans(Ind) = -Cap(ii,jj,kk)*Tres(ii,jj,kk,it);
-                    B(Ind)=B_stead(Ind)-Cap(ii,jj,kk)*Tres(ii,jj,kk,it); %Includes Transient term in the B vector
+                    B(Ind)=B_stead(Ind)-Cap(ii,jj,kk)*Tres(ii,jj,kk,it)+Q(ii,jj,kk,it); %Includes Transient term in the B vector
                 end
             end
         end
@@ -101,7 +111,7 @@ for it=1:steps
     %to non PCM nodes, and geometry. Could also be improved by activating
     %only when PCM phase state is changing.
     
-    [A,~] = Resistance_Network(Num_Row,Num_Col,Num_Lay,A,B,Ta,Q,Mat,h,K,dx,dy,dz);
+    [A,~] = Resistance_Network(Num_Row,Num_Col,Num_Lay,A,B,Ta,Mat,h,K,dx,dy,dz);
     
     
     

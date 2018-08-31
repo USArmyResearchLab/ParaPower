@@ -1,4 +1,4 @@
-function [A,B] = RightFace(NR,NC,NL,A,B,Ta,Q,Mat,h,kond,dx,dy,dz)
+function [A,B] = RightFace(NR,NC,NL,A,B,Ta,Mat,h,kond,dx,dy,dz)
 % global NL NR NC A B Ta Q Mat
 % Interior nodes
 j=NC;
@@ -22,7 +22,7 @@ for k=2:NL-1
         A(Ind,Ind-NR*NC)=CBM;
         A(Ind,Ind+NR*NC)=CTP;
         A(Ind,Ind)=-(CLT+CRT+CFT+CBK+CBM+CTP);
-        B(Ind)=-(CRT*Ta(2)+Q(i,j,k));
+        B(Ind)=-CRT*Ta(2);
         end
     end
 end
@@ -47,7 +47,7 @@ for k=2:NL-1
         A(Ind,Ind-NR*NC)=CBM;
         A(Ind,Ind+NR*NC)=CTP;
         A(Ind,Ind)=-(CLT+CRT+CFT+CBK+CBM+CTP);
-        B(Ind)=-(CRT*Ta(2)+CFT*Ta(3)+Q(i,j,k));
+        B(Ind)=-(CRT*Ta(2)+CFT*Ta(3));
         end
 end
 % Back edge interior nodes
@@ -71,7 +71,7 @@ for k=2:NL-1
         A(Ind,Ind-NR*NC)=CBM;
         A(Ind,Ind+NR*NC)=CTP;
         A(Ind,Ind)=-(CLT+CRT+CFT+CBK+CBM+CTP);
-        B(Ind)=-(CRT*Ta(2)+CBK*Ta(4)+Q(i,j,k));
+        B(Ind)=-(CRT*Ta(2)+CBK*Ta(4));
         end
 end
 % Bottom edge interior nodes
@@ -95,7 +95,7 @@ for i=2:NR-1
         A(Ind,Ind+NC)=CBK;
         A(Ind,Ind+NR*NC)=CTP;
         A(Ind,Ind)=-(CLT+CRT+CFT+CBK+CBM+CTP);
-        B(Ind)=-(CRT*Ta(2)+CBM*Ta(5)+Q(i,j,k));
+        B(Ind)=-(CRT*Ta(2)+CBM*Ta(5));
         end
 end
 % Top edge interior nodes
@@ -119,7 +119,7 @@ for i=2:NR-1
         A(Ind,Ind+NC)=CBK;
         A(Ind,Ind-NR*NC)=CBM;
         A(Ind,Ind)=-(CLT+CRT+CFT+CBK+CBM+CTP);
-        B(Ind)=-(CRT*Ta(2)+CTP*Ta(6)+Q(i,j,k));
+        B(Ind)=-(CRT*Ta(2)+CTP*Ta(6));
         end
 end
 % Bottom, Front corner
@@ -142,7 +142,7 @@ A(Ind,Ind-1)=CLT;
 A(Ind,Ind+NC)=CBK;
 A(Ind,Ind+NR*NC)=CTP;
 A(Ind,Ind)=-(CLT+CRT+CFT+CBK+CBM+CTP);
-B(Ind)=-(CRT*Ta(2)+CFT*Ta(3)+CBM*Ta(5)+Q(i,j,k));
+B(Ind)=-(CRT*Ta(2)+CFT*Ta(3)+CBM*Ta(5));
 end
 % Bottom, Back corner
 i=NR;
@@ -164,7 +164,7 @@ A(Ind,Ind-1)=CLT;
 A(Ind,Ind-NC)=CFT;
 A(Ind,Ind+NR*NC)=CTP;
 A(Ind,Ind)=-(CLT+CRT+CFT+CBK+CBM+CTP);
-B(Ind)=-(CRT*Ta(2)+CBK*Ta(4)+CBM*Ta(5)+Q(i,j,k));
+B(Ind)=-(CRT*Ta(2)+CBK*Ta(4)+CBM*Ta(5));
 end
 % Top, Front corner
 i=1;
@@ -186,7 +186,7 @@ A(Ind,Ind-1)=CLT;
 A(Ind,Ind+NC)=CBK;
 A(Ind,Ind-NR*NC)=CBM;
 A(Ind,Ind)=-(CLT+CRT+CFT+CBK+CBM+CTP);
-B(Ind)=-(CRT*Ta(2)+CFT*Ta(3)+CTP*Ta(6)+Q(i,j,k));
+B(Ind)=-(CRT*Ta(2)+CFT*Ta(3)+CTP*Ta(6));
 end
 % Top, Back corner
 i=NR;
@@ -208,5 +208,5 @@ A(Ind,Ind-1)=CLT;
 A(Ind,Ind-NC)=CFT;
 A(Ind,Ind-NR*NC)=CBM;
 A(Ind,Ind)=-(CLT+CRT+CFT+CBK+CBM+CTP);
-B(Ind)=-(CRT*Ta(2)+CBK*Ta(4)+CTP*Ta(6)+Q(i,j,k));
+B(Ind)=-(CRT*Ta(2)+CBK*Ta(4)+CTP*Ta(6));
 end

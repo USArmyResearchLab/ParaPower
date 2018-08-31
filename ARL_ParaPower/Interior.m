@@ -1,4 +1,4 @@
-function [A,B] = Interior(Num_Row,Num_Col,Num_Lay,A,B,Ta,Q,Mat,h,kond,dx,dy,dz)
+function [A,B] = Interior(Num_Row,Num_Col,Num_Lay,A,B,Ta,Mat,h,kond,dx,dy,dz)
 % global Num_Lay Num_Row Num_Col A B Q Mat
 for k=2:Num_Lay-1
     for i=2:Num_Row-1
@@ -24,7 +24,6 @@ for k=2:Num_Lay-1
             A(Ind,Ind-Num_Row*Num_Col)=CBM;
             A(Ind,Ind+Num_Row*Num_Col)=CTP;
             A(Ind,Ind)=-(CLT+CRT+CFT+CBK+CBM+CTP);
-            B(Ind)=-Q(i,j,k);
            end
         end
     end

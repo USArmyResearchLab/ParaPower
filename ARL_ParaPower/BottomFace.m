@@ -1,4 +1,4 @@
-function [A,B] = BottomFace(NR,NC,NL,A,B,Ta,Q,Mat,h,kond,dx,dy,dz)
+function [A,B] = BottomFace(NR,NC,NL,A,B,Ta,Mat,h,kond,dx,dy,dz)
 % global NR NC A B Ta Q Mat
 % Interior nodes
 k=1;
@@ -22,7 +22,7 @@ for i=2:NR-1
         A(Ind,Ind+NC)=CBK;
         A(Ind,Ind+NR*NC)=CTP;
         A(Ind,Ind)=-(CLT+CRT+CFT+CBK+CBM+CTP);
-        B(Ind)=-(CBM*Ta(5)+Q(i,j,k));
+        B(Ind)=-CBM*Ta(5);
         end
     end
 end

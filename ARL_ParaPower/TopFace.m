@@ -1,4 +1,4 @@
-function [A,B] = TopFace(NR,NC,NL,A,B,Ta,Q,Mat,h,kond,dx,dy,dz)
+function [A,B] = TopFace(NR,NC,NL,A,B,Ta,Mat,h,kond,dx,dy,dz)
 % global NL NR NC A B Ta Q Mat
 % Interior nodes
 k=NL;
@@ -22,7 +22,7 @@ for i=2:NR-1
         A(Ind,Ind+NC)=CBK;
         A(Ind,Ind-NR*NC)=CBM;
         A(Ind,Ind)=-(CLT+CRT+CFT+CBK+CBM+CTP);
-        B(Ind)=-(CTP*Ta(6)+Q(i,j,k));
+        B(Ind)=-CTP*Ta(6);
         end
     end
 end

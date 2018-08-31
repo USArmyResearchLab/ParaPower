@@ -1,7 +1,49 @@
-function [xlayout,ylayout,NL,dz,bmat] = PCMslice(xlayout,ylayout,dz,bmat,matprops)
+%Written by Michael Deckard
+%subdivides any layer that has a PCM into smaller layers for more accurate
+%simulation
+
+
+function [xlayout,ylayout,NL,dz,bmat,Q_matrix] = PCMslice(xlayout,ylayout,dz,bmat,matprops,delta_t,transteps)
 
 %ASSUMPTIONS
 %assumes layers are in ascending numerical order
+
+program_steps = 5; %set this number to the longest number of heat generation settings in the run
+Q_setup = zeros(2,program_steps,size(xlayout,1)); %preallocates Q_setup matrix
+
+Q_setup(1:2,1:3,1) = [0,100,200;0,.005,.01]; %this places heat generation into a feature. The second index of the assignment of Q_setup should be number of heat generation settings in the run
+%the third index in the assignment of Q_setup is the nth feature in
+%xlayout. The first row of the assignment is the heat generation in watts for the feature, and the second row is the time at which the feature achieves this heat generation. repeat as necessary for each feature
+%times must start at the initial time of the run and end at the final time
+%of the run
+
+Q_setup(1:2,1:5,3) = [50,20,200,-30,0;0,.001,.002,.003,.01];
+
+Q_matrix = zeros(size(xlayout,1),transteps); %preallocates Q_matrix
+%Q_matrix has indexes with meaning of (for each feature,for each timestep)
+%each row in Q_matrix corresponds to a row in xlayout
+for i = 1:size(xlayout,1)
+    if any(Q_setup(2,:,i)) %if times for a Q have been assigned for this feature
+        for p = 1:size(Q_setup(2,1+find(Q_setup(2,2:end,i)~=0),i),2) %for each entry heat generation entry into Q_setup for a specific feature
+            if rem((Q_setup(2,p,i)+delta_t),delta_t) < delta_t/2
+                t1 = floor((Q_setup(2,p,i)+delta_t)/delta_t)*delta_t;
+            else
+                t1 = ceil((Q_setup(2,p,i)+delta_t)/delta_t)*delta_t;
+            end
+            if rem(Q_setup(2,p+1,i),delta_t) < delta_t
+                t2 = floor(Q_setup(2,p+1,i)/delta_t)*delta_t;
+            else
+                t2 = ceil(Q_setup(2,p+1,i)/delta_t)*delta_t;
+            end
+            %finds start and end times that are divisible by the delta_t closest to the
+            %setpoint start and end times for each programmed Q setpoint
+            Q_matrix(i,t1/delta_t:t2/delta_t) = interp1(Q_setup(2,p:p+1,i),Q_setup(1,p:p+1,i),t1:delta_t:t2);
+            %assignes matrix of interpolated Q values for each set of times
+        end
+    end
+end
+
+% Q_matrix = sparse(Q_matrix);
 
 layermax = 0.0017/20; %max layer thickness for any layer with PCM
 isPCM = matprops(:,7)'; %vector that takes a material list pointer and returns true if that material is a PCM
@@ -61,9 +103,17 @@ for i = 1:size(xlayout,1) %for each original layer
             
             jj = 0; %index adjustment for multiple features in the same layer
             for ii = find(xlayout(:,6)==m)'
+                %NEEDS CHANGE, NO LONGER LINEAR POWER
                 xlayout(ii+jj,5) = xlayout(ii+jj,5)/(n+1);
                 editxlayout = repmat(xlayout(ii+jj,:),n,1); %xlayout matrix of subdivided layers, minus the first layer
                 xlayout = cat(1,xlayout(1:ii+jj,:),editxlayout,xlayout(ii+jj+1:end,:)); %combine xlayout layers
+                editQ_matrix = bsxfun(@times,repmat(Q_matrix(ii+jj,:),n,1)./Ltot,dz(ii+1:ii+n)'); %I think this is how spreading out the Q_matrix to match the change in xlayout should work
+                Q_matrix(ii+jj,:) = Q_matrix(ii+jj,:)./Ltot.*dz(ii+jj); %assigns power generation of new subdivided layer based on total power of feature
+                
+                %need to account for the change in power for each
+                %subdivided element the occurs when slicing
+                Q_matrix = cat(1,Q_matrix(1:ii+jj,:),editQ_matrix,Q_matrix(ii+jj+1:end,:));
+                
                 for iii = 1:n %update layer number values for subdivided layers
                     xlayout(ii+jj+iii,6) = xlayout(ii+jj,6) + iii;
                 end

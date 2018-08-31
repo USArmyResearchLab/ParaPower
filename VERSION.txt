@@ -9,6 +9,8 @@ V1.0.2 - Added Parapower Manual, version 1
 
 V1.1.0 - Adding PCM
 
+V2.0.0 - Added transient and PCM
+
 
 Features to Add
 

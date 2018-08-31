@@ -1,4 +1,4 @@
-function [Mat,Q] = GridLocations(NR,NC,NL,xlayout,ylayout,dx,dy,bmat,meshdensity)
+function [Mat,Q] = GridLocations(NR,NC,NL,xlayout,ylayout,dx,dy,bmat,Q_matrix)
 %% Device location within grid 
 % mat=[1 2 3 2 2 2 4 4 4 4 5]';
 % QQ=zeros(20,1);
@@ -49,25 +49,25 @@ for ii=1:ly
     col2=3;
 end
 Mat=zeros(NC,NR,NL);
-Q=Mat;
+Q=zeros(NC,NR,NL,size(Q_matrix,2));
 grid_area = zeros(NR,NC,NL);
 for i = 1:NL
     grid_area(:,:,i) = flipud(dy'*dx);                                     %creates an array of the areas of each element in each layer; assumes all layers have the same gridspacing
 end
 f(:,5:7)=xlayout(:,5:7);
 f_area(:,1) = (pointerx(1,f(:,2))-pointerx(1,f(:,1))).*(pointery(1,f(:,4))-pointery(1,f(:,3))); %creates an array of areas for each feature, size is (lf,1)
-f_q = f(:,5)./f_area(:,1);                                                 %converts total heat generation for each feature into a per area heat generation
+f_q = bsxfun(@rdivide,Q_matrix,f_area(:,1));                                                 %converts total heat generation for each feature into a per area heat generation
 % f(:,7)=mat;
 f(:,[2 4])=f(:,[2 4])-1;
 [lf,~]=size(f);
 for i=1:lf
     Mat(f(i,1):f(i,2),f(i,3):f(i,4),f(i,6))=f(i,7);
     %    Mat(f(i,3):f(i,4),f(i,1):f(i,2),f(i,6))=f(i,7)
-    Q(f(i,1):f(i,2),f(i,3):f(i,4),f(i,6))=f_q(i);                          %creates an array of per area heat generation for each element in the simulation
+    Q(f(i,1):f(i,2),f(i,3):f(i,4),f(i,6),:)=repmat(permute(f_q(i,:),[3 4 1 2]),size(f(i,1):f(i,2),2),size(f(i,3):f(i,4),2),1,1);                       %creates an array of per area heat generation for each element in the simulation, the vast majority of the code on the right side of the equals sign is to get the matrix in the appropriate form
 end
 Mat=rot90(Mat);                                                             %rotates Mat and Q matricies to have correct spacial orientation with standard xy axes
 Q=rot90(Q);
-Q = Q.*grid_area;                                                           %generates a total heat generation for each element in the simulation
+Q = bsxfun(@times,Q,grid_area);                                                           %generates a total heat generation for each element in the simulation
 [~,~,lm]=size(Mat);
 for i=1:lm
     B=Mat(:,:,i);                                                               % alternativly s( s==0 )=-1; should be used but assignment to correct layer in 3d matrix was not able to be achieved

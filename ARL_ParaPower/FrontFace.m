@@ -1,4 +1,4 @@
-function [A,B] = FrontFace(NR,NC,NL,A,B,Ta,Q,Mat,h,kond,dx,dy,dz)
+function [A,B] = FrontFace(NR,NC,NL,A,B,Ta,Mat,h,kond,dx,dy,dz)
 % global NL NR NC A B Ta Q Mat
 % Interior nodes
 i=1;
@@ -22,7 +22,7 @@ for k=2:NL-1
         A(Ind,Ind-NR*NC)=CBM;
         A(Ind,Ind+NR*NC)=CTP;
         A(Ind,Ind)=-(CLT+CRT+CFT+CBK+CBM+CTP);
-        B(Ind)=-(CFT*Ta(3)+Q(i,j,k));
+        B(Ind)=-CFT*Ta(3);
         end
     end
 end
@@ -47,7 +47,7 @@ for j=2:NC-1
         A(Ind,Ind+NC)=CBK;
         A(Ind,Ind+NR*NC)=CTP;
         A(Ind,Ind)=-(CLT+CRT+CFT+CBK+CBM+CTP);
-        B(Ind)=-(CFT*Ta(3)+CBM*Ta(5)+Q(i,j,k));
+        B(Ind)=-(CFT*Ta(3)+CBM*Ta(5));
         end
 end
 % Top edge interior nodes
@@ -71,6 +71,6 @@ for j=2:NC-1
         A(Ind,Ind+NC)=CBK;
         A(Ind,Ind-NR*NC)=CBM;
         A(Ind,Ind)=-(CLT+CRT+CFT+CBK+CBM+CTP);
-        B(Ind)=-(CFT*Ta(3)+CTP*Ta(6)+Q(i,j,k));
+        B(Ind)=-(CFT*Ta(3)+CTP*Ta(6));
         end
 end
