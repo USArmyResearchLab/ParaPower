@@ -1,0 +1,15 @@
+V1.0.0 - Initial Release
+	Initial release includes the following primary features...
+		Time invariant heat input
+		Stress analysis
+		Thermal analysis
+		Single phase materials
+V1.0.1 - Fixed bug, added 'ARL'	
+V1.0.2 - Added Parapower Manual, version 1	
+
+V1.1.0 - Adding PCM
+
+
+Features to Add
+
+1. Remove dependency on Excel .dll
