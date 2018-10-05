@@ -88,7 +88,7 @@ for it=1:steps
                 Tres(ii,jj,kk,it)=T(Ind,it);
                 % Makes the temperatures print in the same order as nodes for any partucular layer               
                 
-                if isPCM(Mat(ii,jj,kk)) == 1
+                if (Mat(ii,jj,kk) ~= 0) && isPCM(Mat(ii,jj,kk)) == 1
                 [Tres(ii,jj,kk,it),hft(ii,jj,kk),meltfrac(ii,jj,kk,it),K(ii,jj,kk),CP(ii,jj,kk),RHO(ii,jj,kk),Cap(ii,jj,kk)] = Phase_Change(Mat,Tres(ii,jj,kk,it),Tm(Mat(ii,jj,kk)),hft(ii,jj,kk),Lw(Mat(ii,jj,kk)),CP(ii,jj,kk),kondl(Mat(ii,jj,kk)),kond(Mat(ii,jj,kk)),sphtl(Mat(ii,jj,kk)),spht(Mat(ii,jj,kk)),rhol(Mat(ii,jj,kk)),rho(Mat(ii,jj,kk)),dx(ii),dy(jj),dz(kk),delta_t);
                 end
 

@@ -16,9 +16,11 @@ for kk=1:Num_Lay
     for ii=1:Num_Row
         for jj=1:Num_Col
             %assumes all materials start simulation in solid form
-            K(ii,jj,kk) = kond(Mat(ii,jj,kk)); %Thermal Conductivity matrix for effective nodal thermal conductivities. Changes with time
-            CP(ii,jj,kk) = spht(Mat(ii,jj,kk)); %Specific heat matrix for effective nodal specific heats. Changes with time for PCM nodes
-            RHO(ii,jj,kk) = rho(Mat(ii,jj,kk)); % density matrix. Changes with time for PCM nodes
+            if Mat(ii,jj,kk)~=0
+                K(ii,jj,kk) = kond(Mat(ii,jj,kk)); %Thermal Conductivity matrix for effective nodal thermal conductivities. Changes with time
+                CP(ii,jj,kk) = spht(Mat(ii,jj,kk)); %Specific heat matrix for effective nodal specific heats. Changes with time for PCM nodes
+                RHO(ii,jj,kk) = rho(Mat(ii,jj,kk)); % density matrix. Changes with time for PCM nodes
+            end
         end
     end
 end

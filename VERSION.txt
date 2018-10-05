@@ -16,3 +16,4 @@ Features to Add
 
 1. Remove dependency on Excel .dll
 2. Fix tabs should be highlighted when selected
+3. 1x1 column of elements appears to break code
