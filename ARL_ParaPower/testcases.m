@@ -17,12 +17,12 @@ if 1
     ExternalConditions.Ta_Right=20;
     ExternalConditions.Ta_Front=20;
     ExternalConditions.Ta_Back=20;
-    ExternalConditions.Ta_Top=0;
+    ExternalConditions.Ta_Top=20;
     ExternalConditions.Ta_Bottom=20;
 
     ExternalConditions.Tproc=280;
 
-    EndTime          = 10; 
+    EndTime          = 1; 
     Params.Tinit     = 20;
     Params.DeltaT    = 1e-3;
     Params.Tsteps    = EndTime/Params.DeltaT;
