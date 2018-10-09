@@ -10,21 +10,21 @@ if 1
     ExternalConditions.h_Right=0;
     ExternalConditions.h_Front=0;
     ExternalConditions.h_Back=0;
-    ExternalConditions.h_Top=1e8;
+    ExternalConditions.h_Top=1e12;
     ExternalConditions.h_Bottom=0;
 
     ExternalConditions.Ta_Left=20;
     ExternalConditions.Ta_Right=20;
     ExternalConditions.Ta_Front=20;
     ExternalConditions.Ta_Back=20;
-    ExternalConditions.Ta_Top=20;
+    ExternalConditions.Ta_Top=0;
     ExternalConditions.Ta_Bottom=20;
 
     ExternalConditions.Tproc=280;
 
-    EndTime          = 1; 
+    EndTime          = 30; 
     Params.Tinit     = 20;
-    Params.DeltaT    = 1e-3;
+    Params.DeltaT    = 2e-2;
     Params.Tsteps    = EndTime/Params.DeltaT;
 
     PottingMaterial  = 0;
@@ -35,14 +35,14 @@ if 1
     Features(1).dx   = 2;
     Features(1).dy   = 2;
     Features(1).dz   = 10;
-    Features(1).Matl = 'Cu';
+    Features(1).Matl = 'Fields Metal';
     Features(1).Q    = 0;
 
     Features(2)=Features(1);
     Features(2).z    = [0 0];
     Features(2).dz   = 1;
     Features(2).Matl = 'Cu';
-    Features(2).Q    = 100;
+    Features(2).Q    = 10/(Features(1).dy*Features(1).dx);
 
     [GlobalTime, Tprnt, Stress, MeltFrac]=CLI_Input(Features, PottingMaterial, ExternalConditions, Params, true);
 end

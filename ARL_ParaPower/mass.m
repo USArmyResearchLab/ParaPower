@@ -1,8 +1,8 @@
 function [cap,vol]=mass(dx,dy,dz,RHO,CP)
-%takes dx, dy, dz of length NR, NC, NL to compute volume vector
+%takes dx, dy, dz of length NC, NR, NL to compute volume vector
 % capacity is computed from vol RHO and CP vectors - length NR*NC*NL
 vol = reshape(reshape(dy'*dx,[],1)*dz,[],1);        
-cap=RHO'.*CP'.*vol;
+cap=RHO.*CP.*vol;
 end
 
 

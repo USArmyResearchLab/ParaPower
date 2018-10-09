@@ -56,8 +56,8 @@ Z=unique(Z);
 Z0=unique(Z0);
 Z=sort([Z Z0]); 
 
-ModelMatrix=zeros(length(X)-1,length(Y)-1,length(Z)-1);
-Q=zeros(length(X)-1,length(Y)-1,length(Z)-1,Params.Tsteps);
+ModelMatrix=zeros(length(Y)-1,length(X)-1,length(Z)-1);
+Q=zeros(length(Y)-1,length(X)-1,length(Z)-1,Params.Tsteps);
 GlobalTime=[0:Params.DeltaT:(Params.Tsteps-1)*Params.DeltaT];
 
 %Get minimum values of feature coords for visualization purposes.
@@ -88,9 +88,9 @@ for Xi=1:length(X)-1
                         fprintf('Material %s not found in database. Check spelling\n',Features(Fi).Matl)
                         MatNum=nan;
                      end
-                     ModelMatrix(Xi,Yi,Zi)=MatNum;
+                     ModelMatrix(Yi,Xi,Zi)=MatNum;
                      if isscalar(Features(Fi).Q)
-                         Q(Xi,Yi,Zi,:)=Features(Fi).Q;
+                         Q(Yi,Xi,Zi,:)=Features(Fi).Q;
                      else
                          disp('Defining time dependent Q')
                          ThisQ=Features(Fi).Q;
@@ -102,7 +102,7 @@ for Xi=1:length(X)-1
                              disp('Defining Q at max(time)')
                              ThisQ=[ThisQ; [GlobalTime(end) ThisQ(end,2)]];
                          end
-                         Q(Xi,Yi,Zi,:)=interp1(ThisQ(:,1),ThisQ(:,2), GlobalTime,'spline');
+                         Q(Yi,Xi,Zi,:)=interp1(ThisQ(:,1),ThisQ(:,2), GlobalTime,'spline');
                      end
                 end
             end
@@ -184,7 +184,7 @@ end
     for Xi=1:length(X)-1
         for Yi=1:length(Y)-1
             for Zi=1:length(Z)-1
-                if (ModelMatrix(Xi,Yi,Zi) ~=0)
+                if (ModelMatrix(Yi,Xi,Zi) ~=0)
                     X1=X(Xi);
                     X2=X(Xi+1);
                     Y1=Y(Yi);
@@ -196,15 +196,15 @@ end
                     else
                         FaceAlpha=0.5;
                     end
-                    F(1)=fill3([X1 X1 X2 X2], [Y1 Y2 Y2 Y1], [Z1 Z1 Z1 Z1],PlotState(Xi,Yi,Zi),'facealpha',FaceAlpha);
-                    F(2)=fill3([X1 X1 X2 X2], [Y1 Y2 Y2 Y1], [Z2 Z2 Z2 Z2],PlotState(Xi,Yi,Zi),'facealpha',FaceAlpha);
-                    F(3)=fill3([X1 X1 X2 X2], [Y1 Y1 Y1 Y1], [Z1 Z2 Z2 Z1],PlotState(Xi,Yi,Zi),'facealpha',FaceAlpha);
-                    F(4)=fill3([X1 X1 X2 X2], [Y2 Y2 Y2 Y2], [Z1 Z2 Z2 Z1],PlotState(Xi,Yi,Zi),'facealpha',FaceAlpha);
-                    F(5)=fill3([X1 X1 X1 X1], [Y1 Y1 Y2 Y2], [Z1 Z2 Z2 Z1],PlotState(Xi,Yi,Zi),'facealpha',FaceAlpha);
-                    F(6)=fill3([X2 X2 X2 X2], [Y1 Y1 Y2 Y2], [Z1 Z2 Z2 Z1],PlotState(Xi,Yi,Zi),'facealpha',FaceAlpha);
+                    F(1)=fill3([X1 X1 X2 X2], [Y1 Y2 Y2 Y1], [Z1 Z1 Z1 Z1],PlotState(Yi,Xi,Zi),'facealpha',FaceAlpha);
+                    F(2)=fill3([X1 X1 X2 X2], [Y1 Y2 Y2 Y1], [Z2 Z2 Z2 Z2],PlotState(Yi,Xi,Zi),'facealpha',FaceAlpha);
+                    F(3)=fill3([X1 X1 X2 X2], [Y1 Y1 Y1 Y1], [Z1 Z2 Z2 Z1],PlotState(Yi,Xi,Zi),'facealpha',FaceAlpha);
+                    F(4)=fill3([X1 X1 X2 X2], [Y2 Y2 Y2 Y2], [Z1 Z2 Z2 Z1],PlotState(Yi,Xi,Zi),'facealpha',FaceAlpha);
+                    F(5)=fill3([X1 X1 X1 X1], [Y1 Y1 Y2 Y2], [Z1 Z2 Z2 Z1],PlotState(Yi,Xi,Zi),'facealpha',FaceAlpha);
+                    F(6)=fill3([X2 X2 X2 X2], [Y1 Y1 Y2 Y2], [Z1 Z2 Z2 Z1],PlotState(Yi,Xi,Zi),'facealpha',FaceAlpha);
                     if PlotGeom
-                        T=sprintf('%s (%i)',matlist{ModelMatrix(Xi,Yi,Zi)}, ModelMatrix(Xi,Yi,Zi));
-                        ThisQ=unique(Q(Xi,Yi,Zi,:));
+                        T=sprintf('%s (%i)',matlist{ModelMatrix(Yi,Xi,Zi)}, ModelMatrix(Yi,Xi,Zi));
+                        ThisQ=unique(Q(Yi,Xi,Zi,:));
                         if (~isscalar(ThisQ)) || ThisQ ~=0
                             Sp=' '; %char(10) if want them on different line
                             if isscalar(ThisQ)

@@ -28,9 +28,9 @@ rho = matprops(:,5)'; %density of the solid state
 spht = matprops(:,6)'; %solid specific heat
 
 
-K = kond(reshape(Mat,[],1)); %Thermal Conductivity vector for nodal thermal conductivities. Updatable with time
-CP = spht(reshape(Mat,[],1)); %Specific heat vector for effective nodal specific heats. Updatable with time
-RHO = rho(reshape(Mat,[],1)); %effective density vector. Updatable with time
+K = kond(reshape(Mat,[],1))'; %Thermal Conductivity vector for nodal thermal conductivities. Updatable with time
+CP = spht(reshape(Mat,[],1))'; %Specific heat vector for effective nodal specific heats. Updatable with time
+RHO = rho(reshape(Mat,[],1))'; %effective density vector. Updatable with time
 
 nlsub=1; % # layers that are substrate material
 % Pre-load Matrices with zeros
@@ -79,7 +79,7 @@ for it=1:steps
     if steps > 1 && it~=steps
         Cap=mass(dx,dy,dz,RHO,CP); %units of J/K
         Atrans=-diag(Cap./delta_t(1));  %Save Transient term for the diagonal of A matrix, units W/K
-        C=-Cap./delta_t(1).*T_init; %units of watts
+        C=-Cap./delta_t(1).*T(:,it); %units of watts
         
         if exist('changing','var') && any(changing)
         % Rebuild A, B with new material properties
