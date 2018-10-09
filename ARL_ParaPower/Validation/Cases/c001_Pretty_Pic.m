@@ -4,6 +4,8 @@
 
     clear Features ExternalConditions Params PottingMaterial
 
+    Desc='Pretty Picture';
+    
     NumDiv=3;  %Number of divisions/feature in X/Y
     NumLayer=3; %Number of layers/feature
 
@@ -32,62 +34,51 @@
     %Layer 1 is at bottom
 
     %Material for all elements not otherwise defined
-    PottingMaterial=1;  %If 0, then non-feature area is empty, otherwise should be a mat'l defined in matlist
+    PottingMaterial='AIR';  %If 0, then non-feature area is empty, otherwise should be a mat'l defined in matlist
 
 
     %Base Feature
-    Features(1).x  =  [0 1]*0.03;  % X Coordinates of edges of elements
-    Features(end).y=  [0 1]*0.03;  % y Coordinates of edges of elements
-    Features(end).z=  [0 1]*0.001; % Height in z directions
+    Features(1).x  =  [0 1]*0.10;  % X Coordinates of edges of elements
+    Features(end).y=  [0 1]*0.30;  % y Coordinates of edges of elements
+    Features(end).z=  [0 1]*0.010; % Height in z directions
     Features(end).dx=NumDiv;
     Features(end).dy=NumDiv;
     Features(end).dz=NumLayer;
-    Features(end).Matl='Cu';
+    Features(end).Matl='AlN';
     Features(end).Q=0;
 
-    %Zero height Features to add meshing
-    Features(end+1).x=[0 1]*0.01;  % X Coordinates of edges of elements
-    Features(end).y  =[0 1]*0.01;  % y Coordinates of edges of elements
-    Features(end).z  =[1 1]*0.001; % Height in z directions
-    Features(end).dx=NumDiv;
-    Features(end).dy=NumDiv;
-    Features(end).dz=NumLayer;
-    Features(end).Matl='Cu';
-    Features(end).Q=0;
-
-    %Zero height Features to add meshing
-    Features(end+1).x=0.02  + [0 1]*0.01;  % X Coordinates of edges of elements
-    Features(end).y  =0.02  + [0 1]*0.01;  % y Coordinates of edges of elements
-    Features(end).z  =[1 1]*0.001; % Height in z directions
-    Features(end).dx =NumDiv;
-    Features(end).dy =NumDiv;
-    Features(end).dz =NumLayer;
-    Features(end).Matl='Cu';
-    Features(end).Q(:,1)=[.001 .002];
-    Features(end).Q(:,2)=[100 200];
-    Features(end).Q=0;
-
-    %Main Features
+    %Chip 1 Feature
     Features(end+1).x=0.01  + [0 1]*0.01;  % X Coordinates of edges of elements
-    Features(end).y=0.01  + [0 1]*0.01;  % y Coordinates of edges of elements
-    Features(end).z=0.001 + [0 1]*0.0005; % Height in z directions
+    Features(end).y  =0.01  + [0 1]*0.01;  % y Coordinates of edges of elements
+    Features(end).z  =0.01  + [0 1]*0.001; % Height in z directions
     Features(end).dx=NumDiv;
     Features(end).dy=NumDiv;
     Features(end).dz=NumLayer;
-    Features(end).Matl='SiC';
+    Features(end).Matl='Chip';
     Features(end).Q=0;
-
-    %Zero height Main Feature heat source
-    Features(end+1).x=0.01  + [0 1]*0.01;  % X Coordinates of edges of elements
-    Features(end).y=0.01  + [0 1]*0.01;  % y Coordinates of edges of elements
-    Features(end).z=0.001 + [1 1]*0.0005; % Height in z directions
-    Features(end).dx=NumDiv;
-    Features(end).dy=NumDiv;
-    Features(end).dz=NumLayer;
+    Features(end+1)=Features(end);
+    Features(end).z=[1 1]*max(Features(end-1).z); % Height in z directions
+    Features(end).dz=1;
     Features(end).Matl='SiC';
     Features(end).Q=500;  %Q(:,1)=time, Q(:,2)=value of q
     
+    %Chip 2 Feature
+    Features(end+1).x=0.04  + [0 1]*0.01;  % X Coordinates of edges of elements
+    Features(end).y  =0.01  + [0 1]*0.01;  % y Coordinates of edges of elements
+    Features(end).z  =0.01  + [0 1]*0.001; % Height in z directions
+    Features(end).dx=NumDiv;
+    Features(end).dy=NumDiv;
+    Features(end).dz=NumLayer;
+    Features(end).Matl='Chip';
+    Features(end).Q=0;
+    Features(end+1)=Features(end);
+    Features(end).z=[1 1]*max(Features(end-1).z); % Height in z directions
+    Features(end).dz=1;
+    Features(end).Matl='SiC';
+    Features(end).Q=500;  %Q(:,1)=time, Q(:,2)=value of q
+
     TestCaseModel.ExternalConditions=ExternalConditions;
     TestCaseModel.Features=Features;
     TestCaseModel.Params=Params;
     TestCaseModel.PottingMaterial=PottingMaterial;
+    TestCasemodel.Desc=Desc;

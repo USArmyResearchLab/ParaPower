@@ -23,6 +23,25 @@ function [matprops,matlist,matcolors,kond,cte,E,nu,rho,spht] = matlibfun( )
 % sphtl = matprops(:,10)'; %solid volumetric heat (volumetric form of specific heat)
 % Lw = matprops(:,11)'; %Latent heat of fusion
 % Tm = matprops(:,12)'; %Melting point of material, in degrees C
+
+
+
+%In process of redefining material library
+Material=[];
+Material(end+1).Name            ='Al';
+Material(end).Solid_Condivity   =172;
+Material(end).cte               =23.5e-6;
+Material(end).E                 =69e9;
+Material(end).PoissonRatio      =.33;
+Material(end).Solid_Density     =2700;
+Material(end).Solid_SpecHeat    =900;
+Material(end).isPCM             =0;
+Material(end).Liq_Conductivity  =0;
+Material(end).Liq_Density       =0;
+Material(end).Liq_SpecHeat      =0;
+Material(end).HeatFusion        =0;
+Material(end).Tmelt             =0;
+
 Al=[172 23.5e-6 69e9 0.33 2700 900 0 0 0 0 0 0]; %Aluminum Material Data
 Cu=[390 24e-6 110e9 0.37 8900 390 0 0 0 0 0 0]; %Copper Materail Data
 AlN=[170 5.3e-6 344e9 0.24 3260 740 0 0 0 0 0 0]; %Aluminum Nitride Material Data

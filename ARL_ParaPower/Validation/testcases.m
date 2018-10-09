@@ -2,11 +2,15 @@
 
 addpath('..');  %include above directory which contains the parapower code
 testcasefiles=dir('Cases\*.m');
-
+fprintf('\n')
+figure(1);clf
+figure(2);clf
+pause(.001)
 for Icase=1:length(testcasefiles)
     
     CaseName=char(testcasefiles(Icase).name);
     CaseName=CaseName(1:end-2);
+    clear TestCaseModel
     
     if isempty(str2num(CaseName(1)))
         fprintf('Executing test case %s...\n',CaseName)
@@ -34,18 +38,23 @@ for Icase=1:length(testcasefiles)
         end
         clear VarsOrig VarsNew
     
+        figure(1);clf
         MI=FormModel(TestCaseModel, true);
-        disp('Press key to continue.');pause
+        fprintf('Analysis starting...')
 
-        disp('Analysis starting...')
-
-        [Tprnt, Stress, MeltFrac]=ParaPowerThermal(MI.NL,MI.NR,MI.NC, ...
+        GlobalTime=[0:MI.Tsteps-1]*MI.DeltaT;  %Since there is global time vector, construct one here.
+%        [Tprnt, Stress, MeltFrac]=ParaPowerThermal(MI.NL,MI.NR,MI.NC, ...
+        [Tprnt, Stress, MeltFrac]=ParaPowerThermal( ...
                                                MI.h,MI.Ta, ...
                                                MI.X,MI.Y,MI.Z, ...
                                                MI.Tproc, ...
                                                MI.Model,MI.Q, ...
                                                MI.DeltaT,MI.Tsteps,MI.Tinit,MI.matprops);
-       Visualize([0 0 0 ],{MI.X MI.Y MI.Z}, MI.Model, Tprnt(:,:,:,end))                                
+       fprintf('Complete.\n')
+                                           
+       figure(2);clf
+       StateN=length(GlobalTime);
+       Visualize(sprintf('t=%1.2f ms, State: %i of %i',StateN*MI.DeltaT*1000, StateN,length(Tprnt(1,1,1,:))),[0 0 0 ],{MI.X MI.Y MI.Z}, MI.Model, Tprnt(:,:,:,StateN),'Temperature')                                
        disp('Press key to continue.');pause
     end
 end

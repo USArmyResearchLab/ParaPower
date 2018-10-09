@@ -3,12 +3,12 @@ function ModelInput=FormModel(TestCaseModel, VisualizeFlag)
 
 
 %Overall structures orientation/BCs for ease of reference
-Left=1; %X-
-Right=2; %X+ Face
-Front=3; %Y- Face
-Back=4; %Y+ Face
-Bottom=5; %Z- Face
-Top=6; %Z+ Face
+Left  = 1; %X- Face
+Right = 2; %X+ Face
+Front = 3; %Y- Face
+Back  = 4; %Y+ Face
+Bottom= 5; %Z- Face
+Top   = 6; %Z+ Face
 
 if ischar(TestCaseModel) 
     if strcmpi('GetDirex',TestCaseModel)
@@ -94,8 +94,9 @@ Y=sort([Y Y0]);
 Z=sort([Z Z0]); 
 
 Params.Tsteps=floor(Params.Tsteps);
-ModelMatrix=zeros(length(X)-1,length(Y)-1,length(Z)-1);
-Q=zeros(length(X)-1,length(Y)-1,length(Z)-1,Params.Tsteps);
+ModelMatrix=zeros(length(Y)-1,length(X)-1,length(Z)-1);
+Q=zeros([size(ModelMatrix) Params.Tsteps]);
+%Q=zeros(length(X)-1,length(Y)-1,length(Z)-1,Params.Tsteps);
 GlobalTime=[0:Params.DeltaT:(Params.Tsteps-1)*Params.DeltaT];
 
 %Get minimum values of feature coords for visualization purposes.
@@ -124,7 +125,7 @@ for Xi=1:length(X)-1
                         fprintf('Material %s not found in database. Check spelling\n',Features(Fi).Matl)
                         MatNum=nan;
                      end
-                     ModelMatrix(Xi,Yi,Zi)=MatNum;
+                     ModelMatrix(Yi,Xi,Zi)=MatNum;
                      
                      %Negate Q so that postive Q is corresponds to heat generation
                      ThisQ=-1*Features(Fi).Q;
@@ -133,7 +134,7 @@ for Xi=1:length(X)-1
                      ThisQ=ThisQ / (Features(Fi).dx*Features(Fi).dy*Features(Fi).dz);
                      
                      if isscalar(ThisQ)
-                         Q(Xi,Yi,Zi,:)=ThisQ;
+                         Q(Yi,Xi,Zi,:)=ThisQ;
                      else
                          disp('Defining time dependent Q')
                          if ThisQ(1,1) > GlobalTime(1) %If Q for features is not defined at time beginning, then define it
@@ -144,7 +145,7 @@ for Xi=1:length(X)-1
                              disp('Defining Q at max(time)')
                              ThisQ=[ThisQ; [GlobalTime(end) ThisQ(end,2)]];
                          end
-                         Q(Xi,Yi,Zi,:)=interp1(ThisQ(:,1),ThisQ(:,2), GlobalTime,'spline');
+                         Q(Yi,Xi,Zi,:)=interp1(ThisQ(:,1),ThisQ(:,2), GlobalTime,'spline');
                      end
                 end
             end
@@ -153,13 +154,15 @@ for Xi=1:length(X)-1
 end
 
 if ischar(PottingMaterial)
-    MatNum=find(strcmp(PottingMaterial,matlist));
+    MatNum=find(strcmp(lower(PottingMaterial),lower(matlist)));
     if isempty(MatNum)
         MatNum=NaN;
-        fprintf('Other material %s is unknown',PottingMaterial);
+        fprintf('Potting material %s is unknown',PottingMaterial);
     end
-    ModelMatrix(ModelMatrix==0)=MatNum;
+else
+    MatNum=PottingMaterials;
 end
+ModelMatrix(ModelMatrix==0)=MatNum;
 
 % %Check for existance of Z=0 layer
 % Zzero=find(Z==0);
@@ -175,16 +178,14 @@ end
 %step through, dx, dy, dz, compare to Features and set material number
 
 
-NL=length(ModelMatrix(1,1,:));
-NR=length(ModelMatrix(:,1,1));
-NC=length(ModelMatrix(1,:,1));
+[NR, NC, NL]=GetNumRCL(ModelMatrix);
 
 DeltaCoord.X=X(2:end)-X(1:end-1);
 DeltaCoord.Y=Y(2:end)-Y(1:end-1);
 DeltaCoord.Z=Z(2:end)-Z(1:end-1);
 
 if VisualizeFlag
-    Visualize (MinCoord, {DeltaCoord.X DeltaCoord.Y DeltaCoord.Z}, ModelMatrix, h, Ta, matlist, Q)
+    Visualize ('Model Input', MinCoord, {DeltaCoord.X DeltaCoord.Y DeltaCoord.Z}, ModelMatrix, h, Ta, matlist, Q)
 end
 
 ModelInput.NL=NL;
