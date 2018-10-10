@@ -7,7 +7,7 @@ function [Ind] = index(NRCL,i,j,k)
 %   If one index is passed, the corresponding three are returned as [i,j,k].
 
 %Convert NRCL to integer array by rounding
-NRCL=int16(NRCL);
+%NRCL=int16(NRCL);
 
 if length(NRCL)~=3
     error('Require triple of NRCL = [NR,NC,NL]')

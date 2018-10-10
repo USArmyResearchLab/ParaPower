@@ -82,13 +82,17 @@ for it=1:steps
         C=-Cap./delta_t(1).*T(:,it); %units of watts
         
         if exist('changing','var') && any(changing)
-        % Rebuild A, B with new material properties
+            touched=find((abs(A)*changing)>0);  %find not only those elements changing, but those touched by changing elements
+            for u=1:length(touched)
+               %[A,B]=Resistance_Update(u,A,B,Ta,Mat,h,K,dx,dy,dz);
+            % Rebuild A, B with new material properties
+            end
         % [A,B] = Resistance_Network(changing,A,B,K, etc);
         end
         
     end
    
-    %[A,B] = Resistance_Network(Num_Row,Num_Col,Num_Lay,A,B,Ta,Mat,h,K,dx,dy,dz);
+    [A,B] = Resistance_Network(Num_Row,Num_Col,Num_Lay,A,B,Ta,Mat,h,K,dx,dy,dz);
     
     %Time history of A and B are not being stored, instead overwritten
 end
