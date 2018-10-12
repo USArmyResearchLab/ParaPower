@@ -1,4 +1,4 @@
-function ModelInput=FormModel(TestCaseModel, VisualizeFlag)
+function ModelInput=FormModel(TestCaseModel)
 %disp('============================')
 
 
@@ -185,9 +185,9 @@ DeltaCoord.X=X(2:end)-X(1:end-1);
 DeltaCoord.Y=Y(2:end)-Y(1:end-1);
 DeltaCoord.Z=Z(2:end)-Z(1:end-1);
 
-if VisualizeFlag
-    Visualize ('Model Input', MinCoord, {DeltaCoord.X DeltaCoord.Y DeltaCoord.Z}, ModelMatrix, h, Ta, matlist, Q)
-end
+%if VisualizeFlag
+%    Visualize ('Model Input', MinCoord, {DeltaCoord.X DeltaCoord.Y DeltaCoord.Z}, ModelMatrix, h, Ta, matlist, Q)
+%end
 
 ModelInput.NL=NL;
 ModelInput.NR=NR;
@@ -204,6 +204,7 @@ ModelInput.DeltaT=Params.DeltaT;
 ModelInput.Tinit=Params.Tinit;
 ModelInput.Tsteps=Params.Tsteps;
 ModelInput.matprops=matprops;
+ModelInput.matlist=matlist;
 
 
 end

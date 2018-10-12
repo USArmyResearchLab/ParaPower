@@ -27,7 +27,13 @@ nu = matprops(:,4)'; %poissons ratio
 rho = matprops(:,5)'; %density of the solid state
 spht = matprops(:,6)'; %solid specific heat
 
-
+K = zeros(size(Mat));
+K = reshape(K,[],1)';
+CP=K; %Seeding with 0's, for Matl 0 = seed
+RHO=K; %Seeding with 0's, for Matl 0 = seed
+K(Mat ~=0 ) = kond(Mat(Mat~=0));
+CP(Mat ~=0) = spht(Mat(Mat~=0));
+RHO(Mat ~=0) = rho(Mat(Mat~=0));
 K = kond(reshape(Mat,[],1))'; %Thermal Conductivity vector for nodal thermal conductivities. Updatable with time
 CP = spht(reshape(Mat,[],1))'; %Specific heat vector for effective nodal specific heats. Updatable with time
 RHO = rho(reshape(Mat,[],1))'; %effective density vector. Updatable with time
