@@ -13,6 +13,8 @@ function [Tres,Stress,PHres] = ParaPowerThermal(NL,NR,NC,h,Ta,dx,dy,dz,Tproc,Mat
 % module
 
 time_thermal = tic; %start recording time taken to do bulk of analysis
+new_method = true;
+
 
 %% Initialize variables
 Num_Lay = NL;
@@ -32,18 +34,23 @@ K = kond(reshape(Mat,[],1))'; %Thermal Conductivity vector for nodal thermal con
 CP = spht(reshape(Mat,[],1))'; %Specific heat vector for effective nodal specific heats. Updatable with time
 RHO = rho(reshape(Mat,[],1))'; %effective density vector. Updatable with time
 
+Qv=reshape(Q(:,:,:,1),[],1);  %pull a column vector from the i,j,k format of the first timestep
+
+
+
+
+[isPCM,kondl,rhol,sphtl,Lw,Tm,PH,PH_init] = PCM_init(matprops,Num_Row,Num_Col,Num_Lay,steps);
+Lv=(rho+rhol)/2 .* Lw;  %generate volumetric latent heat of vap using average density
+%should we have a PH_init?
+
+
+
 nlsub=1; % # layers that are substrate material
 % Pre-load Matrices with zeros
 A=zeros(Num_Row*Num_Col*Num_Lay,Num_Row*Num_Col*Num_Lay); % Conductance matrix in [A](T)={B}
 Atrans=zeros(Num_Row*Num_Col*Num_Lay,Num_Row*Num_Col*Num_Lay); % diagonal matrix that will hold transient contributions
 B=zeros(Num_Row*Num_Col*Num_Lay,1); % BC vector in [A](T)={B}
 % Q=zeros(NR,NC,NL); % Nodal heat generation matrix, W
-
-Qv=reshape(Q(:,:,:,1),[],1);  %pull a column vector from the i,j,k format of the first timestep
-
-[isPCM,kondl,rhol,sphtl,Lw,Tm,PH,PH_init] = PCM_init(matprops,Num_Row,Num_Col,Num_Lay,steps);
-Lv=(rho+rhol)/2 .* Lw;  %generate volumetric latent heat of vap using average density
-%should we have a PH_init?
 
 C=zeros(Num_Row*Num_Col*Num_Lay,1); % Nodal capacitance terms for transient effects
 T=zeros(Num_Lay*Num_Row*Num_Col,steps); % Temperature matrix
@@ -52,8 +59,16 @@ Tprnt=zeros(Num_Row,Num_Col,Num_Lay); % Nodal temperature results realigned to m
 Stress=zeros(Num_Row,Num_Col,Num_Lay); % Nodal thermal stress results
 Strprnt=zeros(Num_Row,Num_Col,Num_Lay); % Nodal stress results realigned to match mesh layout
 
-[A,B] = Resistance_Network(Num_Row,Num_Col,Num_Lay,A,B,Ta,Mat,h,K,dx,dy,dz);
+if new_method
+    hint=[];
+    [Acon,Bcon,Bext,Map]=Connect_Init(Mat,h);
+    [Acon,Bcon,newMap,header]=null_void_init(Mat,hint,Acon,Bcon,Map);
+    fullheader=[header find(h)];
+    [A,B,A_areas,B_areas,htcs] = conduct_build(Acon,Bcon,newMap,fullheader,K,hint,h,Mat,dx,dy,dz);
 
+else
+    [A,B] = Resistance_Network(Num_Row,Num_Col,Num_Lay,A,B,Ta,Mat,h,K,dx,dy,dz);
+end
 
 if steps > 1
     % Calculate the capacitance term associated with each node and adjust the 

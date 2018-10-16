@@ -7,11 +7,6 @@ function [T,PH,changing,K,CP,RHO]=vec_Phase_Change(T,PH,Mat,kond,kondl,spht,spht
 
 Mat=reshape(Mat,[],1);
 
-cutoff=1e100;  %we want direction .* abs(T-Tm(Mat)') to evaluate to 0 when 0 * inf
-% so direction.*min(abs(T-Tm(Mat)'),cutoff) -> 0 * min(inf,cutoff) -> 0
-%issue is direction is a should be thought of as logical 0, but is int
-%valued
-
 %Case Checking
 state=[T>Tm(Mat)',PH~=0,PH==1];
 
@@ -27,30 +22,27 @@ state=[T>Tm(Mat)',PH~=0,PH==1];
 changing = ~all(state,2) & any(state,2);  %ones where some change is happening
 
 if any(changing)  %things are changing phase, update
-    direction = (2*state(:,1)-1).*changing;  %decide a direction based on T>Tm then zero out if not changing
+    direction = (2*state(changing,1)-1);  %decide a direction based on T>Tm
+    %has length=nnz(changing) i.e. is only defined for changing nodes
     
-    %Update DOF
-    PH = PH + direction .* min(abs(T-Tm(Mat)'),cutoff).*(RHO.*CP./Lv(Mat)');  %increment PH according to excess sensible
-    T = T - direction .* min(abs(T-Tm(Mat)'),cutoff);                %decrement T by temperature excess
+    %Update DOF of changing elements
+    PH(changing) = PH(changing) + direction .*(abs(T(changing)-Tm(Mat(changing))')).*(RHO(changing).*CP(changing)./Lv(Mat(changing))');  %increment PH according to excess sensible
+    T(changing) = T(changing) - direction .* abs(T(changing)-Tm(Mat(changing))');                %decrement T by temperature excess
     %Everything right unless overmelted/oversolidified  PH>1 || PH<0
     
-    PH_ex=max(1/2,abs(PH-1/2))-1/2;   %unsigned excursion outside of interval 0<PH<1
-    PH=PH-PH_ex.*direction; %PH is pinned to be within [0,1]
+    PH_ex=max(1/2,abs(PH(changing)-1/2))-1/2;   %unsigned excursion outside of interval 0<PH<1
+    PH(changing)=PH(changing)-PH_ex.*direction; %PH is pinned to be within [0,1]
     
-    K = 1./( PH./kondl(Mat)' +(1-PH)./kond(Mat)');  %update properties, K using series resistance
-    CP = sphtl(Mat)'.*PH+spht(Mat)'.*(1-PH);           %others using rule of mixtures
-    RHO = rhol(Mat)'.*PH+rho(Mat)'.*(1-PH);
+    K(changing) = 1./( PH(changing)./kondl(Mat(changing))' +(1-PH(changing))./kond(Mat(changing))');  %update properties, K using series resistance
+    CP(changing) = sphtl(Mat(changing))'.*PH(changing)+spht(Mat(changing))'.*(1-PH(changing));           %others using rule of mixtures
+    RHO(changing) = rhol(Mat(changing))'.*PH(changing)+rho(Mat(changing))'.*(1-PH(changing));
     
     %walk back PH_ex into T using new properties
-    T = T + direction .* PH_ex .* min((Lv(Mat)'./(RHO.*CP)),cutoff);
+    T(changing) = T(changing) + direction .* PH_ex .* (Lv(Mat(changing))'./(RHO(changing).*CP(changing)));
     
     
 else %no change
-    T = T;
-    PH = PH;
-    K = K;
-    CP = CP;
-    RHO = RHO;
+
 end
 
 end

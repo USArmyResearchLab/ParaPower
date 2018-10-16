@@ -25,13 +25,13 @@ function [matprops,matlist,matcolors,kond,cte,E,nu,rho,spht] = matlibfun( )
 % Tm = matprops(:,12)'; %Melting point of material, in degrees C
 Al=[172 23.5e-6 69e9 0.33 2700 900 0 inf 0 0 inf inf]; %Aluminum Material Data
 Cu=[390 24e-6 110e9 0.37 8900 390 0 inf 0 0 inf inf]; %Copper Materail Data
-AlN=[170 5.3e-6 344e9 0.24 3260 740 inf 0 0 0 inf inf]; %Aluminum Nitride Material Data
+AlN=[170 5.3e-6 344e9 0.24 3260 740 0 inf 0 0 inf inf]; %Aluminum Nitride Material Data
 SiC=[120 4e-6 410e9 0.14 3100 750 0 inf 0 0 inf inf]; %Silicon Carbide Material Data
-EN=[0.1 55e-6 2.5e9 0.3 1e-10 0 inf 0 0 0 inf inf]; %Encapsulent Material Data
+EN=[0.1 55e-6 2.5e9 0.3 1e-10 0 0 inf 0 0 inf inf]; %Encapsulent Material Data
 Ga=[33.7 0 0 0 5903 340 1 24 6093 397 80300 29.8]; %Galium Material Data
 Chip=[1.14 0 0 0 2230 753.12 0 inf 0 0 inf inf];
 Alumina=[25 0 0 0 3720 880 0 inf 0 0 inf inf];
-AIR=[0.024 100 0 0 1.225 0 inf 0 0 0 inf inf];
+AIR=[0.024 100 0 0 1.225 0 0 inf 0 0 inf inf];
 Pyrex = [1.2 0 0 0 2200 830 0 inf 0 0 inf inf];
 Mike_Plastic = [1 0 0 0 1000 3000 0 inf 0 0 inf inf];
 Fields_Metal = [18.9 0 0 0 7900 300 1 18.5 7700 250 29140 59]; %kond = 18.9 spht = 300 Lw = 29140 rho = 7900
