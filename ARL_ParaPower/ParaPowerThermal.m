@@ -30,15 +30,18 @@ rho = matprops(:,5)'; %density of the solid state
 spht = matprops(:,6)'; %solid specific heat
 
 K = zeros(size(Mat));
-K = reshape(K,[],1)';
+K = reshape(K,[],1);
 CP=K; %Seeding with 0's, for Matl 0 = seed
 RHO=K; %Seeding with 0's, for Matl 0 = seed
 K(Mat ~=0 ) = kond(Mat(Mat~=0));
 CP(Mat ~=0) = spht(Mat(Mat~=0));
 RHO(Mat ~=0) = rho(Mat(Mat~=0));
-K = kond(reshape(Mat,[],1))'; %Thermal Conductivity vector for nodal thermal conductivities. Updatable with time
-CP = spht(reshape(Mat,[],1))'; %Specific heat vector for effective nodal specific heats. Updatable with time
-RHO = rho(reshape(Mat,[],1))'; %effective density vector. Updatable with time
+
+
+
+% K = kond(reshape(Mat,[],1))'; %Thermal Conductivity vector for nodal thermal conductivities. Updatable with time
+% CP = spht(reshape(Mat,[],1))'; %Specific heat vector for effective nodal specific heats. Updatable with time
+% RHO = rho(reshape(Mat,[],1))'; %effective density vector. Updatable with time
 
 Qv=reshape(Q(:,:,:,1),[],1);  %pull a column vector from the i,j,k format of the first timestep
 
@@ -53,15 +56,16 @@ Lv=(rho+rhol)/2 .* Lw;  %generate volumetric latent heat of vap using average de
 
 nlsub=1; % # layers that are substrate material
 % Pre-load Matrices with zeros
-A=zeros(Num_Row*Num_Col*Num_Lay,Num_Row*Num_Col*Num_Lay); % Conductance matrix in [A](T)={B}
+%A=zeros(Num_Row*Num_Col*Num_Lay,Num_Row*Num_Col*Num_Lay); % Conductance matrix in [A](T)={B}
 Atrans=zeros(Num_Row*Num_Col*Num_Lay,Num_Row*Num_Col*Num_Lay); % diagonal matrix that will hold transient contributions
-B=zeros(Num_Row*Num_Col*Num_Lay,1); % BC vector in [A](T)={B}
+%B=zeros(Num_Row*Num_Col*Num_Lay,1); % BC vector in [A](T)={B}
 % Q=zeros(NR,NC,NL); % Nodal heat generation matrix, W
 
 C=zeros(Num_Row*Num_Col*Num_Lay,1); % Nodal capacitance terms for transient effects
 T=zeros(Num_Lay*Num_Row*Num_Col,steps); % Temperature matrix
-Tres=zeros(Num_Row,Num_Col,Num_Lay,steps); % Nodal temperature results
-Tprnt=zeros(Num_Row,Num_Col,Num_Lay); % Nodal temperature results realigned to match mesh layout
+Tres=zeros(Num_Row*Num_Col*Num_Lay,steps); % Nodal temperature results
+PHres=Tres;
+%Tprnt=zeros(Num_Row,Num_Col,Num_Lay); % Nodal temperature results realigned to match mesh layout
 Stress=zeros(Num_Row,Num_Col,Num_Lay); % Nodal thermal stress results
 Strprnt=zeros(Num_Row,Num_Col,Num_Lay); % Nodal stress results realigned to match mesh layout
 
@@ -86,7 +90,7 @@ if steps > 1
 end
 % Form loop over the number of time steps desired
 for it=1:steps
-    T(:,it)=(A+Atrans)\(B+Qv+C);  %T is temps at the end of the it'th step, C holds info about temps prior to it'th step
+    T(:,it)=(A+Atrans)\(B*Ta(fullheader)'+Qv+C);  %T is temps at the end of the it'th step, C holds info about temps prior to it'th step
                     
     if any(isPCM(Mat(:)))
         if it==1
@@ -117,8 +121,11 @@ for it=1:steps
     
     %Time history of A and B are not being stored, instead overwritten
 end
-Tres=reshape(T,NR,NC,NL,steps);
-PHres=reshape(PH,NR,NC,NL,steps);
+Tres(Mat>0,:)=T;
+PHres(Mat>0,:)=PH;
+
+Tres=reshape(Tres,[size(Mat) steps]);
+PHres=reshape(PHres,[size(Mat) steps]);
 
 % Calculate thermal stress based CTE mismatch
 % Loop over all the time steps
