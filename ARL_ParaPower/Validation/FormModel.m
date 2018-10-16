@@ -83,12 +83,20 @@ for i=1:length(Features)
 end
 
 %Collapse X and y completely.  Maintain zero thickness layers for dz
-X0=unique(X0);
-Y0=unique(Y0);
-Z0=unique(Z0);
-X=unique(X);
-Y=unique(Y);
-Z=unique(Z);
+%Fix floating point inaccuracies.  Round to accuracy of epsilon - 2
+%decimals
+if ~isempty(X0)
+    X0=unique(round(X0,floor(abs(log10(100*eps(max(X0)))))));
+end
+if ~isempty(Y0)
+    Y0=unique(round(Y0,floor(abs(log10(100*eps(max(Y0)))))));
+end
+if ~isempty(Z0)
+    Z0=unique(round(Z0,floor(abs(log10(100*eps(max(Z0)))))));
+end
+X=unique(round(X,floor(abs(log10(100*eps(max(X)))))));
+Y=unique(round(Y,floor(abs(log10(100*eps(max(Y)))))));
+Z=unique(round(Z,floor(abs(log10(100*eps(max(Z)))))));
 X=sort([X X0]); 
 Y=sort([Y Y0]); 
 Z=sort([Z Z0]); 
@@ -102,55 +110,39 @@ GlobalTime=[0:Params.DeltaT:(Params.Tsteps-1)*Params.DeltaT];
 %Get minimum values of feature coords for visualization purposes.
 MinCoord=[min(X) min(Y) min(Z)];
 
-
-for Xi=1:length(X)-1
-    for Yi=1:length(Y)-1
-        for Zi=1:length(Z)-1
-            for Fi=1:length(Features)
-                InX = (Features(Fi).x(1)<=X(Xi) ) && ( Features(Fi).x(2)>=X(Xi+1));
-                InY = (Features(Fi).y(1)<=Y(Yi) ) && ( Features(Fi).y(2)>=Y(Yi+1));
-                if (Features(Fi).z(1) == Features(Fi).z(2))
-                    InZ = Z(Zi)==(Features(Fi).z(1) ) && ( Z(Zi+1)==Features(Fi).z(1));
-                else
-                    InZ=(Features(Fi).z(1)<=Z(Zi)) && (Features(Fi).z(2)>=Z(Zi+1));
-                end
-%                 fprintf('%i: Locn (%7g %7g %7g) to (%7g %7g %7g), Features (%7g %7g %7g) to (%7g %7g %7g) %i %i %i\n',Fi, ...
-%                                                                                X(Xi)            ,Y(Yi)             ,Z(Zi), ...
-%                                                                                X(Xi+1)          ,Y(Yi+1)           ,Z(Zi+1), ...
-%                                                                                Features(Fi).x(1), Features(Fi).y(1), Features(Fi).z(1), ...
-%                                                                                Features(Fi).x(2), Features(Fi).y(2), Features(Fi).z(2), InX, InY, InZ)
-                 if InX && InY && InZ
-                     MatNum=find(strcmp(matlist,Features(Fi).Matl));
-                     if isempty(MatNum)
-                        fprintf('Material %s not found in database. Check spelling\n',Features(Fi).Matl)
-                        MatNum=nan;
-                     end
-                     ModelMatrix(Yi,Xi,Zi)=MatNum;
-                     
-                     %Negate Q so that postive Q is corresponds to heat generation
-                     ThisQ=-1*Features(Fi).Q;
-                     
-                     %Scale Q so that total of all elements results in total Q
-                     ThisQ=ThisQ / (Features(Fi).dx*Features(Fi).dy*Features(Fi).dz);
-                     
-                     if isscalar(ThisQ)
-                         Q(Yi,Xi,Zi,:)=ThisQ;
-                     else
-                         disp('Defining time dependent Q')
-                         if ThisQ(1,1) > GlobalTime(1) %If Q for features is not defined at time beginning, then define it
-                             ThisQ=[[GlobalTime(1) ThisQ(1,2)]; ThisQ];
-                             disp('Defining Q at min(time)')
-                         end
-                         if ThisQ(end,1) < GlobalTime(end)
-                             disp('Defining Q at max(time)')
-                             ThisQ=[ThisQ; [GlobalTime(end) ThisQ(end,2)]];
-                         end
-                         Q(Yi,Xi,Zi,:)=interp1(ThisQ(:,1),ThisQ(:,2), GlobalTime,'spline');
-                     end
-                end
-            end
-        end
+for Fi=1:length(Features) 
+    InX=GetInXYZ(Features(Fi).x, X);
+    InY=GetInXYZ(Features(Fi).y, Y);
+    InZ=GetInXYZ(Features(Fi).z, Z);
+  
+    %Define Material for the feature
+    MatNum=find(strcmpi(matlist,Features(Fi).Matl));
+    if isempty(MatNum)
+        fprintf('Material %s not found in database. Check spelling\n',Features(Fi).Matl)
+        MatNum=nan;
     end
+    ModelMatrix(InY, InX, InZ)=MatNum;
+    
+    %Define Q for the feature
+     %Negate Q so that postive Q is corresponds to heat generation
+     ThisQ=-1*Features(Fi).Q;
+
+     %Scale Q so that total of all elements results in total Q
+     ThisQ=ThisQ / (Features(Fi).dx*Features(Fi).dy*Features(Fi).dz);
+
+     if isscalar(ThisQ)
+         Q(InY, InX, InZ,:)=ThisQ;
+     else
+         disp('Defining time dependent Q')
+         if ThisQ(1,1) > GlobalTime(1) %If Q for features is not defined at time beginning, then define it
+             ThisQ=[[GlobalTime(1) ThisQ(1,2)]; ThisQ];
+             disp('Defining Q at min(time)')
+         end
+         if ThisQ(end,1) < GlobalTime(end)
+             disp('Defining Q at max(time)')
+             ThisQ=[ThisQ; [GlobalTime(end) ThisQ(end,2)]];
+         end
+         Q(InY, InX, InZ,:)=interp1(ThisQ(:,1),ThisQ(:,2), GlobalTime,'spline');    
 end
 
 if ischar(PottingMaterial)
@@ -180,7 +172,6 @@ ModelMatrix(ModelMatrix==0)=MatNum;
 
 [NR, NC, NL]=size(ModelMatrix);
 
-
 DeltaCoord.X=X(2:end)-X(1:end-1);
 DeltaCoord.Y=Y(2:end)-Y(1:end-1);
 DeltaCoord.Z=Z(2:end)-Z(1:end-1);
@@ -209,3 +200,14 @@ ModelInput.matlist=matlist;
 
 end
 
+function In=GetInXYZ(FeatureExtent, Coords)
+
+    if FeatureExtent(1)==FeatureExtent(2)
+        In=find(FeatureExtent(1)==Coords);
+        In=In(1:end-1);
+    else
+        In=find(FeatureExtent(1) <= Coords & FeatureExtent(2) > Coords);
+        if length(Coords(In))~=length(unique(Coords(In)))
+            In=In(2:end);
+        end
+    end
