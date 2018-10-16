@@ -34,7 +34,7 @@ function Visualize (PlotTitle, MI, varargin)
     matlist=MI.matlist;
 
     MinCoord=[0 0 0];
-    RemoveMatl=[];
+    RemoveMatl=[0];
     TransMatl=[];
     ColorTitle='';
     PlotState=ModelMatrix;
@@ -65,7 +65,7 @@ function Visualize (PlotTitle, MI, varargin)
                 PlotState=Value;
             case strleft('removematerial',Pl)
                 [Value, PropValPairs]=Pop(PropValPairs); 
-                RemoveMatl=Value;
+                RemoveMatl=[RemoveMatl Value];
             case strleft('edgeonlymaterial',Pl)
                 [Value, PropValPairs]=Pop(PropValPairs); 
                 EdgeOnlyMat=Value;
@@ -159,14 +159,15 @@ function Visualize (PlotTitle, MI, varargin)
                         ThisColor=floor((PlotState(Yi,Xi,Zi)-ValMin)/ValRange*(length(CM(:,1))-1) + 1);
                         %fprintf('%i ',ThisColor)
                     end
-
-                    F   =patch('faces',[1 2 3 4 1 5 6 2 1 4 8 5 1],'vertices',P,'facecolor',CM(ThisColor,:),'FaceAlpha',FaceAlpha);
-                    F(2)=patch('faces',[7 6 5 8 7 8 4 3 7 3 2 6 7],'vertices',P,'Facecolor',CM(ThisColor,:),'FaceAlpha',FaceAlpha);
-
-                    if ~isempty(find(ModelMatrix(Yi,Xi,Zi) == EdgeOnlyMat, 1))
-                        set(F,'EdgeColor',get(F(1),'facecolor'));
-                        set(F,'facecolor','none');
+                    if ~isnan(ThisColor)
+                        F   =patch('faces',[1 2 3 4 1 5 6 2 1 4 8 5 1],'vertices',P,'facecolor',CM(ThisColor,:),'FaceAlpha',FaceAlpha);
+                        F(2)=patch('faces',[7 6 5 8 7 8 4 3 7 3 2 6 7],'vertices',P,'Facecolor',CM(ThisColor,:),'FaceAlpha',FaceAlpha);
+                        if ~isempty(find(ModelMatrix(Yi,Xi,Zi) == EdgeOnlyMat, 1))
+                            set(F,'EdgeColor',get(F(1),'facecolor'));
+                            set(F,'facecolor','none');
+                        end
                     end
+                    
                     NoHeat=true;
                     if ~isempty(Q)
                         T='';
@@ -269,10 +270,15 @@ function Visualize (PlotTitle, MI, varargin)
         set(CB,'ticklabels',linspace(ValMin,ValMin+ValRange,length(Scale)));
     else
         NumColors=length(ColorList);
-        Offset=zeros(1,NumColors);
-        Offset(1)=0.25;
-        Offset(end)=-0.25;
-        set(CB,'ticks',((0:NumColors-1)+Offset)/(NumColors-1));
+        if NumColors>1
+            Offset=zeros(1,NumColors);
+            Offset(1)=0.25;
+            Offset(end)=-0.25;
+            TickLocns=((0:NumColors-1)+Offset)/(NumColors-1);
+        else
+            TickLocns=0.5;
+        end
+        set(CB,'ticks',TickLocns);
         for Mi=1:length(matlist)
             matlist{Mi}=sprintf('%s (%i)',matlist{Mi},Mi);
         end
@@ -280,7 +286,7 @@ function Visualize (PlotTitle, MI, varargin)
     end
 
     if ~isempty(Q)
-        CurA=gca;
+        %CurA=gca;
         KeyList=keys(QList);
         QColor(:,1)=(length(KeyList):-1:0)/(length(KeyList));
         QColor(:,2)=0;
