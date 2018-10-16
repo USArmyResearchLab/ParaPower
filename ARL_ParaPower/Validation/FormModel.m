@@ -59,6 +59,24 @@ Y0=[]; %Z coordinates with zero thickness
 Z0=[]; %Z coordinates with zero thickness
 
 for i=1:length(Features)
+    Fd=Features(i).x;
+    if isscalar(Fd)
+        Fd=[1 1]*Fd;
+    end
+    Features(i).x=Fd;
+    
+    Fd=Features(i).y;
+    if isscalar(Fd)
+        Fd=[1 1]*Fd;
+    end
+    Features(i).y=Fd;
+
+    Fd=Features(i).z;
+    if isscalar(Fd)
+        Fd=[1 1]*Fd;
+    end
+    Features(i).z=Fd;
+    
     Features(i).x=sort(Features(i).x);
     Features(i).y=sort(Features(i).y);
     Features(i).z=sort(Features(i).z);
