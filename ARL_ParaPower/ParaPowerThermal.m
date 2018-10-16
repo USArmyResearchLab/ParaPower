@@ -34,9 +34,12 @@ RHO=K; %Seeding with 0's, for Matl 0 = seed
 K(Mat ~=0 ) = kond(Mat(Mat~=0));
 CP(Mat ~=0) = spht(Mat(Mat~=0));
 RHO(Mat ~=0) = rho(Mat(Mat~=0));
-K = kond(reshape(Mat,[],1))'; %Thermal Conductivity vector for nodal thermal conductivities. Updatable with time
-CP = spht(reshape(Mat,[],1))'; %Specific heat vector for effective nodal specific heats. Updatable with time
-RHO = rho(reshape(Mat,[],1))'; %effective density vector. Updatable with time
+K=reshape(K,[],1);
+CP=reshape(K,[],1);
+RHO=reshape(RHO,[],1);
+%K = kond(reshape(Mat,[],1))'; %Thermal Conductivity vector for nodal thermal conductivities. Updatable with time
+%CP = spht(reshape(Mat,[],1))'; %Specific heat vector for effective nodal specific heats. Updatable with time
+%RHO = rho(reshape(Mat,[],1))'; %effective density vector. Updatable with time
 
 nlsub=1; % # layers that are substrate material
 % Pre-load Matrices with zeros
@@ -73,7 +76,7 @@ end
 for it=1:steps
     T(:,it)=(A+Atrans)\(B+Qv+C);  %T is temps at the end of the it'th step, C holds info about temps prior to it'th step
                     
-    if any(isPCM(Mat(:)))
+    if any(isPCM(Mat(Mat~=0)))
         if it==1
             [T(:,it),PH(:,it),changing,K,CP,RHO]=vec_Phase_Change(T(:,it),PH_init,Mat,kond,kondl,spht,sphtl,rho,rhol,Tm,Lv,K,CP,RHO);
         else

@@ -39,11 +39,11 @@ for Icase=1:length(testcasefiles)
         end
         clear VarsOrig VarsNew
     
-        figure(1);clf
+        figure(1);clf; figure(2);clf; figure(1)
         MI=FormModel(TestCaseModel);
         Visualize ('Model Input', MI, 'modelgeom','ShowQ')
         pause(.001)
-        fprintf('Analysis starting...')
+        fprintf('Analysis executing...')
 
 
         GlobalTime=[0:MI.Tsteps-1]*MI.DeltaT;  %Since there is global time vector, construct one here.

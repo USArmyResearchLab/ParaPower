@@ -17,6 +17,7 @@ function Visualize (PlotTitle, MI, varargin)
 %   ModelGeometry - plot model geometry
 %   TransMaterial=[] - List of materials to make transparent
 %   MinCoord=[0 0 0] - Set of model origin (minimum of X, Y & Z)
+%   NoAxis - Do not plot the axes (they help maintain aspect ration in the plot)
 %
 %To Do Features:
 %  X cross section
@@ -42,12 +43,17 @@ function Visualize (PlotTitle, MI, varargin)
     EdgeColor=[];
     EdgeOnlyMat=[];
     Q=[];
+    PlotAxes=true;
 
     strleft=@(S,n) S(1:min(n,length(S)));
 
     QList=containers.Map;
     
-    PropValPairs=varargin;
+    if iscell(varargin{1})
+        PropValPairs=varargin{1};
+    else
+        PropValPairs=varargin;
+    end
     while ~isempty(PropValPairs) 
         [Prop, PropValPairs]=Pop(PropValPairs);
         if ~ischar(Prop)
@@ -77,6 +83,8 @@ function Visualize (PlotTitle, MI, varargin)
                 Transparency=Value;
             case strleft('showq',Pl)
                 Q=MI.Q;
+            case strleft('noaxes',Pl)
+                PlotAxes=false;
             case strleft('edgecolor',Pl)
                 [Value, PropValPairs]=Pop(PropValPairs); 
                 EdgeColor=Value;
@@ -96,6 +104,11 @@ function Visualize (PlotTitle, MI, varargin)
 
     clf;drawnow
     Direx=FormModel('GetDirex');
+    
+    if ~all(size(PlotState)==size(ModelMatrix))
+        error('The dimensions of the plotstate provided do not match the dimensions of the model.')
+    end
+        
 
     %Visualization of defined model
 
@@ -246,16 +259,18 @@ function Visualize (PlotTitle, MI, varargin)
     title(PlotTitle)
 
     %Display axes in green.
-    Xmax=max(max([X Y Z]))*1.1;
-    Ymax=Xmax;
-    Zmax=Xmax; %max(Z)*1.1;
-    L(1)=line([0 Xmax],[0 0],[0 0]);
-    L(2)=line([0 0],[0 Ymax],[0 0]);
-    L(3)=line([0 0],[0 0],[0 Zmax]);
-    set(L,'color',[0 1 0], 'linewidth',2)
-    text(Xmax,0,0,'X');
-    text(0,Ymax,0,'Y');
-    text(0,0,Zmax,'Z');
+    if PlotAxes
+        Xmax=max(max([X Y Z]))*1.1;
+        Ymax=Xmax;
+        Zmax=Xmax; %max(Z)*1.1;
+        L(1)=line([0 Xmax],[0 0],[0 0]);
+        L(2)=line([0 0],[0 Ymax],[0 0]);
+        L(3)=line([0 0],[0 0],[0 Zmax]);
+        set(L,'color',[0 1 0], 'linewidth',2)
+        text(Xmax,0,0,'X');
+        text(0,Ymax,0,'Y');
+        text(0,0,Zmax,'Z');
+    end
 
     hold off
 

@@ -59,7 +59,27 @@
     Features(end).Q    = 0;
 
     Features(4)=Features(1);
+    Features(end).x    = [0 BarBas];
+    Features(end).y    = [0 BarBas];
+    Features(end).z    = [BarBas BarBas];
+    Features(end).dx   = 1;
+    Features(end).dy   = 1;
+    Features(end).dz   = 1;
+    Features(end).Matl = 'Cu';
+    Features(end).Q    = 1000;
+
+    Features(5)=Features(1);
+    Features(end).x    = [0 BarBas];
+    Features(end).y    = [BarBas BarBas];
     Features(end).z    = [0 BarBas];
+    Features(end).dx   = 1;
+    Features(end).dy   = 1;
+    Features(end).dz   = 1;
+    Features(end).Matl = 'Cu';
+    Features(end).Q    = 1000;
+
+    Features(6)=Features(1);
+    Features(end).x    = [BarBas BarBas];
     Features(end).y    = [0 BarBas];
     Features(end).z    = [0 BarBas];
     Features(end).dx   = 1;
@@ -74,5 +94,3 @@
     TestCaseModel.PottingMaterial=PottingMaterial;
 %    [GlobalTime, Tprnt, Stress, MeltFrac]=CLI_Input(Features, PottingMaterial, ExternalConditions, Params, true);
 %    disp('Press any key');pause
-
-end

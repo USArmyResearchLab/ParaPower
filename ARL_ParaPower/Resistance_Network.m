@@ -18,5 +18,5 @@ K=reshape(K,[Num_Row,Num_Col,Num_Lay]);
 [A,B]= Interior(Num_Row,Num_Col,Num_Lay,A,B,Ta,Mat,h,K,dx,dy,dz);
 % Check to see if a transient solution is desired, steps > 1.
 if ~issymmetric(A)
-    error('Conductance Matrix is not symmetric!')
+    warning('Conductance Matrix is not symmetric!')
 end
