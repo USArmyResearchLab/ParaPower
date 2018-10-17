@@ -1,4 +1,4 @@
-function [Acond,Bcond,A_areas,B_areas,htcs] = conduct_build(Acon,Bcon,Map,header,K,hint,h,Mat,drow,dcol,dlay)
+function [Acond,Bcond,A_areas,B_areas,A_hLengths,B_hLengths,htcs] = conduct_build(Acon,Bcon,Map,header,K,hint,h,Mat,drow,dcol,dlay)
 %Builds Conductance Matrices using connectivity matrices, dimensional info,
 %and material properties/convection coefficients.
 
@@ -30,9 +30,6 @@ Map_B=repmat(Map,1,size(Bcon,2));
     function c_sum = har(c1,c2,varargin)  %harmonic sum of conductances
         c_sum = 1./(1./c1  + 1./c2);        %should this be a spfun?
     end
-
-sparse_flag=true;  
-%sparse_flag=false; 
 
 
 %% Store Geometry
@@ -66,14 +63,16 @@ for dir=1:3
     B_areas(B_mask)=areasB;
     B_hLengths(B_mask)=lengthsB;
     
-    if sparse_flag           %convert A components to sparse
-        [i,j]=find(A_mask);
-        A_areas=sparse(i,j,areasA);
-        A_hLengths=sparse(i,j,lengthsA);
-    else
-        A_areas(A_mask)=areasA;
-        A_hLengths(A_mask)=lengthsA;
+
+    if dir==1           %initialize
+        A_areas=spalloc(size(Acon,1),size(Acon,2),nnz(Acon));
+        A_hLengths=A_areas;
     end
+    [i,j]=find(A_mask);
+    A_areas=A_areas+sparse(i,j,areasA,size(Acon,1),size(Acon,2),nnz(Acon));
+    A_hLengths=A_hLengths+sparse(i,j,lengthsA,size(Acon,1),size(Acon,2),nnz(Acon));
+
+    
 end
 toc;
 
@@ -81,38 +80,26 @@ toc;
 A_mask=Acon>0;
 B_mask=Bcon>0;
 
-if ~sparse_flag  %build Acond as a full matrix
-    
-    Acond(A_mask)=A_areas(A_mask)./A_hLengths(A_mask);
-    Acond=diag(K(Map))*Acond;  %conductance from center of element i up to bdry of element j
-    Acond=har(Acond,Acond');  %cond'nce from i to j is harmonic sum of each piecewise component
-
-else  %build Acond as sparse
-    recip=@(x) 1./x;  %anonymous function handle
-    Acond=A_areas.* spfun(recip,A_hLengths);
-    Acond=spdiags(K(Map),0,size(Acon,1),size(Acon,2))*Acond;  %conductance from center of element i up to bdry of element j
-    Acond=spfun(recip, (spfun(recip,Acond) + spfun(recip,Acond')) );
-end   
+recip=@(x) 1./x;  %anonymous function handle
+Acond=A_areas.* spfun(recip,A_hLengths);
+Acond=spdiags(K(Map),0,size(Acon,1),size(Acon,2))*Acond;  %conductance from center of element i up to bdry of element j
+Acond=spfun(recip, (spfun(recip,Acond) + spfun(recip,Acond')) );
+ 
 
 if ~issymmetric(Acond)
     error('Symmetry Error!')
 end
 
 Bcond_out(B_mask)=B_areas(B_mask)./B_hLengths(B_mask);
-Bcond_out=diag(K(Map))*Bcond_out;  %conductance from center of element i up to bdry of convection
+Bcond_out=spdiags(K(Map),0,size(Acon,1),size(Acon,2))*sparse(Bcond_out);  %conductance from center of element i up to bdry of convection
 htcs=[hint(-header(header<0)) h(header(header>0))];  %build htcs from header and h lists
-Bcond_in = B_areas*diag(htcs);
-Bcond = har(Bcond_out,Bcond_in);
+Bcond_in = sparse(B_areas*diag(htcs));
+Bcond = spfun(recip, (spfun(recip,Bcond_out) + spfun(recip,Bcond_in)) );
 
 %the diagonal of the A conductance matrix holds the center of the central
-%differences.  These must balance
-%cntr=sum([Acond Bcond],2);
+%differences.  These must balance cntr=sum([Acond Bcond],2);
+Acond=Acond-spdiags(sum([Acond Bcond],2),0,size(Acon,1),size(Acon,2));
 
-if ~sparse_flag
-    Acond=Acond-diag(sum([Acond Bcond],2));
-else
-    Acond=Acond-spdiags(sum([Acond Bcond],2),0,size(Acon,1),size(Acon,2));
-end
 
 
 end

@@ -1,8 +1,18 @@
-function [cap,vol]=mass(dx,dy,dz,RHO,CP)
+function [cap,vol]=mass(dx,dy,dz,RHO,CP,Mat,Mask)
 %takes dx, dy, dz of length NC, NR, NL to compute volume vector
 % capacity is computed from vol RHO and CP vectors - length NR*NC*NL
-vol = reshape(reshape(dy'*dx,[],1)*dz,[],1);        
-cap=RHO.*CP.*vol;
+
+%if a Mask is input, cap will be calculated for only those masked elements,
+%and will have length nnz(Mask).  Else, it will be calculated for the
+%entire solid portion of Mat.
+
+vol = reshape(reshape(dx'*dy,[],1)*dz,[],1);    
+if ~exist('Mask','var')
+    cap=RHO(Mat>0).*CP(Mat>0).*vol(Mat>0);
+else
+    cap=RHO(Mask).*CP(Mask).*vol(Mask);
+end
+
 end
 
 

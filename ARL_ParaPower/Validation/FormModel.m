@@ -120,7 +120,7 @@ Y=sort([Y Y0]);
 Z=sort([Z Z0]); 
 
 Params.Tsteps=floor(Params.Tsteps);
-ModelMatrix=zeros(length(Y)-1,length(X)-1,length(Z)-1);
+ModelMatrix=zeros(length(X)-1,length(Y)-1,length(Z)-1);
 Q=zeros([size(ModelMatrix) Params.Tsteps]);
 %Q=zeros(length(X)-1,length(Y)-1,length(Z)-1,Params.Tsteps);
 GlobalTime=[0:Params.DeltaT:(Params.Tsteps-1)*Params.DeltaT];
@@ -139,7 +139,7 @@ for Fi=1:length(Features)
         fprintf('Material %s not found in database. Check spelling\n',Features(Fi).Matl)
         MatNum=nan;
     end
-    ModelMatrix(InY, InX, InZ)=MatNum;
+    ModelMatrix(InX, InY, InZ)=MatNum;
     
     %Define Q for the feature
      %Negate Q so that postive Q is corresponds to heat generation
@@ -149,7 +149,7 @@ for Fi=1:length(Features)
      ThisQ=ThisQ / (Features(Fi).dx*Features(Fi).dy*Features(Fi).dz);
 
      if isscalar(ThisQ)
-         Q(InY, InX, InZ,:)=ThisQ;
+         Q(InX, InY, InZ,:)=ThisQ;
      else
          disp('Defining time dependent Q')
          if ThisQ(1,1) > GlobalTime(1) %If Q for features is not defined at time beginning, then define it
@@ -160,7 +160,7 @@ for Fi=1:length(Features)
              disp('Defining Q at max(time)')
              ThisQ=[ThisQ; [GlobalTime(end) ThisQ(end,2)]];
          end
-         Q(InY, InX, InZ,:)=interp1(ThisQ(:,1),ThisQ(:,2), GlobalTime,'spline');    
+         Q(InX, InY, InZ,:)=interp1(ThisQ(:,1),ThisQ(:,2), GlobalTime,'spline');    
 end
 
 if ischar(PottingMaterial)

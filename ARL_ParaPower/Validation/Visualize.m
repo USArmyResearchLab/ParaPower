@@ -136,7 +136,7 @@ function Visualize (PlotTitle, MI, varargin)
     for Xi=1:length(X)-1
         for Yi=1:length(Y)-1
             for Zi=1:length(Z)-1
-                if isempty(find(ModelMatrix(Yi,Xi,Zi) == RemoveMatl, 1))
+                if isempty(find(ModelMatrix(Xi,Yi,Zi) == RemoveMatl, 1))
                     Zoffset=0;
                     Xoffset=0;
                     Yoffset=0;
@@ -163,19 +163,19 @@ function Visualize (PlotTitle, MI, varargin)
                     P(7,:)=[X(Xi+1) Y(Yi+1) Z(Zi+1)] + [ -Xoffset -Yoffset -Zoffset] ;
                     P(8,:)=[X(Xi+1) Y(Yi)   Z(Zi+1)] + [ -Xoffset  Yoffset -Zoffset] ;
                     %fprintf('Xi=%i, Yi=%i, Zi=%i  (%g, %g, %g) (%g, %g, %g)\n',Xi, Yi,Zi, X1, Y1, Z1, X2, Y2, Z2)
-                    if ~isempty(find(ModelMatrix(Yi,Xi,Zi) == TransMatl, 1))
+                    if ~isempty(find(ModelMatrix(Xi,Yi,Zi) == TransMatl, 1))
                         FaceAlpha=Transparency;
                     end
                     if PlotGeom
-                        ThisColor=find(ColorList==PlotState(Yi,Xi,Zi));
+                        ThisColor=find(ColorList==PlotState(Xi,Yi,Zi));
                     else
-                        ThisColor=floor((PlotState(Yi,Xi,Zi)-ValMin)/ValRange*(length(CM(:,1))-1) + 1);
+                        ThisColor=floor((PlotState(Xi,Yi,Zi)-ValMin)/ValRange*(length(CM(:,1))-1) + 1);
                         %fprintf('%i ',ThisColor)
                     end
                     if ~isnan(ThisColor)
                         F   =patch('faces',[1 2 3 4 1 5 6 2 1 4 8 5 1],'vertices',P,'facecolor',CM(ThisColor,:),'FaceAlpha',FaceAlpha);
                         F(2)=patch('faces',[7 6 5 8 7 8 4 3 7 3 2 6 7],'vertices',P,'Facecolor',CM(ThisColor,:),'FaceAlpha',FaceAlpha);
-                        if ~isempty(find(ModelMatrix(Yi,Xi,Zi) == EdgeOnlyMat, 1))
+                        if ~isempty(find(ModelMatrix(Xi,Yi,Zi) == EdgeOnlyMat, 1))
                             set(F,'EdgeColor',get(F(1),'facecolor'));
                             set(F,'facecolor','none');
                         end
@@ -184,7 +184,7 @@ function Visualize (PlotTitle, MI, varargin)
                     NoHeat=true;
                     if ~isempty(Q)
                         T='';
-                        ThisQ=unique(Q(Yi,Xi,Zi,:));
+                        ThisQ=unique(Q(Xi,Yi,Zi,:));
                         if (~isscalar(ThisQ)) || ThisQ ~=0
                             if isreal(ThisQ)
                                 ThisQ=sprintf('%g',ThisQ);
