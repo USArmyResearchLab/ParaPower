@@ -1,7 +1,12 @@
 %This M files executes the set of validation test cases for ParaPower
-
 addpath('..');  %include above directory which contains the parapower code
-testcasefiles=dir('Cases\*.m');
+
+CaseDir='Cases';  %Update this to include the directory that will hold the case files.
+
+testcasefiles=dir([CaseDir '\*.m']);
+if ispc
+    testcasefiles=[testcasefiles dir([CaseDir '\*.lnk'])];
+end
 fprintf('\n')
 figure(1);clf
 figure(2);clf
@@ -10,14 +15,19 @@ drawnow
 for Icase=1:length(testcasefiles)
     
     CaseName=char(testcasefiles(Icase).name);
+    if ispc && strcmpi(CaseName(end-3:end),'.lnk')
+      [path,name,ext]=fileparts(getTargetFromLink([testcasefiles(Icase).folder '\' CaseName]));
+      CaseName=[name ext];
+      testcasefiles(Icase).folder=path;
+    end
     CaseName=CaseName(1:end-2);
-    clear TestCaseModel
+    clear TestCaseModel 
     
-    if isempty(str2num(CaseName(1)))
+    if isempty(str2num(CaseName(1))) 
         fprintf('Executing test case %s...\n',CaseName)
         VarsOrig=who;
         addpath(testcasefiles(Icase).folder);
-        eval([CaseName])
+        eval(CaseName)
         rmpath(testcasefiles(Icase).folder)
         CaseExists=true;
     else
@@ -46,7 +56,7 @@ for Icase=1:length(testcasefiles)
         fprintf('Analysis executing...')
 
 
-        GlobalTime=[0:MI.Tsteps-1]*MI.DeltaT;  %Since there is global time vector, construct one here.
+        GlobalTime=(0:MI.Tsteps-1)*MI.DeltaT;  %Since there is global time vector, construct one here.
         [Tprnt, Stress, MeltFrac]=ParaPowerThermal(MI.NL,MI.NR,MI.NC, ...
                                                MI.h,MI.Ta, ...
                                                MI.X,MI.Y,MI.Z, ...
