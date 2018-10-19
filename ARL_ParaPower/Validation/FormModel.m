@@ -160,6 +160,7 @@ for Fii=1:length(NonZeroThickness)
         MatNum=nan;
     end
     ModelMatrix(InX, InY, InZ)=MatNum;
+	HANDLE Q for non-zero thickness layers here
 end
 
 for Fii=1:length(ZeroThickness) 
@@ -177,6 +178,7 @@ for Fii=1:length(ZeroThickness)
         MatNum=nan;
     end
     ModelMatrix(InY, InX, InZ)=MatNum;
+	HANDLE Q for zero thickness layers here
 end
 
 for Fi=1:length(Features)
