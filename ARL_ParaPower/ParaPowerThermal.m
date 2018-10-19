@@ -173,4 +173,4 @@ end
 %}
 
 
-thermal_elapsed = toc(time_thermal)
+thermal_elapsed = toc(time_thermal);

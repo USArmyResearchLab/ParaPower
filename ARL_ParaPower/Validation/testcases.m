@@ -1,7 +1,7 @@
 %This M files executes the set of validation test cases for ParaPower
 
 addpath('..');  %include above directory which contains the parapower code
-testcasefiles=dir('Cases\*.m');
+testcasefiles=dir('Cases/*.m');
 fprintf('\n')
 figure(1);clf
 figure(2);clf
