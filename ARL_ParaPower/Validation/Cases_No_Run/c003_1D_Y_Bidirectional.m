@@ -1,8 +1,9 @@
-%********************************************************
-%**           Test Case #2, 1D in 3 directions         **
-%********************************************************
-    
-    clear Features ExternalConditions Params PottingMaterial
+clear Features ExternalConditions Params PottingMaterial Descr
+
+%***************************************
+%**   Bidrectional in Y Direction     **
+%***************************************
+    Descr='Bidirectional in y Direction';
     
     ExternalConditions.h_Left=0;
     ExternalConditions.h_Right=0;
@@ -20,59 +21,41 @@
 
     ExternalConditions.Tproc=280;
 
+    EndTime          = .01; 
     Params.Tinit     = 20;
-    Params.DeltaT    = 1e-3;
-    Params.Tsteps    = 100;
+    Params.DeltaT    = 1e-5;
+    Params.Tsteps    = EndTime/Params.DeltaT;
 
     PottingMaterial  = 0;
     
-    BarLen=.01;
-    BarWid=0.001;
-    BarDiv=10;
-    BarBas=1e-3;
-    
-    Features(1).x    = [0 BarWid];
-    Features(1).y    = [0 BarWid];
-    Features(1).z    = [BarBas BarLen];
+    Features(1).x    = [0 .001];
+    Features(1).y    = Features(1).x*20;
+    Features(1).z    = [0 .001];
     Features(1).dx   = 2;
-    Features(1).dy   = 2;
-    Features(1).dz   = BarDiv;
+    Features(1).dy   = 10;
+    Features(1).dz   = 2;
     Features(1).Matl = 'Cu';
     Features(1).Q    = 0;
 
-    Features(2).x      = [BarBas BarLen];
-    Features(end).y    = [0 BarWid];
-    Features(end).z    = [0 BarWid];
-    Features(end).dx   = BarDiv;
-    Features(end).dy   = 2;
-    Features(end).dz   = 2;
-    Features(end).Matl = 'Cu';
-    Features(end).Q    = 0;
+    Features(2)=Features(1);
+    Features(2).y=Features(2).y*-1;
 
-    Features(3).x      = [0 BarWid];
-    Features(end).y    = [BarBas BarLen];
-    Features(end).z    = [0 BarWid];
-    Features(end).dx   = 2;
-    Features(end).dy   = BarDiv;
-    Features(end).dz   = 2;
-    Features(end).Matl = 'Cu';
-    Features(end).Q    = 0;
-
-    Features(4)=Features(1);
-    Features(end).z    = [0 BarBas];
-    Features(end).y    = [0 BarBas];
-    Features(end).z    = [0 BarBas];
+    Features(end+1)=Features(1);
+    Features(end).y    = [0 0];
     Features(end).dx   = 1;
     Features(end).dy   = 1;
     Features(end).dz   = 1;
-    Features(end).Matl = 'Cu';
-    Features(end).Q    = 1000;
+    Features(end).Matl = 'AIR';
+    Features(end).Q    = 100;
+%     
+%     Define Q as @(T,Q,Ti)interp1(T,Q,Ti,'spline');
+%     if Q is cell then do interp, otherwise 
+%         Q{ii,jj,kk}(Arg1 Arg2 Arg3)
 
     TestCaseModel.ExternalConditions=ExternalConditions;
     TestCaseModel.Features=Features;
     TestCaseModel.Params=Params;
     TestCaseModel.PottingMaterial=PottingMaterial;
+    TestCaseModel.Desc=Descr;
 %    [GlobalTime, Tprnt, Stress, MeltFrac]=CLI_Input(Features, PottingMaterial, ExternalConditions, Params, true);
 %    disp('Press any key');pause
-
-end

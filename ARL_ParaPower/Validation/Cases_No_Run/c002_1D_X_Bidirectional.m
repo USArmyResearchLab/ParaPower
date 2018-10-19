@@ -1,6 +1,11 @@
+clear Features ExternalConditions Params PottingMaterial Descr
+
 %***************************************
 %**   Bidrectional in X Direction     **
 %***************************************
+
+    Descr='Bidirectional in X Direction';
+
     ExternalConditions.h_Left=0;
     ExternalConditions.h_Right=0;
     ExternalConditions.h_Front=0;
@@ -52,5 +57,4 @@
     TestCaseModel.Features=Features;
     TestCaseModel.Params=Params;
     TestCaseModel.PottingMaterial=PottingMaterial;
-%    [GlobalTime, Tprnt, Stress, MeltFrac]=CLI_Input(Features, PottingMaterial, ExternalConditions, Params, true);
-%    disp('Press any key');pause
+    TestCaseModel.Desc=Descr;

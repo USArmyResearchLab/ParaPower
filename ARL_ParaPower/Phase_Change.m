@@ -5,6 +5,22 @@ function [Tres,hft,meltfrac,K,CP,RHO,Cap] = Phase_Change(Mat,Tres,Tm,hft,Lw,CP,k
 %need to figure out how to change both the A matrix of
 %PCM nodes, and the A matrix for nodes next to PCM
 %nodes
+
+%current pass in
+%Phase_Change(Mat,Tres(ii,jj,kk,it),Tm(Mat(ii,jj,kk)),hft(ii,jj,kk),Lw(Mat(ii,jj,kk)),
+%   CP(ii,jj,kk),kondl(Mat(ii,jj,kk)),kond(Mat(ii,jj,kk)),sphtl(Mat(ii,jj,kk)),
+%       spht(Mat(ii,jj,kk)),rhol(Mat(ii,jj,kk)),rho(Mat(ii,jj,kk)),dx(ii),dy(jj),dz(kk),delta_t);
+
+%want to pass in
+% T(:,t),PH(:,t),Mat,properties,geometry
+%properties.X is list of fixed property X by material number
+%geometry is dx dy dz dt in some sensible format
+%
+%pass out T_prm(:,t),PH_prm(:,t),T(:,t),PH(:,t),K,CP,RHO
+% saving the pre-phase change dof for diagnostic and updating working copy
+% post melt.
+
+
 if Tres > Tm && hft < Lw %is the temp higher than melting point?
     
     if hft + (Tres-Tm)*CP > Lw %is energy enough to fully melt element?

@@ -37,7 +37,7 @@
     Features(1).dx   = 2;
     Features(1).dy   = 2;
     Features(1).dz   = BarDiv;
-    Features(1).Matl = 'Cu';
+    Features(1).Matl = 'Fields Metal';
     Features(1).Q    = 0;
 
     Features(2).x      = [BarBas BarLen];
@@ -46,7 +46,7 @@
     Features(end).dx   = BarDiv;
     Features(end).dy   = 2;
     Features(end).dz   = 2;
-    Features(end).Matl = 'Cu';
+    Features(end).Matl = 'Fields Metal';
     Features(end).Q    = 0;
 
     Features(3).x      = [0 BarWid];
@@ -55,7 +55,7 @@
     Features(end).dx   = 2;
     Features(end).dy   = BarDiv;
     Features(end).dz   = 2;
-    Features(end).Matl = 'Cu';
+    Features(end).Matl = 'Fields Metal';
     Features(end).Q    = 0;
 
     Features(4)=Features(1);
