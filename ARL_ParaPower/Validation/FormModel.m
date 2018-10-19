@@ -11,7 +11,7 @@ Bottom= 5; %Z- Face
 Top   = 6; %Z+ Face
 
 if ischar(TestCaseModel) 
-    if strcmpi('GetDirex',TestCaseModel)
+    if strcmpi('GetDirex',TestCaseModel) %this argument will return the directional index definitions
         ModelInput.Left=Left;
         ModelInput.Right=Right;
         ModelInput.Front=Front;
@@ -120,7 +120,7 @@ Y=sort([Y Y0]);
 Z=sort([Z Z0]); 
 
 Params.Tsteps=floor(Params.Tsteps);
-ModelMatrix=zeros(length(Y)-1,length(X)-1,length(Z)-1);
+ModelMatrix=nan*ones(length(Y)-1,length(X)-1,length(Z)-1);
 Q=zeros([size(ModelMatrix) Params.Tsteps]);
 %Q=zeros(length(X)-1,length(Y)-1,length(Z)-1,Params.Tsteps);
 GlobalTime=[0:Params.DeltaT:(Params.Tsteps-1)*Params.DeltaT];
@@ -128,7 +128,26 @@ GlobalTime=[0:Params.DeltaT:(Params.Tsteps-1)*Params.DeltaT];
 %Get minimum values of feature coords for visualization purposes.
 MinCoord=[min(X) min(Y) min(Z)];
 
-for Fi=1:length(Features) 
+MODIFY ALGORTHM as follows.
+%Initilize model matrix to NaN
+%Loop through features with non-zero thickness in any direction
+%Loop thorugh features with zero thickness and apply non-feature areas as above or below material
+%Set all NaN elements to potting material
+
+ZeroThickness=[];
+NonZeroThickness=[];
+for Fi=1:length(Features)
+    if any([ isscalar(unique(Features(Fi).x)) ...
+             isscalar(unique(Features(Fi).y)) ...
+             isscalar(unique(Features(Fi).z)) ])
+         ZeroThickness(end+1)=Fi;
+    else
+         NonZeroThickness(end+1)=Fi;
+    end
+end
+
+for Fii=1:length(NonZeroThickness) 
+    Fi=NonZeroThickness(Fii);
     InX=GetInXYZ(Features(Fi).x, X);
     InY=GetInXYZ(Features(Fi).y, Y);
     InZ=GetInXYZ(Features(Fi).z, Z);
@@ -140,7 +159,26 @@ for Fi=1:length(Features)
         MatNum=nan;
     end
     ModelMatrix(InY, InX, InZ)=MatNum;
+end
+
+for Fii=1:length(ZeroThickness) 
+    Fi=NonZeroThickness(Fii);
+    InX=GetInXYZ(Features(Fi).x, X);
+    InY=GetInXYZ(Features(Fi).y, Y);
+    InZ=GetInXYZ(Features(Fi).z, Z);
     
+    check which direction is zero, copy material from above or below to this layer
+  
+    %Define Material for the feature
+    MatNum=find(strcmpi(matlist,Features(Fi).Matl));
+    if isempty(MatNum)
+        fprintf('Material %s not found in database. Check spelling\n',Features(Fi).Matl)
+        MatNum=nan;
+    end
+    ModelMatrix(InY, InX, InZ)=MatNum;
+end
+
+for Fi=1:length(Features)
     %Define Q for the feature
      %Negate Q so that postive Q is corresponds to heat generation
      ThisQ=-1*Features(Fi).Q;
@@ -161,10 +199,11 @@ for Fi=1:length(Features)
              ThisQ=[ThisQ; [GlobalTime(end) ThisQ(end,2)]];
          end
          Q(InY, InX, InZ,:)=interp1(ThisQ(:,1),ThisQ(:,2), GlobalTime,'spline');    
+     end
 end
 
 if ischar(PottingMaterial)
-    MatNum=find(strcmp(lower(PottingMaterial),lower(matlist)));
+    MatNum=find(strcmpi(PottingMaterial,lower(matlist)));
     if isempty(MatNum)
         MatNum=NaN;
         fprintf('Potting material %s is unknown',PottingMaterial);
@@ -172,7 +211,7 @@ if ischar(PottingMaterial)
 else
     MatNum=PottingMaterial;
 end
-ModelMatrix(ModelMatrix==0)=MatNum;
+ModelMatrix(isnan(ModelMatrix))=MatNum;
 
 % %Check for existance of Z=0 layer
 % Zzero=find(Z==0);
