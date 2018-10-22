@@ -120,6 +120,10 @@ X=sort([X X0]);
 Y=sort([Y Y0]); 
 Z=sort([Z Z0]); 
 
+DeltaCoord.X=X(2:end)-X(1:end-1);
+DeltaCoord.Y=Y(2:end)-Y(1:end-1);
+DeltaCoord.Z=Z(2:end)-Z(1:end-1);
+
 Params.Tsteps=floor(Params.Tsteps);
 ModelMatrix=zeros(length(X)-1,length(Y)-1,length(Z)-1);
 Q=zeros([size(ModelMatrix) Params.Tsteps]);
@@ -129,7 +133,7 @@ GlobalTime=[0:Params.DeltaT:(Params.Tsteps-1)*Params.DeltaT];
 %Get minimum values of feature coords for visualization purposes.
 MinCoord=[min(X) min(Y) min(Z)];
 
-MODIFY ALGORTHM as follows.
+%MODIFY ALGORTHM as follows.
 %Initilize model matrix to NaN
 %Loop through features with non-zero thickness in any direction
 %Loop thorugh features with zero thickness and apply non-feature areas as above or below material
@@ -147,11 +151,15 @@ for Fi=1:length(Features)
     end
 end
 
+%Apply materials for non-zero thickness elements
 for Fii=1:length(NonZeroThickness) 
     Fi=NonZeroThickness(Fii);
     InX=GetInXYZ(Features(Fi).x, X);
     InY=GetInXYZ(Features(Fi).y, Y);
     InZ=GetInXYZ(Features(Fi).z, Z);
+    
+    Features(Fi).TotalVolume=diff(Features(Fi).x)*diff(Features(Fi).y)*diff(Features(Fi).z);
+    Features(Fi).TotalArea=NaN;
   
     %Define Material for the feature
     MatNum=find(strcmpi(matlist,Features(Fi).Matl));
@@ -160,49 +168,88 @@ for Fii=1:length(NonZeroThickness)
         MatNum=nan;
     end
     ModelMatrix(InX, InY, InZ)=MatNum;
-	HANDLE Q for non-zero thickness layers here
 end
 
+%Apply materials for zero-thickness elements
 for Fii=1:length(ZeroThickness) 
-    Fi=NonZeroThickness(Fii);
+    Fi=ZeroThickness(Fii);
     InX=GetInXYZ(Features(Fi).x, X);
     InY=GetInXYZ(Features(Fi).y, Y);
     InZ=GetInXYZ(Features(Fi).z, Z);
+    Features(Fi).TotalVolume=NaN;
     
-    check which direction is zero, copy material from above or below to this layer
-  
+    if isscalar(unique(Features(Fi).x))  %X is zero thickness
+        UseLayer=GetZeroLayer(X, Features(Fi).x);
+        ModelMatrix(InX,:,:)=ModelMatrix(UseLayer,:,:);
+%        error('must be fixed to match z')
+        Features(Fi).TotalArea=diff(Features(Fi).z)*diff(Features(Fi).y);
+    elseif isscalar(unique(Features(Fi).y)) %y is zero thickness
+        UseLayer=GetZeroLayer(Y, Features(Fi).y);
+        ModelMatrix(:,InY,:)=ModelMatrix(:,UseLayer,:);
+        Features(Fi).TotalArea=diff(Features(Fi).z)*diff(Features(Fi).x);
+        %error('must be fixed to match z')
+    elseif isscalar(unique(Features(Fi).z)) %z is zero thickness
+        UseLayer=GetZeroLayer(Z, Features(Fi).z);
+        Features(Fi).TotalArea=diff(Features(Fi).x)*diff(Features(Fi).y);
+        ModelMatrix(:,:,InZ)=ModelMatrix(:,:,UseLayer);
+    end
     %Define Material for the feature
     MatNum=find(strcmpi(matlist,Features(Fi).Matl));
     if isempty(MatNum)
         fprintf('Material %s not found in database. Check spelling\n',Features(Fi).Matl)
         MatNum=nan;
     end
-    ModelMatrix(InY, InX, InZ)=MatNum;
-	HANDLE Q for zero thickness layers here
+    ModelMatrix(InX, InY, InZ)=MatNum;
 end
 
+%Apply Q's
 for Fi=1:length(Features)
     %Define Q for the feature
      %Negate Q so that postive Q is corresponds to heat generation
-     ThisQ=-1*Features(Fi).Q;
+     ThisQ=(-1)*Features(Fi).Q;
 
-     %Scale Q so that total of all elements results in total Q
-     ThisQ=ThisQ / (Features(Fi).dx*Features(Fi).dy*Features(Fi).dz);
 
-     if isscalar(ThisQ)
-         Q(InX, InY, InZ,:)=ThisQ;
-     else
-         disp('Defining time dependent Q')
-         if ThisQ(1,1) > GlobalTime(1) %If Q for features is not defined at time beginning, then define it
-             ThisQ=[[GlobalTime(1) ThisQ(1,2)]; ThisQ];
-             disp('Defining Q at min(time)')
+     if ThisQ ~= 0 
+         if isscalar(ThisQ)
+             ThisQ=ones(size(GlobalTime))*ThisQ;
+         else
+             disp('Defining time dependent Q')
+             if ThisQ(1,1) > GlobalTime(1) %If Q for features is not defined at time beginning, then define it
+                 ThisQ=[[GlobalTime(1) ThisQ(1,2)]; ThisQ];
+                 disp('Defining Q at min(time)')
+             end
+             if ThisQ(end,1) < GlobalTime(end)
+                 disp('Defining Q at max(time)')
+                 ThisQ=[ThisQ; [GlobalTime(end) ThisQ(end,2)]];
+             end
+             ThisQ=interp1(ThisQ(:,1),ThisQ(:,2), GlobalTime,'spline');    
          end
-         if ThisQ(end,1) < GlobalTime(end)
-             disp('Defining Q at max(time)')
-             ThisQ=[ThisQ; [GlobalTime(end) ThisQ(end,2)]];
+
+
+         %Scale Q so that total of all elements results in total Q
+         InX=GetInXYZ(Features(Fi).x, X);
+         InY=GetInXYZ(Features(Fi).y, Y);
+         InZ=GetInXYZ(Features(Fi).z, Z);
+
+         for Xi=InX
+             for Yi=InY
+                 for Zi=InZ
+                     if isscalar(unique(Features(Fi).x))  %X is zero thickness
+                         ScaledQ=ThisQ*DeltaCoord.Z(Zi)*DeltaCoord.Y(Yi)/abs(Features(Fi).TotalArea);
+                     elseif isscalar(unique(Features(Fi).y)) %y is zero thickness
+                         ScaledQ=ThisQ*DeltaCoord.Z(Zi)*DeltaCoord.X(Xi)/abs(Features(Fi).TotalArea);
+                     elseif isscalar(unique(Features(Fi).z)) %z is zero thickness
+                         ScaledQ=ThisQ*DeltaCoord.X(Xi)*DeltaCoord.Y(Yi)/abs(Features(Fi).TotalArea);
+                     else
+                         ScaledQ=ThisQ*DeltaCoord.X(Xi)*DeltaCoord.Z(Zi)*DeltaCoord.Y(Yi)/abs(Features(Fi).TotalVolume);
+                     end
+                     Q(Xi,Yi,Zi,:)=ScaledQ;
+                 end
+             end
          end
-         Q(InX, InY, InZ,:)=interp1(ThisQ(:,1),ThisQ(:,2), GlobalTime,'spline');    
+     end
 end
+     
 
 if ischar(PottingMaterial)
     MatNum=find(strcmpi(PottingMaterial,lower(matlist)));
@@ -215,25 +262,7 @@ else
 end
 ModelMatrix(isnan(ModelMatrix))=MatNum;
 
-% %Check for existance of Z=0 layer
-% Zzero=find(Z==0);
-% if isempty(find(ModelMatrix(:,:,Zzero)))
-%     ModelMatrix=ModelMatrix(:,:,Z~=0);
-% end 
-    
-
-% for Zi=1:length(Z)-1
-%     fprintf('Between Z=%g and Z=%g\n',Z(Zi),Z(Zi+1))
-%     ModelMatrix(:,:,Zi)
-% end
-%step through, dx, dy, dz, compare to Features and set material number
-
-
 [NR, NC, NL]=size(ModelMatrix);
-
-DeltaCoord.X=X(2:end)-X(1:end-1);
-DeltaCoord.Y=Y(2:end)-Y(1:end-1);
-DeltaCoord.Z=Z(2:end)-Z(1:end-1);
 
 ModelInput.NL=NL;
 ModelInput.NR=NR;
@@ -252,7 +281,16 @@ ModelInput.Tsteps=Params.Tsteps;
 ModelInput.matprops=matprops;
 ModelInput.matlist=matlist;
 
-end
+return
+
+function UseLayer=GetZeroLayer(Coords, FeatureCoords)
+    ZeroLayer=min(find(Coords==FeatureCoords(1)));
+    if ZeroLayer==1
+        UseLayer=2;
+    else
+        UseLayer=ZeroLayer-1;
+    end
+return
 
 function In=GetInXYZ(FeatureExtent, Coords)
 
@@ -265,3 +303,4 @@ function In=GetInXYZ(FeatureExtent, Coords)
             In=In(2:end);
         end
     end
+return
