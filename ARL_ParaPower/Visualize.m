@@ -6,18 +6,17 @@ function Visualize (PlotTitle, MI, varargin)
 %
 %   MI is the model information structure provided by FormModel
 %
-%   State - [l, m, n]: Matrix of scalars with result to color plot with
-%   ScaleTitle  - title of the colorbar
-%   State - a matrix the same dimenstions as modelmat with the state to plot
-%   RemoveMaterial=[] - Which materials to remove from the plot
-%   EdgeOnlyMaterial=[] - Show only the edges of this material
-%   Transparency=0.5 - FaceAlpha value, 0-clear, 1-opaque
-%   ShowQ - Display Q on each face
-%   EdgeColor=[0 0 0] - Color of the edges ('none' or [R,G,B] value)
-%   ModelGeometry - plot model geometry
-%   TransMaterial=[] - List of materials to make transparent
-%   MinCoord=[0 0 0] - Set of model origin (minimum of X, Y & Z)
-%   NoAxis - Do not plot the axes (they help maintain aspect ration in the plot)
+%   ScaleTitle  - title of the colorbar, value is a char array
+%   State - a matrix the same dimenstions as modelmat with the state to plot, value is 3 dim array
+%   RemoveMaterial=[] - Which materials to remove from the plot, value is array of mat numbers
+%   EdgeOnlyMaterial=[] - Show only the edges of this material, value is array of mat numbers
+%   Transparency=0.5 - FaceAlpha value, 0-clear, 1-opaque, value is a scalar between 0 & 1
+%   ShowQ - Display Q on each face, no value, this is a flag
+%   EdgeColor=[0 0 0] - Color of the edges ('none' or [R,G,B] value), value is color as 3x1 RGB array
+%   ModelGeometry - plot model geometry, no value, this is a flag to just plot model geometry
+%   TransMaterial=[] - List of materials to make transparent, value is array of mat numbers that should be transparent
+%   MinCoord=[0 0 0] - Set of model origin (minimum of X, Y & Z), value is a 3 element vecotr that identifies minimum (X,Y,Z) of model
+%   NoAxis - Do not plot the axes (they help maintain aspect ration in the plot), no value, this is a flag to remove the axes
 %
 %To Do Features:
 %  X cross section
