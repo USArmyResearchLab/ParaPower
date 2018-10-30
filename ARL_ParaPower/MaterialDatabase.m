@@ -145,7 +145,7 @@ function MatClose_Callback(hObject, eventdata, handles)
 % hObject    handle to MatClose (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-
+set(handles.MatDbaseFigure,'windowstyle','normal');
 MatDbase=get(handles.MatTable,'Data');
 Mats=stripmsb(MatDbase(:,1));
 Mats=Mats(~strcmp(Mats,''));
@@ -166,6 +166,7 @@ if length(ErrorText) > 0
     end
     set(handles.ErrorMsg,'string',TempTxt)
     set(handles.ErrorPanel,'vis','on');
+	set(handles.MatDbaseFigure,'windowstyle','modal');
 else
     set(handles.MatDbaseFigure,'visible','off')
     %set(handles.MatDbaseFigure,'windowstyle','normal');
@@ -328,6 +329,8 @@ function MatLib=PopulateMatLib(handles, MatDbase, GUIColNames)
     MatLib.matprops=matprops;
     MatLib.matlist=matlist;
     MatLib.matcolors=[];
+    MatLib.AllMatsList=[matlist IBClist];
+    MatLib.AllMatsNum=[matprops(:,GetMatPropIndex('matnum')); IBCprops(:,GetMatPropIndex('ibcnum'))];
     MatLib.kond=matprops(:,GetMatPropIndex('k_s'));
     MatLib.cte=matprops(:,GetMatPropIndex('cte'));
     MatLib.E=matprops(:,GetMatPropIndex('E'));
