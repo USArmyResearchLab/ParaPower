@@ -22,7 +22,7 @@ function varargout = MaterialDatabase(varargin)
 
 % Edit the above text to modify the response to help MaterialDatabase
 
-% Last Modified by GUIDE v2.5 29-Oct-2018 23:51:30
+% Last Modified by GUIDE v2.5 30-Oct-2018 10:47:25
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -63,15 +63,19 @@ guidata(hObject, handles);
 set(handles.MatDbaseFigure,'windowstyle','modal');
 set(handles.MatDatabaseGroup,'vis','on')
 set(handles.ErrorPanel,'vis','off')
-DefFname='DefaultMaterials';
-if exist([DefFname '.mat'],'file')==2
-    load(DefFname,'MatDbase')
-    set(handles.MatTable,'Data',MatDbase);
-    GUIColNames=get(handles.MatTable,'columnname');
-    PopulateMatLib(handles, MatDbase, GUIColNames);
-else
-    disp(['No default material database loaded. (' DefFname '.mat)'])
-    PopulateMatLib(handles, MatDbase, GUIColNames);
+NewWindow=not(isappdata(handles.MatDbaseFigure,'ExistingFigure'));
+if NewWindow
+    DefFname='DefaultMaterials';
+    if exist([DefFname '.mat'],'file')==2
+        load(DefFname,'MatDbase')
+        set(handles.MatTable,'Data',MatDbase);
+        GUIColNames=get(handles.MatTable,'columnname');
+        PopulateMatLib(handles, MatDbase, GUIColNames);
+        setappdata(handles.MatDbaseFigure,'ExistingFigure',true);
+    else
+        disp(['No default material database loaded. (' DefFname '.mat)'])
+        PopulateMatLib(handles, MatDbase, GUIColNames);
+    end
 end
 
 % --- Outputs from this function are returned to the command line.
@@ -375,3 +379,10 @@ for I=1:length(Text)
     TextOutput=[TextOutput Text{I}  char(10)];
 end
 msgbox(TextOutput,'Help','modal');
+
+
+% --- Executes during object creation, after setting all properties.
+function MatDbaseFigure_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to MatDbaseFigure (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
