@@ -22,7 +22,7 @@ function varargout = MaterialDatabase(varargin)
 
 % Edit the above text to modify the response to help MaterialDatabase
 
-% Last Modified by GUIDE v2.5 26-Oct-2018 15:34:05
+% Last Modified by GUIDE v2.5 29-Oct-2018 18:41:22
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -62,6 +62,13 @@ guidata(hObject, handles);
 % uiwait(handles.MatDbaseFigure);
 set(handles.MatDatabaseGroup,'vis','on')
 set(handles.ErrorPanel,'vis','off')
+DefFname='DefaultMaterials';
+if exist([DefFname '.mat'],'file')==2
+    load(DefFname,'MatDbase')
+    set(handles.MatTable,'Data',MatDbase);
+else
+    disp(['No default material database loaded. (' DefFname '.mat)'])
+end
 
 % --- Outputs from this function are returned to the command line.
 function varargout = MaterialDatabase_OutputFcn(hObject, eventdata, handles) 
@@ -73,7 +80,60 @@ function varargout = MaterialDatabase_OutputFcn(hObject, eventdata, handles)
 % Get default command line output from handles structure
 varargout{1} = handles.output;
 
-
+function index=GetMatPropIndex(Prop)
+%Returns the index number for the specified material property\
+    Prop=strtrim(Prop);
+    Pl=length(Prop);
+    strleft=@(S,n) S(1:min(n,length(S)));
+	switch lower(Prop)
+		case strleft('cte',Pl)
+			index=2;
+		case strleft('k_s',Pl)
+			index=1;
+		case strleft('e',Pl)
+			index=3;
+		case strleft('nu',Pl)
+			index=4;
+		case strleft('dens_s',Pl)
+			index=5;
+		case strleft('cp_s',Pl)
+			index=6;
+		case strleft('pcm',Pl)
+			index=7;
+		case strleft('k_l',Pl)
+			index=8;
+		case strleft('dens_l',Pl)
+			index=9;
+		case strleft('cp_l',Pl)
+			index=10;
+		case strleft('lw',Pl)
+			index=11;
+		case strleft('tme',Pl)
+			index=12;
+		case strleft('color',Pl)
+			index=13;
+        case strleft('h_i',Pl)
+            index=1;
+        case strleft('t_i',Pl)
+            index=2;
+		case strleft('matnum',Pl)
+			index=14;
+		case strleft('material',Pl)
+			index=0;
+		case strleft('pcm',Pl)
+			index=[];
+		case strleft('ibc',Pl)
+			index=[];
+		case strleft('nummatprops',Pl)
+			index=14;  %This needs to be adjusted each time the number of properties changes
+		case strleft('numibcprops',Pl)
+			index=3;  %This needs to be adjusted each time the number of properties changes
+        otherwise
+			error(['Material property "' Prop '" not known.']);
+			index=GetMatPropIndex;
+    end
+    
+	
 % --- Executes on button press in MatClose.
 function MatClose_Callback(hObject, eventdata, handles)
 % hObject    handle to MatClose (see GCBO)
@@ -84,14 +144,83 @@ MatDbase=get(handles.MatTable,'Data');
 Mats=stripmsb(MatDbase(:,1));
 Mats=Mats(~strcmp(Mats,''));
 ErrorText={};
+strleft=@(S,n) S(1:min(n,length(S)));
 
 if length(Mats)==length(unique(upper(Mats)))
     set(handles.MatDbaseFigure,'UserData',MatDbase)
     set(handles.MatDbaseFigure,'visible','off')
-    add material numbers, ensure IBCs are negative  
-    savedatabase
+	GUIColNames=get(handles.MatTable,'columnname');
+	IBCNum=0;
+	MatNum=0;
+	IsIBCCol=find(strcmpi(GUIColNames,'IBC'));
+    AvailMats=find(not(strcmpi('',MatDbase(:,1))));
+    MatDbase=MatDbase(AvailMats,:);
+	Mats=find(not(cell2mat(MatDbase(:,IsIBCCol))));
+	IBCs=find(cell2mat(MatDbase(:,IsIBCCol)));
+	matprops=NaN*ones(length(Mats),GetMatPropIndex('NumMatProps'));
+	IBCprops=NaN*ones(length(IBCs),GetMatPropIndex('NumIBCProps'));
+    IBClist=[];
+    if not(isempty(Mats))
+        for Imat=Mats'
+            MatNum=Mats(Imat==Mats);
+            for Icol=1:length(GUIColNames)
+                if not(isempty(MatDbase{Imat,Icol}))
+                    ColTitle=GUIColNames{Icol};
+                    spaceI=findstr(ColTitle,' ');
+                    if not(isempty(spaceI))
+                        ColTitle=ColTitle(1:spaceI);
+                    end
+                    PropIndex=GetMatPropIndex(ColTitle);
+                    if PropIndex==0
+                        matlist{MatNum}=MatDbase{Imat,Icol};
+                        matprops(MatNum,GetMatPropIndex('matnum'))=MatNum;
+                    elseif not(isempty(PropIndex))
+                        matprops(MatNum,PropIndex)=MatDbase{Imat,Icol};
+                    end
+                end
+            end
+        end
+    end
+    if not(isempty(IBCs))
+        for Iibc=IBCs'
+            IBCNum=IBCs(Iibc==IBCs);
+            for Icol=1:length(GUIColNames)
+                if not(isempty(MatDbase{Imat,Icol}))
+                    ColTitle=GUIColNames{Icol};
+                    spaceI=findstr(ColTitle,' ');
+                    if not(isempty(spaceI))
+                        ColTitle=ColTitle(1:spaceI);
+                    end
+                    PropIndex=GetMatPropIndex(ColTitle);
+                    if PropIndex==0
+                        IBClist{MatNum}=MatDbase{Imat,Icol};
+                        IBCprops(IBCNum,GetMatPropIndex('matnum'))=-IBCNum;
+                    elseif not(isempty(PropIndex))
+                         IBCprops(IBCNum,GetMatPropIndex(strleft(GUIColNames(Icol),4)))=MatDbase{Imat,Icol};
+                    end
+                    
+                    %if PropIndex~=0 && not(isempty(PropIndex))
+                    %    IBCprops(IBCNum,GetMatPropIndex(strleft(GUIColNames(Icol),4)))=MatDbase{Imat,Icol};
+                    %end
+                end
+            end
+        end
+    end
+	
+    MatLib.matprops=matprops;
+    MatLib.matlist=matlist;
+    MatLib.matcolors=[];
+    MatLib.kond=matprops(:,GetMatPropIndex('k_s'));
+    MatLib.cte=matprops(:,GetMatPropIndex('cte'));
+    MatLib.E=matprops(:,GetMatPropIndex('E'));
+    MatLib.nu=matprops(:,GetMatPropIndex('nu'));
+    MatLib.rho=matprops(:,GetMatPropIndex('dens_s'));
+    MatLib.spht=matprops(:,GetMatPropIndex('cp_s'));
+    MatLib.ibcprops=IBCprops;
+    MatLib.ibclist=IBClist;
+    setappdata(handles.output,'Materials',MatLib);
 else
-    ErrorText{end+1}='Duplicate material name.  All material names must be unique.';
+    ErrorText{end+1}='Duplicate material name.  All material ) must be unique.';
 end
 
 if length(ErrorText) > 0 
@@ -156,3 +285,29 @@ function DeleteIBCButton_Callback(hObject, eventdata, handles)
 % hObject    handle to DeleteIBCButton (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+MatDbase=get(handles.MatTable,'Data');
+GUIColNames=get(handles.MatTable,'columnname');
+IsIBCCol=find(strcmpi(GUIColNames,'IBC'));
+IBCs=find(cell2mat(MatDbase(:,IsIBCCol)));
+for i=IBCs'
+    MatDbase(i,:)=MatDbase(end,:);
+end
+set(handles.MatTable,'Data',MatDbase);
+    
+% --- Executes on button press in loadbutton.
+function loadbutton_Callback(hObject, eventdata, handles)
+% hObject    handle to loadbutton (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+[fname,path]=uigetfile('*.mat','Load Material Database');
+load([path fname],'MatDbase');
+set(handles.MatTable,'Data',MatDbase);
+
+% --- Executes on button press in savebutton.
+function savebutton_Callback(hObject, eventdata, handles)
+% hObject    handle to savebutton (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+[fname,path]=uiputfile('*.mat','Save Material Database');
+MatDbase=get(handles.MatTable,'Data');
+save([path fname],'MatDbase');
