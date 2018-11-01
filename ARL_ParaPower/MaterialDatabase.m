@@ -1,3 +1,11 @@
+%To Do List
+%   1.) Add Material Button
+%   2.) Delete material button (with column)
+%   3.) Clean up buttons
+%   4.) Sort Buttons on column headings
+
+
+
 function varargout = MaterialDatabase(varargin)
 % MATERIALDATABASE MATLAB code for MaterialDatabase.fig
 %      MATERIALDATABASE, by itself, creates a new MATERIALDATABASE or raises the existing
@@ -233,10 +241,14 @@ MatDbase=get(handles.MatTable,'Data');
 GUIColNames=get(handles.MatTable,'columnname');
 IsIBCCol=find(strcmpi(GUIColNames,'IBC'));
 IBCs=find(cell2mat(MatDbase(:,IsIBCCol)));
-for i=IBCs'
-    MatDbase(i,:)=MatDbase(end,:);
+YES='Yes';
+Response=questdlg('Are you sure want to delete all IBCs?','Confirm',YES,'No','No');
+if strcmpi(Response,YES)
+    for i=IBCs'
+        MatDbase(i,:)=MatDbase(end,:);
+    end
+    set(handles.MatTable,'Data',MatDbase);
 end
-set(handles.MatTable,'Data',MatDbase);
     
 % --- Executes on button press in loadbutton.
 function loadbutton_Callback(hObject, eventdata, handles)
