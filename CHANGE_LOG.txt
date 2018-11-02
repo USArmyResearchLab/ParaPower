@@ -24,6 +24,8 @@ vectorize recalculation of C and B vectors
 
 
 
+
+
 *****to harmonize with Morris
 figure out the deal with Qv and time dep stuff
 material properties as structure

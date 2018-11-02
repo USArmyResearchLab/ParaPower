@@ -16,7 +16,7 @@ Bcond_out=sparse(B_areas(Mask,:)).*spfun(recip,sparse(B_hLengths(Mask,:)));
 Bcond_out=spdiags(K(Mask),0,length(Mask),length(Mask))*Bcond_out;  %conductance from center of element i up to bdry of convection
 
 if ~isempty(htcs) && ~isempty(B_areas)
-    Bcond_in = sparse(B_areas(Mask)*diag(htcs));
+    Bcond_in = sparse(B_areas(Mask,:)*diag(htcs));
     Bcond(Mask,:) = spfun(recip, (spfun(recip,Bcond_out) + spfun(recip,Bcond_in)) );
 end
 
