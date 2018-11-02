@@ -27,6 +27,15 @@ function Visualize (PlotTitle, MI, varargin)
 
     DeltaCoord=  {MI.X MI.Y MI.Z};
     ModelMatrix=MI.Model;
+	
+	SzModel=size(ModelMatrix);
+	if (length(MI.X) ~= SzModel(1)) || (length(MI.Y) ~=SzModel(2)) || (length(MI.Z) ~= SzModel(3))
+		fprintf(' %10s %9s %9s %9s \n %10s %9i %9i %9i \n %10s %9i %9i %9i\n', ...
+		           '','Rows(X)','Columns(Y)','Layers(Z)', ...
+				   'Model',SzModel(1),SzModel(2),SzModel(3), ...
+				   'Vectors',length(MI.X),length(MI.Y),length(MI.Z))
+		error('There is a size mismatch between the Model and the X, Y or Z vectors');
+	end
 
 
     PlotGeom=true; %If no other parameters are called, then plot the model geom
@@ -49,7 +58,7 @@ function Visualize (PlotTitle, MI, varargin)
 
     QList=containers.Map;
     
-    if iscell(varargin{1})
+    if (not(isempty(varargin))) && iscell(varargin{1})
         PropValPairs=varargin{1};
     else
         PropValPairs=varargin;
@@ -102,7 +111,7 @@ function Visualize (PlotTitle, MI, varargin)
 
     end
 
-    clf;drawnow
+    cla;drawnow
     Direx=FormModel('GetDirex');
     
     if ~all(size(PlotState)==size(ModelMatrix))
