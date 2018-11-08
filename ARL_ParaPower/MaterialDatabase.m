@@ -30,7 +30,7 @@ function varargout = MaterialDatabase(varargin)
 
 % Edit the above text to modify the response to help MaterialDatabase
 
-% Last Modified by GUIDE v2.5 30-Oct-2018 10:47:25
+% Last Modified by GUIDE v2.5 07-Nov-2018 18:40:18
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -68,10 +68,20 @@ guidata(hObject, handles);
 
 % UIWAIT makes MaterialDatabase wait for user response (see UIRESUME)
 % uiwait(handles.MatDbaseFigure);
-set(handles.MatDbaseFigure,'windowstyle','modal');
+
 set(handles.MatDatabaseGroup,'vis','on')
 set(handles.ErrorPanel,'vis','off')
 NewWindow=not(isappdata(handles.MatDbaseFigure,'ExistingFigure'));
+if length(varargin)==1 && strcmpi(varargin{1},'modal')
+    handles.modal=true;
+    set(handles.MatDbaseFigure,'windowstyle','modal');
+else
+    handles.modal=false;
+    set(handles.MatDbaseFigure,'windowstyle','normal');
+    disp('For normal usage, this function should be called with an argument of ''modal''');
+    disp('without that argument, the material database will not necessarily be updated ');
+    disp('when other windows are activated.  For example: MaterialDatabase(''modal'')')
+end
 if NewWindow
     DefFname='DefaultMaterials';
     if exist([DefFname '.mat'],'file')==2
@@ -85,6 +95,8 @@ if NewWindow
         PopulateMatLib(handles, MatDbase, GUIColNames);
     end
 end
+GUIColNames=strtrim(get(handles.MatTable,'columnname'));
+set(handles.SortByMenu,'string',GUIColNames,'value',2)
 
 % --- Outputs from this function are returned to the command line.
 function varargout = MaterialDatabase_OutputFcn(hObject, eventdata, handles) 
@@ -142,6 +154,8 @@ function index=GetMatPropIndex(Prop)
 			index=[];
 		case strleft('ibc',Pl)
 			index=[];
+		case strleft('del',Pl)
+			index=[];
 		case strleft('nummatprops',Pl)
 			index=14;  %This needs to be adjusted each time the number of properties changes
 		case strleft('numibcprops',Pl)
@@ -159,7 +173,7 @@ function MatClose_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 set(handles.MatDbaseFigure,'windowstyle','normal');
 MatDbase=get(handles.MatTable,'Data');
-Mats=stripmsb(MatDbase(:,1));
+Mats=stripmsb(MatDbase(:,2));
 Mats=Mats(~strcmp(Mats,''));
 ErrorText={};
 strleft=@(S,n) S(1:min(n,length(S)));
@@ -178,7 +192,11 @@ if length(ErrorText) > 0
     end
     set(handles.ErrorMsg,'string',TempTxt)
     set(handles.ErrorPanel,'vis','on');
-	set(handles.MatDbaseFigure,'windowstyle','modal');
+    if handles.modal
+        set(handles.MatDbaseFigure,'windowstyle','modal');
+    else
+        set(handles.MatDbaseFigure,'windowstyle','normal');
+    end        
 else
     set(handles.MatDbaseFigure,'visible','off')
     %set(handles.MatDbaseFigure,'windowstyle','normal');
@@ -240,16 +258,26 @@ function DeleteIBCButton_Callback(hObject, eventdata, handles)
 MatDbase=get(handles.MatTable,'Data');
 GUIColNames=get(handles.MatTable,'columnname');
 IsIBCCol=find(strcmpi(GUIColNames,'IBC'));
-IBCs=find(cell2mat(MatDbase(:,IsIBCCol)));
+ToRetain=find(not(cell2mat(MatDbase(:,IsIBCCol))));
 YES='Yes';
 Response=questdlg('Are you sure want to delete all IBCs?','Confirm',YES,'No','No');
 if strcmpi(Response,YES)
-    for i=IBCs'
-        MatDbase(i,:)=MatDbase(end,:);
-    end
+    MatDbase=MatDbase(ToRetain,:);
     set(handles.MatTable,'Data',MatDbase);
 end
     
+
+% ToRetain=find(not(cell2mat(MatDbase(:,IsIBCCol))));
+% YES='Yes';
+% Response=questdlg('Are you sure want to delete all checked materials?','Confirm',YES,'No','No');
+% if strcmpi(Response,YES)
+% %     for i=IBCs'
+% %         MatDbase(i,:)=MatDbase(end,:);
+% %     end
+%     MatDbase=MatDbase(ToRetain,:);
+%     set(handles.MatTable,'Data',MatDbase);
+% end
+%     
 % --- Executes on button press in loadbutton.
 function loadbutton_Callback(hObject, eventdata, handles)
 % hObject    handle to loadbutton (see GCBO)
@@ -286,12 +314,15 @@ function MatLib=PopulateMatLib(handles, MatDbase, GUIColNames)
 
 	IBCNum=0;
 	MatNum=0;
-    GUIColNames=strip(GUIColNames);
-	IsIBCCol=find(strcmpi(GUIColNames,'IBC'));
-    AvailMats=find(not(strcmpi('',MatDbase(:,1))));
+    
+    GUIColNames=strip(GUIColNames); %Remove extra spaces from the names of the GUI columns
+	IsIBCCol=find(strcmpi(GUIColNames,'IBC')); %Determine which column is the IBC flag
+    MatCol=find(strcmpi(GUIColNames,'Material')); %Determine which column holds the name
+    AvailMats=find(not(strcmpi('',MatDbase(:,MatCol)))); 
     MatDbase=MatDbase(AvailMats,:);
 	Mats=find(not(cell2mat(MatDbase(:,IsIBCCol))));
 	IBCs=find(cell2mat(MatDbase(:,IsIBCCol)));
+    matlist={};
 	matprops=NaN*ones(length(Mats),GetMatPropIndex('NumMatProps'));
 	IBCprops=NaN*ones(length(IBCs),GetMatPropIndex('NumIBCProps'));
     IBClist=[];
@@ -319,7 +350,7 @@ function MatLib=PopulateMatLib(handles, MatDbase, GUIColNames)
     if not(isempty(IBCs))
         for Iibc=IBCs'
             IBCNum=find(Iibc==IBCs);
-            for Icol=[1 find(strcmpi(GUIColNames,'H_ibc')) find(strcmpi(GUIColNames,'T_ibc'))]
+            for Icol=[MatCol find(strcmpi(GUIColNames,'H_ibc')) find(strcmpi(GUIColNames,'T_ibc'))]
                 if not(isempty(MatDbase{Iibc,Icol}))
                     ColTitle=GUIColNames{Icol};
                     spaceI=findstr(ColTitle,' ');
@@ -371,7 +402,9 @@ Text{end+1}='the dialog box invisible, but it still exists in memory so that the
 Text{end+1}='material data can be extracted from it.';
 Text{end+1}='';
 Text{end+1}='It is called using the following command:';
-Text{end+1}='   F=MaterialDatabase;';
+Text{end+1}='   F=MaterialDatabase(''modal'');';
+Text{end+1}='   Note: this makes the material database modal which is not ';
+Text{end+1}='         desirable during debugging, ''nonmodal'' can be used.';
 Text{end+1}='';
 Text{end+1}='To extract data from the database:';
 Text{end+1}='    Materials=getappdata(F,''Materials'');';
@@ -384,7 +417,9 @@ Text{end+1}='database starts out empty.  The file can be created using the';
 Text{end+1}='''Save'' button.  To completely eliminate the GUI use delete(F).';
 Text{end+1}='';
 Text{end+1}='If properties are added to the materials, the ''GetMatPropIndex''';
-Text{end+1}='to be updated.';
+Text{end+1}='';
+
+
 
 TextOutput='';
 for I=1:length(Text)
@@ -398,3 +433,79 @@ function MatDbaseFigure_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to MatDbaseFigure (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
+
+
+% --- Executes on button press in DelChkButton.
+function DelChkButton_Callback(hObject, eventdata, handles)
+% hObject    handle to DelChkButton (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+MatDbase=get(handles.MatTable,'Data');
+GUIColNames=get(handles.MatTable,'columnname');
+IsIBCCol=find(strcmpi(GUIColNames,'Del'));
+ToRetain=find(not(cell2mat(MatDbase(:,IsIBCCol))));
+YES='Yes';
+Response=questdlg('Are you sure want to delete all checked materials?','Confirm',YES,'No','No');
+if strcmpi(Response,YES)
+%     for i=IBCs'
+%         MatDbase(i,:)=MatDbase(end,:);
+%     end
+    if isempty(ToRetain)
+        ToRetain=length(MatDbase(:,1))+1;
+        InsertRowButton_Callback(hObject, eventdata, handles)
+        MatDbase=get(handles.MatTable,'Data');
+    end
+    MatDbase=MatDbase(ToRetain,:);
+    set(handles.MatTable,'Data',MatDbase);
+end
+    
+
+
+% --- Executes on button press in InsertRowButton.
+function InsertRowButton_Callback(hObject, eventdata, handles)
+% hObject    handle to InsertRowButton (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+MatDbase=get(handles.MatTable,'Data');
+NewRow=MatDbase(1,:);
+for I=1:length(NewRow)
+    switch class(NewRow{I})
+        case 'double'
+            NewRow{I}=[];
+        case 'logical'
+            NewRow{I}=false;
+        case 'char'
+            NewRow{I}='';
+        otherwise
+            NewRow{I}=[];
+    end
+            
+end
+MatDbase(end+1,:)=NewRow;
+set(handles.MatTable,'Data',MatDbase);
+
+
+
+% --- Executes on button press in SortButton.
+function SortButton_Callback(hObject, eventdata, handles)
+% hObject    handle to SortButton (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+    MatDbase=get(handles.MatTable,'Data');
+    Key=get(handles.SortByMenu,'value');
+    KeyField=MatDbase(:,Key);
+    OrigLength=length(KeyField);
+    if not(ischar(KeyField{1}))
+        KeyField=cell2mat(KeyField);
+    end
+    if OrigLength==length(KeyField)
+        [Field,Order]=sort(KeyField);
+        if all(Order'==[1:length(Order)])
+            Order=[length(Order):-1:1];
+        end
+        MatDbase=MatDbase(Order,:);
+        set(handles.MatTable,'data',MatDbase);
+    else
+        msgbox('Sort failed because some fields in sorted column are empty.','Information');
+    end
+
