@@ -78,9 +78,11 @@ if length(varargin)==1 && strcmpi(varargin{1},'modal')
 else
     handles.modal=false;
     set(handles.MatDbaseFigure,'windowstyle','normal');
-    disp('For normal usage, this function should be called with an argument of ''modal''');
-    disp('without that argument, the material database will not necessarily be updated ');
-    disp('when other windows are activated.  For example: MaterialDatabase(''modal'')')
+    if length(varargin)==1 && not(strcmpi(varargin{1},'nonmodal'))
+        disp('For normal usage, this function should be called with an argument of ''modal''');
+        disp('without that argument, the material database will not necessarily be updated ');
+        disp('when other windows are activated.  For example: MaterialDatabase(''modal'')')
+    end
 end
 if NewWindow
     DefFname='DefaultMaterials';
