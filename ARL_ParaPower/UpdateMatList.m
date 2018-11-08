@@ -8,8 +8,9 @@ function UpdateMatList(TableHandle, Ci, CloseImmediately)
         close(F)
     else
         F=MaterialDatabase('modal');
+        uiwait(F)
     end
-    uiwait(F)
+
     M=getappdata(F,'Materials');
     NewMatList=M.AllMatsList;
 

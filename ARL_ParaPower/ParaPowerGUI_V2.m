@@ -57,7 +57,9 @@ handles.output = hObject;
 
 % Update handles structure
 guidata(hObject, handles);
-
+TableHandle=handles.features;
+Ci=7; %Column number of material list
+UpdateMatList(TableHandle, Ci, 'Do Not Open Mat Dialog Box')
 % UIWAIT makes ParaPowerGUI_V2 wait for user response (see UIRESUME)
 % uiwait(handles.figure1);
 
@@ -82,10 +84,11 @@ function visualize_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-MI=getappdata(0,'MI')
+MI=getappdata(handles.figure1,'MI')
 
 figure(2)
-Visualize ('Model Input', MI, 'modelgeom','ShowQ')
+
+cla;Visualize ('Model Input', MI, 'modelgeom','ShowQ')
 
 
 
@@ -226,7 +229,7 @@ function savebutton_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
     [fname,pathname] = uiputfile ('*.mat');
-    TestCaseModel = getappdata(0,'TestCaseModel')
+    TestCaseModel = getappdata(handles.figure1,'TestCaseModel')
     save([pathname fname], '-struct' , 'TestCaseModel')
 
 
@@ -365,10 +368,10 @@ function RunAnalysis_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 numplots = 1;
-    TestCaseModel = getappdata(0,'TestCaseModel')
+    TestCaseModel = getappdata(handles.figure1,'TestCaseModel')
     MI=FormModel(TestCaseModel);
     figure(numplots)
-    Visualize ('Model Input', MI, 'modelgeom','ShowQ')
+    cla;Visualize ('Model Input', MI, 'modelgeom','ShowQ')
 
     pause(.001)
         fprintf('Analysis executing...')
@@ -414,7 +417,7 @@ numplots = 1;
            T=Tprnt(:,:,:,end);
            T(MI.Model==0)=max(T(:));
            
-           Visualize(sprintf('t=%1.2f ms, State: %i of %i',StateN*MI.DeltaT*1000, StateN,length(Tprnt(1,1,1,:))),MI ...
+           cla;Visualize(sprintf('t=%1.2f ms, State: %i of %i',StateN*MI.DeltaT*1000, StateN,length(Tprnt(1,1,1,:))),MI ...
            ,'state', T, 'RemoveMaterial',[0] ...
            ,'scaletitle', 'Temperature' ...
            )                      
@@ -425,7 +428,7 @@ numplots = 1;
            figure(numplots)
            pause(.001)
            %StateN=length(GlobalTime)*TimeStepOutput;
-           Visualize(sprintf('t=%1.2f ms, State: %i of %i',StateN*MI.DeltaT*1000, StateN,length(Stress(1,1,1,:))),MI ...
+           cla;Visualize(sprintf('t=%1.2f ms, State: %i of %i',StateN*MI.DeltaT*1000, StateN,length(Stress(1,1,1,:))),MI ...
            ,'state', Stress(:,:,:,StateN) ...
            ,'scaletitle', 'Stress' ...
            )                      
@@ -435,7 +438,7 @@ numplots = 1;
            figure(numplots+1)
            pause(.001)
            %StateN=length(GlobalTime)*TimeStepOutput;
-           Visualize(sprintf('t=%1.2f ms, State: %i of %i',StateN*MI.DeltaT*1000, StateN,length(MeltFrac(1,1,1,:))),MI ...
+           cla;Visualize(sprintf('t=%1.2f ms, State: %i of %i',StateN*MI.DeltaT*1000, StateN,length(MeltFrac(1,1,1,:))),MI ...
            ,'state', MeltFrac(:,:,:,StateN) ...
            ,'scaletitle', 'Melt Fraction' ...
            )                      
@@ -594,6 +597,13 @@ ExtBoundMatrix = get(handles.ExtCondTable,'Data')
 %%%% SET ALL Feature Parameters
 
 [rows,cols]=size(FeaturesMatrix)
+CheckMatrix=FeaturesMatrix(:,[1:8 11:12]);
+for K=1:length(CheckMatrix(:))
+    if isempty(CheckMatrix{K})
+        msgbox('Features table is not fully defined.','Warning')
+        return
+    end
+end
 
 for count = 1:rows
     Features(count).x  =  [FeaturesMatrix{count, 1} FeaturesMatrix{count, 4}]  % X Coordinates of edges of elements
@@ -613,10 +623,10 @@ TestCaseModel.PottingMaterial=PottingMaterial;
 
 MI=FormModel(TestCaseModel);
 
-setappdata(0,'TestCaseModel',TestCaseModel)
-setappdata(0,'MI',MI)
+setappdata(handles.figure1,'TestCaseModel',TestCaseModel)
+setappdata(handles.figure1,'MI',MI)
 
-MI=getappdata(0,'MI')
+MI=getappdata(handles.figure1,'MI')
 figure(2)
 Visualize ('Model Input', MI, 'modelgeom','ShowQ')
 
