@@ -3,7 +3,7 @@ function UpdateMatList(TableHandle, Ci)
 %TableHandle is a handle to the table of inerest
 %Ci is the column number of that table that has materials listed
 
-    F=MaterialDatabase;
+    F=MaterialDatabase('modal');
     uiwait(F)
     M=getappdata(F,'Materials');
     NewMatList=M.AllMatsList;
