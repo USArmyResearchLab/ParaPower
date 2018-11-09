@@ -22,7 +22,7 @@ function varargout = ParaPowerGUI_V2(varargin)
 
 % Edit the above text to modify the response to help ParaPowerGUI_V2
 
-% Last Modified by GUIDE v2.5 09-Nov-2018 10:11:04
+% Last Modified by GUIDE v2.5 09-Nov-2018 12:32:06
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -787,3 +787,28 @@ function NumTimeSteps_Callback(hObject, eventdata, handles)
 %        str2double(get(hObject,'String')) returns contents of NumTimeSteps as a double
 
 TimeStep_Callback(hObject, eventdata, handles);
+
+
+% --- Executes when user attempts to close figure1.
+function figure1_CloseRequestFcn(hObject, eventdata, handles)
+% hObject    handle to figure1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: delete(hObject) closes the figure
+F=get(handles.features,'userdata');
+if not(isempty(F))
+    delete(F)
+end
+delete(hObject);
+
+
+% --- Executes during object creation, after setting all properties.
+function LogoAxes_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to LogoAxes (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: place code in OpeningFcn to populate LogoAxes
+
+imshow('ARLlogoParaPower.png')
