@@ -173,8 +173,10 @@ function savebutton_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
     [fname,pathname] = uiputfile ('*.mat');
-    TestCaseModel = getappdata(handles.figure1,'TestCaseModel')
-    save([pathname fname], '-struct' , 'TestCaseModel')
+    if fname ~= 0 
+        TestCaseModel = getappdata(handles.figure1,'TestCaseModel')
+        save([pathname fname], '-struct' , 'TestCaseModel')
+    end
 
 
 
@@ -185,59 +187,61 @@ function loadbutton_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
     [filename,pathname] = uigetfile('*.mat');
-    TestCaseModel = uiimport([pathname filename]);
+    if filename~=0
+        TestCaseModel = uiimport([pathname filename]);
 
 
-    ExternalConditions=TestCaseModel.ExternalConditions;
-    Features=TestCaseModel.Features;
-    Params=TestCaseModel.Params;
-    PottingMaterial=TestCaseModel.PottingMaterial;
-    
-    %%% Set the External Conditions into the table 
-    tabledata = get(handles.ExtCondTable,'data');
+        ExternalConditions=TestCaseModel.ExternalConditions;
+        Features=TestCaseModel.Features;
+        Params=TestCaseModel.Params;
+        PottingMaterial=TestCaseModel.PottingMaterial;
 
-   tabledata(1,1) =  mat2cell(ExternalConditions.h_Left,1,1);
-   tabledata(1,2) =  mat2cell(ExternalConditions.h_Right,1,1);
-   tabledata(1,3) =  mat2cell(ExternalConditions.h_Front,1,1);
-   tabledata(1,4) =  mat2cell(ExternalConditions.h_Back,1,1);
-   tabledata(1,5) =  mat2cell(ExternalConditions.h_Top,1,1);
-   tabledata(1,6) =  mat2cell(ExternalConditions.h_Bottom,1,1);
+        %%% Set the External Conditions into the table 
+        tabledata = get(handles.ExtCondTable,'data');
 
-   tabledata(2,1) =  mat2cell(ExternalConditions.Ta_Left,1,1);
-   tabledata(2,2) =  mat2cell(ExternalConditions.Ta_Right,1,1);
-   tabledata(2,3) =  mat2cell(ExternalConditions.Ta_Front,1,1);
-   tabledata(2,4) =  mat2cell(ExternalConditions.Ta_Back,1,1);
-   tabledata(2,5) =  mat2cell(ExternalConditions.Ta_Top,1,1);
-   tabledata(2,6) =  mat2cell(ExternalConditions.Ta_Bottom,1,1);
-   
-   set(handles.ExtCondTable,'Data',tabledata)
-   
-   
-   %%%%Set the Features into the table
-   tabledata = get(handles.features,'data');
-   [m n] = size(Features); 
-   
-   for count = 1: n 
-  
-       tabledata(count,1) = mat2cell(Features(count).x(1),1,1);
-       tabledata(count,2) = mat2cell(Features(count).y(1),1,1);
-       tabledata(count,3) = mat2cell(Features(count).z(1),1,1);
-       tabledata(count,4) = mat2cell(Features(count).x(2),1,1);
-       tabledata(count,5) = mat2cell(Features(count).y(2),1,1);
-       tabledata(count,6) = mat2cell(Features(count).z(2),1,1);
-       tabledata(count,7) = cellstr(Features(count).Matl);
-       tabledata(count,8) = mat2cell(Features(count).Q,1,1);
-       tabledata(count,11) = mat2cell(Features(count).dx,1,1);
-       tabledata(count,12) = mat2cell(Features(count).dz,1,1);
-   end 
-   
-   set(handles.features,'Data',tabledata)
-   
-   %%%Set Parameters
-   set(handles.Tinit,'String', Params.Tinit)
-   set(handles.TimeStep,'String',Params.DeltaT)
-   set(handles.NumTimeSteps,'String',Params.Tsteps)
-   set(handles.Tprocess,'String',ExternalConditions.Tproc)
+       tabledata(1,1) =  mat2cell(ExternalConditions.h_Left,1,1);
+       tabledata(1,2) =  mat2cell(ExternalConditions.h_Right,1,1);
+       tabledata(1,3) =  mat2cell(ExternalConditions.h_Front,1,1);
+       tabledata(1,4) =  mat2cell(ExternalConditions.h_Back,1,1);
+       tabledata(1,5) =  mat2cell(ExternalConditions.h_Top,1,1);
+       tabledata(1,6) =  mat2cell(ExternalConditions.h_Bottom,1,1);
+
+       tabledata(2,1) =  mat2cell(ExternalConditions.Ta_Left,1,1);
+       tabledata(2,2) =  mat2cell(ExternalConditions.Ta_Right,1,1);
+       tabledata(2,3) =  mat2cell(ExternalConditions.Ta_Front,1,1);
+       tabledata(2,4) =  mat2cell(ExternalConditions.Ta_Back,1,1);
+       tabledata(2,5) =  mat2cell(ExternalConditions.Ta_Top,1,1);
+       tabledata(2,6) =  mat2cell(ExternalConditions.Ta_Bottom,1,1);
+
+       set(handles.ExtCondTable,'Data',tabledata)
+
+
+       %%%%Set the Features into the table
+       tabledata = get(handles.features,'data');
+       [m n] = size(Features); 
+
+       for count = 1: n 
+
+           tabledata(count,1) = mat2cell(Features(count).x(1),1,1);
+           tabledata(count,2) = mat2cell(Features(count).y(1),1,1);
+           tabledata(count,3) = mat2cell(Features(count).z(1),1,1);
+           tabledata(count,4) = mat2cell(Features(count).x(2),1,1);
+           tabledata(count,5) = mat2cell(Features(count).y(2),1,1);
+           tabledata(count,6) = mat2cell(Features(count).z(2),1,1);
+           tabledata(count,7) = cellstr(Features(count).Matl);
+           tabledata(count,8) = mat2cell(Features(count).Q,1,1);
+           tabledata(count,11) = mat2cell(Features(count).dx,1,1);
+           tabledata(count,12) = mat2cell(Features(count).dz,1,1);
+       end 
+
+       set(handles.features,'Data',tabledata)
+
+       %%%Set Parameters
+       set(handles.Tinit,'String', Params.Tinit)
+       set(handles.TimeStep,'String',Params.DeltaT)
+       set(handles.NumTimeSteps,'String',Params.Tsteps)
+       set(handles.Tprocess,'String',ExternalConditions.Tproc)
+    end
    
 
 
