@@ -22,7 +22,7 @@ function varargout = ParaPowerGUI_V2(varargin)
 
 % Edit the above text to modify the response to help ParaPowerGUI_V2
 
-% Last Modified by GUIDE v2.5 09-Nov-2018 12:32:06
+% Last Modified by GUIDE v2.5 09-Nov-2018 15:12:40
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -72,6 +72,9 @@ Ci=7; %Column number of material list
 UpdateMatList(TableHandle, Ci, 'Do Not Open Mat Dialog Box')
 % UIWAIT makes ParaPowerGUI_V2 wait for user response (see UIRESUME)
 % uiwait(handles.figure1);
+
+disp('Visual stress checkbox is currently disabled because stress functionality is not implemented in this GUI yet.')
+set(handles.VisualStress,'enable','off');
 
 
 % --- Outputs from this function are returned to the command line.
@@ -299,9 +302,12 @@ function RunAnalysis_Callback(hObject, eventdata, handles)
        figure(numplots)
        plot (Dout(:,1), Dout(:,2))
        
-       Tprnt = setappdata(handles.figure1, 'Tprint', Tprint);
-       Stress = setappdata( handles.figure1, 'Stress', Stress);
-       MeltFrac = setappdata (handles.figure1, 'MeltFrac', MeltFrac);
+       setappdata(handles.figure1, 'Tprint', Tprnt);
+       setappdata( handles.figure1, 'Stress', Stress);
+       setappdata (handles.figure1, 'MeltFrac', MeltFrac);
+%        Tprnt = setappdata(handles.figure1, 'Tprint', Tprnt);
+%        Stress = setappdata( handles.figure1, 'Stress', Stress);
+%        MeltFrac = setappdata (handles.figure1, 'MeltFrac', MeltFrac);
        
 % <<<<<<< HEAD
 %        
@@ -714,6 +720,11 @@ MI = getappdata(handles.figure1,'MI');
        MeltFrac = getappdata (handles.figure1, 'MeltFrac');
 
 numplots = 3; 
+TimeStepOutput = get(handles.slider1,'Value'); %value between 0 and 1 from the slider
+
+NumStep =str2num(get(handles.NumTimeSteps,'String')); %total number of time steps
+StateN=round(NumStep*TimeStepOutput,0); %time step of interest 
+
 
 if get(handles.VisualTemp,'Value')==1
            numplots = numplots+1;
