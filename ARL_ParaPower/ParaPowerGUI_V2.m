@@ -515,6 +515,10 @@ for count = 1:rows
     Features(count).Q = FeaturesMatrix{count, 8}; %Total heat input at this features in watts.  The heat per element is Q/(# elements)
 end
 
+%Get Materials Database
+MatHandle=get(handles.features,'userdata');
+MatLib=getappdata(MatHandle,'Materials');
+
 %Assemble the above definitions into a single variablel that will be used
 %to run the analysis.  This is the only variable that is used from this M-file.
 
@@ -522,12 +526,13 @@ TestCaseModel.ExternalConditions=ExternalConditions;
 TestCaseModel.Features=Features;
 TestCaseModel.Params=Params;
 TestCaseModel.PottingMaterial=PottingMaterial;
+TestCaseModel.MatLib=MatLib
 
 MI=FormModel(TestCaseModel);
 
 %axes(handles.GeometryVisualization);
 setappdata(handles.figure1,'TestCaseModel',TestCaseModel)
-setappdata(handles.figure1,'MI',MI)
+setappdata(handles.figure1,'MI',MI);
 
 MI=getappdata(handles.figure1,'MI')
 figure(2)

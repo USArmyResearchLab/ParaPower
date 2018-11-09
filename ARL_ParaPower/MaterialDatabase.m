@@ -94,7 +94,7 @@ if NewWindow
         setappdata(handles.MatDbaseFigure,'ExistingFigure',true);
     else
         disp(['No default material database loaded. (' DefFname '.mat)'])
-        PopulateMatLib(handles, MatDbase, GUIColNames);
+        %PopulateMatLib(handles, MatDbase, GUIColNames);
     end
 end
 GUIColNames=strtrim(get(handles.MatTable,'columnname'));
