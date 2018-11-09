@@ -1,10 +1,16 @@
-function UpdateMatList(TableHandle, Ci)
+function UpdateMatList(TableHandle, Ci, CloseImmediately)
 %Update a material list in a table with a new materials database
 %TableHandle is a handle to the table of inerest
 %Ci is the column number of that table that has materials listed
 
-    F=MaterialDatabase('modal');
-    uiwait(F)
+    if exist('CloseImmediately','var')
+        F=MaterialDatabase('nonmodal');
+        close(F)
+    else
+        F=MaterialDatabase('modal');
+        uiwait(F)
+    end
+
     M=getappdata(F,'Materials');
     NewMatList=M.AllMatsList;
 

@@ -67,8 +67,9 @@ Features.dz=0; Features.dy=0; Features.dz=0;
 guidata(hObject, handles);
 
 TimeStep_Callback(hObject, eventdata, handles)
-
-
+TableHandle=handles.features;
+Ci=7; %Column number of material list
+UpdateMatList(TableHandle, Ci, 'Do Not Open Mat Dialog Box')
 % UIWAIT makes ParaPowerGUI_V2 wait for user response (see UIRESUME)
 % uiwait(handles.figure1);
 
@@ -83,7 +84,18 @@ function varargout = ParaPowerGUI_V2_OutputFcn(hObject, eventdata, handles)
 % Get default command line output from handles structure
 varargout{1} = handles.output;
 
-  
+
+% --- Executes on button press in visualize.
+function visualize_Callback(hObject, eventdata, handles)
+% hObject    handle to visualize (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+MI=getappdata(handles.figure1,'MI')
+
+figure(2)
+
+cla;Visualize ('Model Input', MI, 'modelgeom','ShowQ')
 
 % --- Executes on button press in AddFeature.
 function AddFeature_Callback(hObject, eventdata, handles)
@@ -287,8 +299,51 @@ function RunAnalysis_Callback(hObject, eventdata, handles)
        Stress = setappdata( handles.figure1, 'Stress', Stress);
        MeltFrac = setappdata (handles.figure1, 'MeltFrac', MeltFrac);
        
-       
-       
+% <<<<<<< HEAD
+%        
+%        
+% =======
+%        if get(handles.VisualTemp,'Value')==1
+%            numplots = numplots+1;
+%            figure(numplots)
+%            pause(.001)
+%            
+%            T=Tprnt(:,:,:,end);
+%            T(MI.Model==0)=max(T(:));
+%            
+%            cla;Visualize(sprintf('t=%1.2f ms, State: %i of %i',StateN*MI.DeltaT*1000, StateN,length(Tprnt(1,1,1,:))),MI ...
+%            ,'state', T, 'RemoveMaterial',[0] ...
+%            ,'scaletitle', 'Temperature' ...
+%            )                      
+%        end
+%        
+%        if get(handles.VisualStress,'Value')==1
+%            numplots =numplots+1;
+%            figure(numplots)
+%            pause(.001)
+%            %StateN=length(GlobalTime)*TimeStepOutput;
+%            cla;Visualize(sprintf('t=%1.2f ms, State: %i of %i',StateN*MI.DeltaT*1000, StateN,length(Stress(1,1,1,:))),MI ...
+%            ,'state', Stress(:,:,:,StateN) ...
+%            ,'scaletitle', 'Stress' ...
+%            )                      
+%        end
+%        
+%        if get(handles.VisualMelt,'Value')==1
+%            figure(numplots+1)
+%            pause(.001)
+%            %StateN=length(GlobalTime)*TimeStepOutput;
+%            cla;Visualize(sprintf('t=%1.2f ms, State: %i of %i',StateN*MI.DeltaT*1000, StateN,length(MeltFrac(1,1,1,:))),MI ...
+%            ,'state', MeltFrac(:,:,:,StateN) ...
+%            ,'scaletitle', 'Melt Fraction' ...
+%            )                      
+%        end
+%            
+%                                            
+%        %figure(3);clf;           
+%        %figure(3);clf; pause(.001)
+%        %Visualize(sprintf('t=%1.2f ms, State: %i of %i',StateN*MI.DeltaT*1000, StateN,length(Tprnt(1,1,1,:))),[0 0 0 ],{MI.X MI.Y MI.Z}, MI.Model, MeltFrac(:,:,:,StateN),'Melt Fraction')                                
+%        %disp('Press key to continue.');pause
+% >>>>>>> 1f37ff200b7b777b5956ddab572d388f6914c790
 
 
 
@@ -424,6 +479,13 @@ ExtBoundMatrix = get(handles.ExtCondTable,'Data')
 
 
 [rows,cols]=size(FeaturesMatrix)
+CheckMatrix=FeaturesMatrix(:,[1:8 11:12]);
+for K=1:length(CheckMatrix(:))
+    if isempty(CheckMatrix{K})
+        msgbox('Features table is not fully defined.','Warning')
+        return
+    end
+end
 
 for count = 1:rows
     
@@ -459,9 +521,12 @@ TestCaseModel.PottingMaterial=PottingMaterial;
 
 MI=FormModel(TestCaseModel);
 
+%axes(handles.GeometryVisualization);
+setappdata(handles.figure1,'TestCaseModel',TestCaseModel)
 setappdata(handles.figure1,'MI',MI)
 
-axes(handles.GeometryVisualization);
+MI=getappdata(handles.figure1,'MI')
+figure(2)
 
 Visualize ('Model Input', MI, 'modelgeom','ShowQ')
 pause(.001)
