@@ -299,9 +299,9 @@ function RunAnalysis_Callback(hObject, eventdata, handles)
        figure(numplots)
        plot (Dout(:,1), Dout(:,2))
        
-       Tprnt = setappdata(handles.figure1, 'Tprint', Tprint);
-       Stress = setappdata( handles.figure1, 'Stress', Stress);
-       MeltFrac = setappdata (handles.figure1, 'MeltFrac', MeltFrac);
+       setappdata(handles.figure1, 'Tprint', Tprnt);
+       setappdata( handles.figure1, 'Stress', Stress);
+       setappdata (handles.figure1, 'MeltFrac', MeltFrac);
        
 % <<<<<<< HEAD
 %        
