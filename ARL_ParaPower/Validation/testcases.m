@@ -12,6 +12,10 @@ figure(1);clf
 figure(2);clf
 drawnow
 
+MatF=MaterialDatabase('nonmodal');
+Mats=getappdata(MatF,'Materials');
+close(MatF)
+
 for Icase=1:length(testcasefiles)
     
     CaseName=char(testcasefiles(Icase).name);
@@ -50,6 +54,7 @@ for Icase=1:length(testcasefiles)
         clear VarsOrig VarsNew
     
         figure(1);clf; figure(2);clf; figure(1)
+        TestCaseModel.MatLib=Mats
         MI=FormModel(TestCaseModel);
         Visualize ('Model Input', MI, 'modelgeom','ShowQ')
         pause(.001)
