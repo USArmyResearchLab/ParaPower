@@ -6,6 +6,8 @@ function Visualize (PlotTitle, MI, varargin)
 %
 %   MI is the model information structure provided by FormModel
 %
+%   2D - X+, X-, Y+, Y-, Z+, Z- - plot only those faces. Can be called
+%      multiplie time to include multiple faces.
 %   ScaleTitle  - title of the colorbar, value is a char array
 %   State - a matrix the same dimenstions as modelmat with the state to plot, value is 3 dim array
 %   RemoveMaterial=[] - Which materials to remove from the plot, value is array of mat numbers
@@ -52,6 +54,7 @@ function Visualize (PlotTitle, MI, varargin)
     EdgeOnlyMat=[];
     Q=[];
     PlotAxes=true;
+    TwoD={};
 
     strleft=@(S,n) S(1:min(n,length(S)));
 
@@ -73,6 +76,9 @@ function Visualize (PlotTitle, MI, varargin)
             case strleft('scaletitle',Pl)
                 [Value, PropValPairs]=Pop(PropValPairs); 
                 ColorTitle=Value;
+            case strleft('2d',Pl)
+                [Value, PropValPairs]=Pop(PropValPairs); 
+                TwoD=[TwoD upper(Value)];
             case strleft('state',Pl)
                 [Value, PropValPairs]=Pop(PropValPairs); 
                 PlotGeom=false;
@@ -181,8 +187,30 @@ function Visualize (PlotTitle, MI, varargin)
                         %fprintf('%i ',ThisColor)
                     end
                     if ~isnan(ThisColor)
-                        F   =patch('faces',[1 2 3 4 1 5 6 2 1 4 8 5 1],'vertices',P,'facecolor',CM(ThisColor,:),'FaceAlpha',FaceAlpha);
-                        F(2)=patch('faces',[7 6 5 8 7 8 4 3 7 3 2 6 7],'vertices',P,'Facecolor',CM(ThisColor,:),'FaceAlpha',FaceAlpha);
+                        if isempty(TwoD)
+                            F   =patch('faces',[1 2 3 4 1 5 6 2 1 4 8 5 1],'vertices',P,'facecolor',CM(ThisColor,:),'FaceAlpha',FaceAlpha);
+                            F(2)=patch('faces',[7 6 5 8 7 8 4 3 7 3 2 6 7],'vertices',P,'Facecolor',CM(ThisColor,:),'FaceAlpha',FaceAlpha);
+                        else
+                            F=[];
+                            if any(strcmp(TwoD,'X+'))
+                                F=[F patch('faces',[4 3 7 8],'vertices',P,'facecolor',CM(ThisColor,:),'FaceAlpha',FaceAlpha)];
+                            end
+                            if any(strcmp(TwoD,'X-'))
+                                F=[F patch('faces',[1 2 6 5],'vertices',P,'facecolor',CM(ThisColor,:),'FaceAlpha',FaceAlpha)];
+                            end
+                            if any(strcmp(TwoD,'Y+'))
+                                F=[F patch('faces',[7 3 2 6],'vertices',P,'facecolor',CM(ThisColor,:),'FaceAlpha',FaceAlpha)];
+                            end
+                            if any(strcmp(TwoD,'Y-'))
+                                F=[F patch('faces',[1 4 8 5],'vertices',P,'facecolor',CM(ThisColor,:),'FaceAlpha',FaceAlpha)];
+                            end
+                            if any(strcmp(TwoD,'Z+'))
+                                F=[F patch('faces',[5 6 7 8],'vertices',P,'facecolor',CM(ThisColor,:),'FaceAlpha',FaceAlpha)];
+                            end
+                            if any(strcmp(TwoD,'Z-'))
+                                F=[F patch('faces',[1 2 3 4],'vertices',P,'facecolor',CM(ThisColor,:),'FaceAlpha',FaceAlpha)];
+                            end
+                        end
                         if ~isempty(find(ModelMatrix(Xi,Yi,Zi) == EdgeOnlyMat, 1))
                             set(F,'EdgeColor',get(F(1),'facecolor'));
                             set(F,'facecolor','none');
@@ -281,7 +309,7 @@ function Visualize (PlotTitle, MI, varargin)
     end
 
     hold off
-
+ 
     pbaspect([1 1 1])
 
     view(3)
