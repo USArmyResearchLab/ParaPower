@@ -30,7 +30,13 @@ else
 end
 
 %Material Properties
-[matprops, matlist, matcolors, kond, cte,E,nu,rho,spht]=matlibfun;
+if isfield(TestCaseModel,'MatLib')
+    MatLib=TestCaseModel.MatLib;
+else
+    msgbox('MatLib needs to be included in the TestCaseModel structure','Warning');
+    return
+end
+%[matprops, matlist, matcolors, kond, cte,E,nu,rho,spht]=matlibfun;
 
 
 h(Left)=ExternalConditions.h_Left;
@@ -162,10 +168,12 @@ for Fii=1:length(NonZeroThickness)
     Features(Fi).TotalArea=NaN;
   
     %Define Material for the feature
-    MatNum=find(strcmpi(matlist,Features(Fi).Matl));
+    MatNum=find(strcmpi(MatLib.AllMatsList,Features(Fi).Matl));
     if isempty(MatNum)
         fprintf('Material %s not found in database. Check spelling\n',Features(Fi).Matl)
         MatNum=nan;
+    else
+        MatNum=MatLib.AllMatsNum(MatNum);
     end
     ModelMatrix(InX, InY, InZ)=MatNum;
 end
@@ -194,10 +202,12 @@ for Fii=1:length(ZeroThickness)
         ModelMatrix(:,:,InZ)=ModelMatrix(:,:,UseLayer);
     end
     %Define Material for the feature
-    MatNum=find(strcmpi(matlist,Features(Fi).Matl));
+    MatNum=find(strcmpi(MatLib.AllMatsList,Features(Fi).Matl));
     if isempty(MatNum)
         fprintf('Material %s not found in database. Check spelling\n',Features(Fi).Matl)
         MatNum=nan;
+    else
+        MatNum=MatLib.AllMatsNum(MatNum);
     end
     ModelMatrix(InX, InY, InZ)=MatNum;
 end
@@ -278,8 +288,9 @@ ModelInput.Q=Q;
 ModelInput.DeltaT=Params.DeltaT;
 ModelInput.Tinit=Params.Tinit;
 ModelInput.Tsteps=Params.Tsteps;
-ModelInput.matprops=matprops;
-ModelInput.matlist=matlist;
+ModelInput.MatLib=MatLib;
+ModelInput.matprops=MatLib.matprops;
+ModelInput.matlist=MatLib.matlist;
 
 return
 

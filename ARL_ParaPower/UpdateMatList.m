@@ -9,6 +9,9 @@ function UpdateMatList(TableHandle, Ci, CloseImmediately)
     if isempty(F)
         F=MaterialDatabase('nonmodal');
         set(TableHandle,'userdata',F);
+    end
+    
+    if exist('CloseImmediately','var')
         close(F)
     else
         set(F,'windowstyle','modal')

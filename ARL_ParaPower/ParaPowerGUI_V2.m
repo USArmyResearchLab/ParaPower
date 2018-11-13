@@ -22,7 +22,7 @@ function varargout = ParaPowerGUI_V2(varargin)
 
 % Edit the above text to modify the response to help ParaPowerGUI_V2
 
-% Last Modified by GUIDE v2.5 09-Nov-2018 12:32:06
+% Last Modified by GUIDE v2.5 13-Nov-2018 13:36:43
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -57,11 +57,9 @@ handles.output = hObject;
 handles.InitComplete=0;
 
 
-
 clear Features ExternalConditions Params PottingMaterial Descr
 Features.x=[]; Features.y=[]; Features.z=[]; Features.Matl=[]; Features.Q=[]; Features.Matl=''; 
 Features.dz=0; Features.dy=0; Features.dz=0;
-
 
 % Update handles structure
 guidata(hObject, handles);
@@ -72,6 +70,14 @@ Ci=7; %Column number of material list
 UpdateMatList(TableHandle, Ci, 'Do Not Open Mat Dialog Box')
 % UIWAIT makes ParaPowerGUI_V2 wait for user response (see UIRESUME)
 % uiwait(handles.figure1);
+
+disp('Visual stress checkbox is currently disabled because stress functionality is not implemented in this GUI yet.')
+set(handles.VisualStress,'enable','off');
+
+
+LogoAxes_CreateFcn(hObject, eventdata, handles)
+
+
 
 
 % --- Outputs from this function are returned to the command line.
@@ -256,8 +262,7 @@ function RunAnalysis_Callback(hObject, eventdata, handles)
         if handles.InitComplete == 0 
             Initialize_Callback(hObject, eventdata, handles)
         end
-        numplots = 1;
-        MI = getappdata(handles.figure1,'MI');
+                MI = getappdata(handles.figure1,'MI');
         %MI=FormModel(TestCaseModel);
         %figure(numplots)
         %Visualize ('Model Input', MI, 'modelgeom','ShowQ')
@@ -295,15 +300,14 @@ function RunAnalysis_Callback(hObject, eventdata, handles)
             Dout(I,4)=max(max(max(MeltFrac(:,:,:,I))));
        end
        
-       numplots=numplots+1;
+       numplots = 1; 
        figure(numplots)
        plot (Dout(:,1), Dout(:,2))
        
        setappdata(handles.figure1, 'Tprint', Tprnt);
        setappdata( handles.figure1, 'Stress', Stress);
        setappdata (handles.figure1, 'MeltFrac', MeltFrac);
-       
-% <<<<<<< HEAD
+
 %        
 %        
 % =======
@@ -441,7 +445,6 @@ Features.dz=0; Features.dy=0; Features.dz=0;
 %0 = init has not been complete, 1 = init has been completed
 handles.InitComplete = 1; 
 guidata(hObject,handles)
-x=2
 
 FeaturesMatrix = get(handles.features,'Data')
 ExtBoundMatrix = get(handles.ExtCondTable,'Data')
@@ -515,6 +518,10 @@ for count = 1:rows
     Features(count).Q = FeaturesMatrix{count, 8}; %Total heat input at this features in watts.  The heat per element is Q/(# elements)
 end
 
+%Get Materials Database
+MatHandle=get(handles.features,'userdata');
+MatLib=getappdata(MatHandle,'Materials');
+
 %Assemble the above definitions into a single variablel that will be used
 %to run the analysis.  This is the only variable that is used from this M-file.
 
@@ -522,48 +529,21 @@ TestCaseModel.ExternalConditions=ExternalConditions;
 TestCaseModel.Features=Features;
 TestCaseModel.Params=Params;
 TestCaseModel.PottingMaterial=PottingMaterial;
+TestCaseModel.MatLib=MatLib;
 
 MI=FormModel(TestCaseModel);
 
-%axes(handles.GeometryVisualization);
-setappdata(handles.figure1,'TestCaseModel',TestCaseModel)
-setappdata(handles.figure1,'MI',MI)
+axes(handles.GeometryVisualization);
+Visualize ('Model Input', MI, 'modelgeom','ShowQ')
+
+setappdata(handles.figure1,'TestCaseModel',TestCaseModel);
+setappdata(handles.figure1,'MI',MI);
 
 MI=getappdata(handles.figure1,'MI')
 figure(2)
 
-Visualize ('Model Input', MI, 'modelgeom','ShowQ')
+
 pause(.001)
-
-
-
-
-
-% --- Executes during object creation, after setting all properties.
-function logoaxes_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to logoaxes (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: place code in OpeningFcn to populate logoaxes
-axes(hObject);
-imshow('ARLlogo.jpg')
-
-
-
-
-
-% --- Executes during object creation, after setting all properties.
-function GeometryVisualization_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to GeometryVisualization (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: place code in OpeningFcn to populate GeometryVisualization
-
-
-
-
 
 
 
@@ -578,6 +558,8 @@ function Feature2Del_Callback(hObject, eventdata, handles)
 
 
 % --- Executes during object creation, after setting all properties.
+
+
 function Feature2Del_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to Feature2Del (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -709,17 +691,22 @@ MI = getappdata(handles.figure1,'MI');
        MeltFrac = getappdata (handles.figure1, 'MeltFrac');
 
 numplots = 3; 
+TimeStepOutput = get(handles.slider1,'Value'); %value between 0 and 1 from the slider
+
+
+NumStep =str2num(get(handles.NumTimeSteps,'String')); %total number of time steps
+StateN=round(NumStep*TimeStepOutput,0); %time step of interest 
+
+if TimeStepOutput==0
+    StateN=1;
+end
 
 if get(handles.VisualTemp,'Value')==1
            numplots = numplots+1;
            figure(numplots)
            pause(.001)
-           
-           T=Tprnt(:,:,:,end);
-           T(MI.Model==0)=max(T(:));
-           
            Visualize(sprintf('t=%1.2f ms, State: %i of %i',StateN*MI.DeltaT*1000, StateN,length(Tprnt(1,1,1,:))),MI ...
-           ,'state', T, 'RemoveMaterial',[0] ...
+           ,'state', Tprnt(:,:,:,StateN), 'RemoveMaterial',[0] ...
            ,'scaletitle', 'Temperature' ...
            )                      
        end
@@ -772,8 +759,8 @@ TimeStepOutput = str2num(get(handles.TimeStep,'String'));
 NumStepOutput = str2num(get(handles.NumTimeSteps,'String')); 
 TotalTime = TimeStepOutput*NumStepOutput;
 
-TimeStepString = strcat('Total Time = ',num2str(TotalTime), ' sec') %create output string
-set(handles.totaltime,'String',TimeStepString)   %output string to GUI
+TimeStepString = strcat('Total Time = ',num2str(TotalTime), ' sec'); %create output string
+set(handles.totaltime,'String',TimeStepString);   %output string to GUI
 
 
 
@@ -811,4 +798,13 @@ function LogoAxes_CreateFcn(hObject, eventdata, handles)
 
 % Hint: place code in OpeningFcn to populate LogoAxes
 
-imshow('ARLlogoParaPower.png')
+imshow('ARLlogoParaPower.png','Parent',handles.PPLogo)
+
+
+% --- Executes during object creation, after setting all properties.
+function GeometryVisualization_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to GeometryVisualization (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: place code in OpeningFcn to populate GeometryVisualization
