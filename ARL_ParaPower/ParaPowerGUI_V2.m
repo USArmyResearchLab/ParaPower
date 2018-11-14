@@ -77,6 +77,8 @@ set(handles.VisualStress,'enable','off');
 set(handles.features, 'Data',{}); 
 axes(handles.PPLogo)
 imshow('ARLlogoParaPower.png')
+set(handles.GeometryVisualization,'visi','off')
+
 %LogoAxes_CreateFcn(hObject, eventdata, handles)
 
 
@@ -102,9 +104,8 @@ function visualize_Callback(hObject, eventdata, handles)
 MI=getappdata(handles.figure1,'MI')
 
 figure(2)
-set(gcf,'userdata','REMOVE')
 
-cla;Visualize ('Model Input', MI, 'modelgeom','ShowQ')
+cla;Visualize ('', MI, 'modelgeom','ShowQ')
 
 % --- Executes on button press in AddFeature.
 function AddFeature_Callback(hObject, eventdata, handles)
@@ -260,7 +261,7 @@ function loadbutton_Callback(hObject, eventdata, handles)
        %%%%Set the Features into the table
        %tabledata = get(handles.features,'data');  %No need to load data
        %that won't be used.
-       tabledata = {}
+       tabledata = {};
        [m n] = size(Features); 
 
        for count = 1: n 
@@ -341,10 +342,8 @@ function RunAnalysis_Callback(hObject, eventdata, handles)
        
        numplots = 1; 
        figure(numplots)
-       set(gcf,'userdata','REMOVE')
        plot (Dout(:,1), Dout(:,2))
        figure(handles.figure1)
-       set(gcf,'userdata','REMOVE')
        
        setappdata(handles.figure1, 'Tprint', Tprnt);
        setappdata( handles.figure1, 'Stress', Stress);
@@ -396,13 +395,13 @@ TimeStepOutput = get(handles.slider1,'Value'); %value between 0 and 1 from the s
 
 NumStep =str2num(get(handles.NumTimeSteps,'String')); %total number of time steps
 StateN=round(NumStep*TimeStepOutput,0); %time step of interest 
-TimeStepString = strcat('Time Step Output = ',int2str(StateN)) %create output string
+TimeStepString = strcat('Time Step Output = ',int2str(StateN)); %create output string
 set(handles.TextTimeStep,'String',TimeStepString)   %output string to GUI
 
 
 TimeStep = str2num(get(handles.TimeStep,'String'));  %individual time step in seconds 
-timeofinterest = TimeStep*NumStep*TimeStepOutput
-TimeString = strcat('Time of Interest = ',num2str(timeofinterest),' sec')
+timeofinterest = TimeStep*NumStep*TimeStepOutput;
+TimeString = strcat('Time of Interest = ',num2str(timeofinterest),' sec');
 set(handles.InterestTime,'String',TimeString)
 
 
@@ -552,7 +551,7 @@ else
     %figure(2)
 
     AddStatusLine('drawing...',true)
-    Visualize ('Model Input', MI, 'modelgeom','ShowQ')
+    Visualize ('', MI, 'modelgeom','ShowQ')
     AddStatusLine('Done',true)
     pause(.001)
 end
@@ -652,6 +651,7 @@ set(handles.Tinit,'String',zero);
 set(handles.TimeStep,'String',zero); 
 set(handles.NumTimeSteps,'String',one)
 set(handles.Tprocess,'String',zero);
+set(handles.GeometryVisualization,'visi','off')
 handles.InitComplete = 0;
 guidata(hObject, handles);
 
@@ -726,36 +726,33 @@ if TimeStepOutput==0
 end
 
 if get(handles.VisualTemp,'Value')==1
-           numplots = numplots+1;
-           figure(numplots)
-           set(gcf,'userdata','REMOVE')
-           pause(.001)
-           Visualize(sprintf('t=%1.2f ms, State: %i of %i',StateN*MI.DeltaT*1000, StateN,length(Tprnt(1,1,1,:))),MI ...
-           ,'state', Tprnt(:,:,:,StateN), 'RemoveMaterial',[0] ...
-           ,'scaletitle', 'Temperature' ...
-           )                      
-       end
-       
-       if get(handles.VisualStress,'Value')==1
-           numplots =numplots+1;
-           figure(numplots)
-           set(gcf,'userdata','REMOVE')
-           pause(.001)
-           Visualize(sprintf('t=%1.2f ms, State: %i of %i',StateN*MI.DeltaT*1000, StateN,length(Stress(1,1,1,:))),MI ...
-           ,'state', Stress(:,:,:,StateN) ...
-           ,'scaletitle', 'Stress' ...
-           )                      
-       end
-       
-       if get(handles.VisualMelt,'Value')==1
-           figure(numplots+1)
-           set(gcf,'Userdata','REMOVE')
-           pause(.001)
-           Visualize(sprintf('t=%1.2f ms, State: %i of %i',StateN*MI.DeltaT*1000, StateN,length(MeltFrac(1,1,1,:))),MI ...
-           ,'state', MeltFrac(:,:,:,StateN) ...
-           ,'scaletitle', 'Melt Fraction' ...
-           )                      
-       end
+   numplots = numplots+1;
+   figure(numplots)
+   pause(.001)
+   Visualize(sprintf('t=%1.2f ms, State: %i of %i',StateN*MI.DeltaT*1000, StateN,length(Tprnt(1,1,1,:))),MI ...
+   ,'state', Tprnt(:,:,:,StateN), 'RemoveMaterial',[0] ...
+   ,'scaletitle', 'Temperature' ...
+   )                      
+end
+
+if get(handles.VisualStress,'Value')==1
+   numplots =numplots+1;
+   figure(numplots)
+   pause(.001)
+   Visualize(sprintf('t=%1.2f ms, State: %i of %i',StateN*MI.DeltaT*1000, StateN,length(Stress(1,1,1,:))),MI ...
+   ,'state', Stress(:,:,:,StateN) ...
+   ,'scaletitle', 'Stress' ...
+   )                      
+end
+
+if get(handles.VisualMelt,'Value')==1
+   figure(numplots+1)
+   pause(.001)
+   Visualize(sprintf('t=%1.2f ms, State: %i of %i',StateN*MI.DeltaT*1000, StateN,length(MeltFrac(1,1,1,:))),MI ...
+   ,'state', MeltFrac(:,:,:,StateN) ...
+   ,'scaletitle', 'Melt Fraction' ...
+   )                      
+end
 
 
 % --- Executes during object creation, after setting all properties.

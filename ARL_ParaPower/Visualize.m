@@ -270,7 +270,7 @@ function Visualize (PlotTitle, MI, varargin)
     Ymid=mean([max(Y) min(Y)]);
     Zmid=mean([max(Z) min(Z)]);
     axis equal
-    set(ThisAxis,'visi','off')
+   % set(ThisAxis,'visi','off')
     rotate3d(ThisAxis,'on')
 
     if PlotGeom
@@ -307,7 +307,7 @@ function Visualize (PlotTitle, MI, varargin)
     set(T,'edge',[0 0 0]);
 
     title(PlotTitle)
-
+    set(gca,'visi','on')
     %Display axes in green.
     if PlotAxes
         Xmax=max(max([X Y Z]))*1.1;
@@ -363,9 +363,11 @@ function Visualize (PlotTitle, MI, varargin)
     end
 %    Pos=get(CB,'position');
     %set(CB,'position',[1-Pos(3) Pos(2) Pos(3)*.5 Pos(4)]);
-    set(CB,'location','north');
-    set(CB,'yaxislocation','bottom')
-    set(CB,'position',[.05 .95 .90 .05]);
+    if PlotGeom
+        set(CB,'location','north');
+        set(CB,'yaxislocation','bottom')
+        set(CB,'position',[.05 .95 .90 .05]);
+    end
 
     if ~isempty(Q)
         %CurA=gca;
