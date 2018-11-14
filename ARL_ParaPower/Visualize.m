@@ -36,7 +36,7 @@ function Visualize (PlotTitle, MI, varargin)
         end
     end
     cla;drawnow
-    DrawStatus=text(0,0,'Drawing...','fontsize',40,'userdata','REMOVE','horizontal','center'); drawnow
+    DrawStatus=text(.5,.5,'Drawing...','fontsize',40,'userdata','REMOVE','horizontal','center','vertical','middle','unit','normal'); drawnow
 
     DeltaCoord=  {MI.X MI.Y MI.Z};
     ModelMatrix=MI.Model;
@@ -269,6 +269,9 @@ function Visualize (PlotTitle, MI, varargin)
     Xmid=mean([max(X) min(X)]);
     Ymid=mean([max(Y) min(Y)]);
     Zmid=mean([max(Z) min(Z)]);
+    axis equal
+    set(ThisAxis,'visi','off')
+    rotate3d(ThisAxis,'on')
 
     if PlotGeom
         Hoffset=0.5;
@@ -358,9 +361,11 @@ function Visualize (PlotTitle, MI, varargin)
         end
         set(CB,'ticklabels',matlist(ColorList));
     end
-    Pos=get(CB,'position');
-    set(CB,'position',[1-Pos(3) Pos(2) Pos(3) Pos(4)]);
-    set(CB,'yaxislocation','left')
+%    Pos=get(CB,'position');
+    %set(CB,'position',[1-Pos(3) Pos(2) Pos(3)*.5 Pos(4)]);
+    set(CB,'location','north');
+    set(CB,'yaxislocation','bottom')
+    set(CB,'position',[.05 .95 .90 .05]);
 
     if ~isempty(Q)
         %CurA=gca;
@@ -373,7 +378,7 @@ function Visualize (PlotTitle, MI, varargin)
         QColor(:,3)=0;
         QCB=axes(get(gca,'parent'));
         set(QCB,'userdata','REMOVE');
-        set(QCB,'posit',([0 0 0 0]-get(CB,'posit')).*[0 -1 -1 -1]);
+        set(QCB,'posit',[0 .09 .05 .8]);
         for Ki=1:length(KeyList)
             set(QList(KeyList{Ki}),'edgecolor',QColor(Ki,:),'linewidth',3);
             rectangle('position',[0,(Ki-1)/length(KeyList),1,1/length(KeyList)],'facecolor',QColor(Ki,:),'userdata','REMOVE');
@@ -381,6 +386,8 @@ function Visualize (PlotTitle, MI, varargin)
             TT=text(1,(Ki-1)/length(KeyList)+.5/length(KeyList),BarText,'horizontalalig','right','rotation',90,'verticalalign','top','userdata','REMOVE');
         end
         set(QCB,'vis','off')
+        text(0,0,'Q','vertical','top')
+        
         %axes(CurA); %Takes lots of time
     end
     delete(DrawStatus)

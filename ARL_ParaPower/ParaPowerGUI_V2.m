@@ -22,7 +22,7 @@ function varargout = ParaPowerGUI_V2(varargin)
 
 % Edit the above text to modify the response to help ParaPowerGUI_V2
 
-% Last Modified by GUIDE v2.5 09-Nov-2018 15:12:40
+% Last Modified by GUIDE v2.5 13-Nov-2018 13:36:43
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -57,11 +57,9 @@ handles.output = hObject;
 handles.InitComplete=0;
 
 
-
 clear Features ExternalConditions Params PottingMaterial Descr
 Features.x=[]; Features.y=[]; Features.z=[]; Features.Matl=[]; Features.Q=[]; Features.Matl=''; 
 Features.dz=0; Features.dy=0; Features.dz=0;
-
 
 % Update handles structure
 guidata(hObject, handles);
@@ -75,6 +73,13 @@ UpdateMatList(TableHandle, Ci, 'Do Not Open Mat Dialog Box')
 AddStatusLine('ClearStatus')
 disp('Visual stress checkbox is currently disabled because stress functionality is not implemented in this GUI yet.')
 set(handles.VisualStress,'enable','off');
+
+set(handles.features, 'Data',{}); 
+axes(handles.PPLogo)
+imshow('ARLlogoParaPower.png')
+%LogoAxes_CreateFcn(hObject, eventdata, handles)
+
+
 
 
 % --- Outputs from this function are returned to the command line.
@@ -334,7 +339,7 @@ function RunAnalysis_Callback(hObject, eventdata, handles)
             Dout(I,4)=max(max(max(MeltFrac(:,:,:,I))));
        end
        
-       numplots=numplots+1;
+       numplots = 1; 
        figure(numplots)
        set(gcf,'userdata','REMOVE')
        plot (Dout(:,1), Dout(:,2))
@@ -350,53 +355,6 @@ function RunAnalysis_Callback(hObject, eventdata, handles)
 %        Stress = setappdata( handles.figure1, 'Stress', Stress);
 %        MeltFrac = setappdata (handles.figure1, 'MeltFrac', MeltFrac);
        
-% <<<<<<< HEAD
-%        
-%        
-% =======
-%        if get(handles.VisualTemp,'Value')==1
-%            numplots = numplots+1;
-%            figure(numplots)
-%            pause(.001)
-%            
-%            T=Tprnt(:,:,:,end);
-%            T(MI.Model==0)=max(T(:));
-%            
-%            cla;Visualize(sprintf('t=%1.2f ms, State: %i of %i',StateN*MI.DeltaT*1000, StateN,length(Tprnt(1,1,1,:))),MI ...
-%            ,'state', T, 'RemoveMaterial',[0] ...
-%            ,'scaletitle', 'Temperature' ...
-%            )                      
-%        end
-%        
-%        if get(handles.VisualStress,'Value')==1
-%            numplots =numplots+1;
-%            figure(numplots)
-%            pause(.001)
-%            %StateN=length(GlobalTime)*TimeStepOutput;
-%            cla;Visualize(sprintf('t=%1.2f ms, State: %i of %i',StateN*MI.DeltaT*1000, StateN,length(Stress(1,1,1,:))),MI ...
-%            ,'state', Stress(:,:,:,StateN) ...
-%            ,'scaletitle', 'Stress' ...
-%            )                      
-%        end
-%        
-%        if get(handles.VisualMelt,'Value')==1
-%            figure(numplots+1)
-%            pause(.001)
-%            %StateN=length(GlobalTime)*TimeStepOutput;
-%            cla;Visualize(sprintf('t=%1.2f ms, State: %i of %i',StateN*MI.DeltaT*1000, StateN,length(MeltFrac(1,1,1,:))),MI ...
-%            ,'state', MeltFrac(:,:,:,StateN) ...
-%            ,'scaletitle', 'Melt Fraction' ...
-%            )                      
-%        end
-%            
-%                                            
-%        %figure(3);clf;           
-%        %figure(3);clf; pause(.001)
-%        %Visualize(sprintf('t=%1.2f ms, State: %i of %i',StateN*MI.DeltaT*1000, StateN,length(Tprnt(1,1,1,:))),[0 0 0 ],{MI.X MI.Y MI.Z}, MI.Model, MeltFrac(:,:,:,StateN),'Melt Fraction')                                
-%        %disp('Press key to continue.');pause
-% >>>>>>> 1f37ff200b7b777b5956ddab572d388f6914c790
-
-
 
 % --- Executes on button press in VisualStress.
 function VisualStress_Callback(hObject, eventdata, handles)
@@ -489,7 +447,9 @@ Features.dz=0; Features.dy=0; Features.dz=0;
 %0 = init has not been complete, 1 = init has been completed
 handles.InitComplete = 1; 
 guidata(hObject,handles)
+
 x=2;
+
 
 FeaturesMatrix = get(handles.features,'Data');
 ExtBoundMatrix = get(handles.ExtCondTable,'Data');
@@ -531,97 +491,71 @@ ExtBoundMatrix = get(handles.ExtCondTable,'Data');
 
 
 [rows,cols]=size(FeaturesMatrix);
-CheckMatrix=FeaturesMatrix(:,[1:8 11:12]);
-for K=1:length(CheckMatrix(:))
-    if isempty(CheckMatrix{K})
-        msgbox('Features table is not fully defined.','Warning')
-        return
+if rows==0
+    AddStatusLine('No features to initialize.')
+else
+    CheckMatrix=FeaturesMatrix(:,[1:8 11:12]);
+    for K=1:length(CheckMatrix(:))
+        if isempty(CheckMatrix{K})
+            msgbox('Features table is not fully defined.','Warning')
+            return
+        end
     end
+
+    for count = 1:rows
+
+        %.x, .y & .z are the two element vectors that define the corners
+        %of each features.  X=[X1 X2], Y=[Y1 Yz], Z=[Z1 Z2] is interpreted
+        %that corner of the features are at points (X1, Y1, Z1) and (X2, Y2, Z2).
+        %It is possible to define zero thickness features where Z1=Z2 (or X or Y)
+         %to ensure a heat source at a certain layer or a certain discretization.
+        Features(count).x  =  [FeaturesMatrix{count, 1} FeaturesMatrix{count, 4}];  % X Coordinates of edges of elements
+        Features(count).y =   [FeaturesMatrix{count, 2} FeaturesMatrix{count, 5}];  % y Coordinates of edges of elements
+        Features(count).z =   [FeaturesMatrix{count, 3} FeaturesMatrix{count, 6}]; % Height in z directions
+
+        %These define the number of elements in each features.  While these can be 
+        %values from 2 to infinity, only odd values ensure that there is an element
+        %at the center of each features
+
+        Features(count).dx =  FeaturesMatrix{count, 11}; %Number of divisions/feature in X
+        Features(count).dy =  FeaturesMatrix{count, 11}; %Number of divisions/feature in Y
+        Features(count).dz =  FeaturesMatrix{count, 12}; %Number of divisions/feature in Z (layers)
+
+
+        Features(count).Matl = FeaturesMatrix{count, 7}; %Material text as defined in matlibfun
+        Features(count).Q = FeaturesMatrix{count, 8}; %Total heat input at this features in watts.  The heat per element is Q/(# elements)
+    end
+
+    %Get Materials Database
+    MatHandle=get(handles.features,'userdata');
+    MatLib=getappdata(MatHandle,'Materials');
+
+    %Assemble the above definitions into a single variablel that will be used
+    %to run the analysis.  This is the only variable that is used from this M-file.
+
+    TestCaseModel.ExternalConditions=ExternalConditions;
+    TestCaseModel.Features=Features;
+    TestCaseModel.Params=Params;
+    TestCaseModel.PottingMaterial=PottingMaterial;
+    TestCaseModel.MatLib=MatLib;
+
+    MI=FormModel(TestCaseModel);
+
+%    axes(handles.GeometryVisualization);
+%    Visualize ('Model Input', MI, 'modelgeom','ShowQ')
+
+    setappdata(handles.figure1,'TestCaseModel',TestCaseModel);
+    setappdata(handles.figure1,'MI',MI);
+
+    MI=getappdata(handles.figure1,'MI');
+    axes(handles.GeometryVisualization)
+    %figure(2)
+
+    AddStatusLine('drawing...',true)
+    Visualize ('Model Input', MI, 'modelgeom','ShowQ')
+    AddStatusLine('Done',true)
+    pause(.001)
 end
-
-for count = 1:rows
-    
-    %.x, .y & .z are the two element vectors that define the corners
-    %of each features.  X=[X1 X2], Y=[Y1 Yz], Z=[Z1 Z2] is interpreted
-    %that corner of the features are at points (X1, Y1, Z1) and (X2, Y2, Z2).
-    %It is possible to define zero thickness features where Z1=Z2 (or X or Y)
-     %to ensure a heat source at a certain layer or a certain discretization.
-    Features(count).x  =  [FeaturesMatrix{count, 1} FeaturesMatrix{count, 4}];  % X Coordinates of edges of elements
-    Features(count).y =   [FeaturesMatrix{count, 2} FeaturesMatrix{count, 5}];  % y Coordinates of edges of elements
-    Features(count).z =   [FeaturesMatrix{count, 3} FeaturesMatrix{count, 6}]; % Height in z directions
-    
-    %These define the number of elements in each features.  While these can be 
-    %values from 2 to infinity, only odd values ensure that there is an element
-	%at the center of each features
-    
-    Features(count).dx =  FeaturesMatrix{count, 11}; %Number of divisions/feature in X
-    Features(count).dy =  FeaturesMatrix{count, 11}; %Number of divisions/feature in Y
-    Features(count).dz =  FeaturesMatrix{count, 12}; %Number of divisions/feature in Z (layers)
-    
-    
-    Features(count).Matl = FeaturesMatrix{count, 7}; %Material text as defined in matlibfun
-    Features(count).Q = FeaturesMatrix{count, 8}; %Total heat input at this features in watts.  The heat per element is Q/(# elements)
-end
-
-%Get Materials Database
-MatHandle=get(handles.features,'userdata');
-MatLib=getappdata(MatHandle,'Materials');
-
-%Assemble the above definitions into a single variablel that will be used
-%to run the analysis.  This is the only variable that is used from this M-file.
-
-TestCaseModel.ExternalConditions=ExternalConditions;
-TestCaseModel.Features=Features;
-TestCaseModel.Params=Params;
-TestCaseModel.PottingMaterial=PottingMaterial;
-TestCaseModel.MatLib=MatLib;
-
-MI=FormModel(TestCaseModel);
-
-%axes(handles.GeometryVisualization);
-setappdata(handles.figure1,'TestCaseModel',TestCaseModel)
-setappdata(handles.figure1,'MI',MI);
-
-MI=getappdata(handles.figure1,'MI');
-axes(handles.GeometryVisualization)
-%figure(2)
-
-AddStatusLine('drawing...',true)
-Visualize ('Model Input', MI, 'modelgeom','ShowQ')
-AddStatusLine('Done',true)
-pause(.001)
-
-
-
-
-% --- Executes during object creation, after setting all properties.
-function logoaxes_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to logoaxes (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: place code in OpeningFcn to populate logoaxes
-axes(hObject);
-imshow('ARLlogo.jpg')
-
-
-
-
-
-% --- Executes during object creation, after setting all properties.
-function GeometryVisualization_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to GeometryVisualization (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: place code in OpeningFcn to populate GeometryVisualization
-
-
-
-
-
-
-
 
 function Feature2Del_Callback(hObject, eventdata, handles)
 % hObject    handle to Feature2Del (see GCBO)
@@ -633,6 +567,8 @@ function Feature2Del_Callback(hObject, eventdata, handles)
 
 
 % --- Executes during object creation, after setting all properties.
+
+
 function Feature2Del_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to Feature2Del (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -781,21 +717,21 @@ MI = getappdata(handles.figure1,'MI');
 numplots = 3; 
 TimeStepOutput = get(handles.slider1,'Value'); %value between 0 and 1 from the slider
 
+
 NumStep =str2num(get(handles.NumTimeSteps,'String')); %total number of time steps
 StateN=round(NumStep*TimeStepOutput,0); %time step of interest 
 
+if TimeStepOutput==0
+    StateN=1;
+end
 
 if get(handles.VisualTemp,'Value')==1
            numplots = numplots+1;
            figure(numplots)
            set(gcf,'userdata','REMOVE')
            pause(.001)
-           
-           T=Tprnt(:,:,:,end);
-           T(MI.Model==0)=max(T(:));
-           
            Visualize(sprintf('t=%1.2f ms, State: %i of %i',StateN*MI.DeltaT*1000, StateN,length(Tprnt(1,1,1,:))),MI ...
-           ,'state', T, 'RemoveMaterial',[0] ...
+           ,'state', Tprnt(:,:,:,StateN), 'RemoveMaterial',[0] ...
            ,'scaletitle', 'Temperature' ...
            )                      
        end
@@ -850,8 +786,8 @@ TimeStepOutput = str2num(get(handles.TimeStep,'String'));
 NumStepOutput = str2num(get(handles.NumTimeSteps,'String')); 
 TotalTime = TimeStepOutput*NumStepOutput;
 
-TimeStepString = strcat('Total Time = ',num2str(TotalTime), ' sec') %create output string
-set(handles.totaltime,'String',TimeStepString)   %output string to GUI
+TimeStepString = strcat('Total Time = ',num2str(TotalTime), ' sec'); %create output string
+set(handles.totaltime,'String',TimeStepString);   %output string to GUI
 
 
 
@@ -889,7 +825,6 @@ function LogoAxes_CreateFcn(hObject, eventdata, handles)
 
 % Hint: place code in OpeningFcn to populate LogoAxes
 
-imshow('ARLlogoParaPower.png')
 
 function AddStatusLine(textline,AddToLastLine)
     if not(exist('AddToLastLine','var'))
@@ -930,3 +865,12 @@ function AddStatusLine(textline,AddToLastLine)
     
     
     
+
+% --- Executes during object creation, after setting all properties.
+function GeometryVisualization_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to GeometryVisualization (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: place code in OpeningFcn to populate GeometryVisualization
+
