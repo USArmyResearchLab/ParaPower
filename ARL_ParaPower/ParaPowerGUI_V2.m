@@ -72,7 +72,7 @@ Ci=7; %Column number of material list
 UpdateMatList(TableHandle, Ci, 'Do Not Open Mat Dialog Box')
 % UIWAIT makes ParaPowerGUI_V2 wait for user response (see UIRESUME)
 % uiwait(handles.figure1);
-
+AddStatusLine('ClearStatus')
 disp('Visual stress checkbox is currently disabled because stress functionality is not implemented in this GUI yet.')
 set(handles.VisualStress,'enable','off');
 
@@ -97,6 +97,7 @@ function visualize_Callback(hObject, eventdata, handles)
 MI=getappdata(handles.figure1,'MI')
 
 figure(2)
+set(gcf,'userdata','REMOVE')
 
 cla;Visualize ('Model Input', MI, 'modelgeom','ShowQ')
 
@@ -175,10 +176,23 @@ function savebutton_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-    [fname,pathname] = uiputfile ('*.mat');
+    oldpathname=get(handles.loadbutton,'userdata');
+    [fname,pathname] = uiputfile ([oldpathname '*.mat']);
     if fname ~= 0 
-        TestCaseModel = getappdata(handles.figure1,'TestCaseModel')
-        save([pathname fname], '-struct' , 'TestCaseModel')
+        set(handles.loadbutton,'userdata',pathname);
+        AddStatusLine(['Savinging "' pathname fname '".']);
+        TestCaseModel = getappdata(handles.figure1,'TestCaseModel');
+        %save([pathname fname], '-struct' , 'TestCaseModel')
+        %Remove saving as struct, just save TestCaseModel as a whole
+        %variable itself
+        save([pathname fname],'TestCaseModel')  
+        CurTitle=get(handles.figure1,'name');
+        Colon=strfind(CurTitle,':');
+        if not(isempty(Colon))
+            CurTitle(Colon:end)='';
+        end
+        CurTitle=[CurTitle ': ' fname];
+        set(handles.figure1,'name',CurTitle);
     end
 
 
@@ -189,11 +203,30 @@ function loadbutton_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-    [filename,pathname] = uigetfile('*.mat');
+    oldpathname=get(hObject,'userdata');
+    [filename,pathname] = uigetfile([oldpathname '*.mat']);
     if filename~=0
-        TestCaseModel = uiimport([pathname filename]);
-
-
+        AddStatusLine(['Loading "' pathname filename '".']);
+        CurTitle=get(handles.figure1,'name');
+        Colon=strfind(CurTitle,':');
+        if not(isempty(Colon))
+            CurTitle(Colon:end)='';
+        end
+        CurTitle=[CurTitle ': ' filename];
+        set(handles.figure1,'name',CurTitle);
+        set(hObject,'userdata',pathname);
+%        TestCaseModel = uiimport([pathname filename]);
+        %Changing from data saved as fields to saved as a structured variable
+        
+        load([pathname filename]);
+        if not(exist('TestCaseModel','var'))
+            warning(sprintf('"%s" saved in old format.  File will be loaded anyway with no user action necessary. File will be saved in new format by default.',[pathname filename]))
+            TestCaseModel.ExternalConditions=ExternalConditions;
+            TestCaseModel.Features=Features;
+            TestCaseModel.Params=Params;
+            TestCaseModel.PottingMaterial=PottingMaterial;
+        end
+        setappdata(handles.figure1,'TestCaseModel',TestCaseModel)
         ExternalConditions=TestCaseModel.ExternalConditions;
         Features=TestCaseModel.Features;
         Params=TestCaseModel.Params;
@@ -220,7 +253,9 @@ function loadbutton_Callback(hObject, eventdata, handles)
 
 
        %%%%Set the Features into the table
-       tabledata = get(handles.features,'data');
+       %tabledata = get(handles.features,'data');  %No need to load data
+       %that won't be used.
+       tabledata = {}
        [m n] = size(Features); 
 
        for count = 1: n 
@@ -260,6 +295,7 @@ function RunAnalysis_Callback(hObject, eventdata, handles)
             Initialize_Callback(hObject, eventdata, handles)
         end
         numplots = 1;
+        AddStatusLine('Analysis running...');
         MI = getappdata(handles.figure1,'MI');
         %MI=FormModel(TestCaseModel);
         %figure(numplots)
@@ -300,12 +336,17 @@ function RunAnalysis_Callback(hObject, eventdata, handles)
        
        numplots=numplots+1;
        figure(numplots)
+       set(gcf,'userdata','REMOVE')
        plot (Dout(:,1), Dout(:,2))
+       figure(handles.figure1)
+       set(gcf,'userdata','REMOVE')
        
        setappdata(handles.figure1, 'Tprint', Tprnt);
        setappdata( handles.figure1, 'Stress', Stress);
        setappdata (handles.figure1, 'MeltFrac', MeltFrac);
-%        Tprnt = setappdata(handles.figure1, 'Tprint', Tprnt);
+       AddStatusLine('Done.', true);
+
+       %        Tprnt = setappdata(handles.figure1, 'Tprint', Tprnt);
 %        Stress = setappdata( handles.figure1, 'Stress', Stress);
 %        MeltFrac = setappdata (handles.figure1, 'MeltFrac', MeltFrac);
        
@@ -440,6 +481,7 @@ function Initialize_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 %Clear the main variables that are passed out from it.
+AddStatusLine('Initializing...')
 clear Features ExternalConditions Params PottingMaterial Descr
 Features.x=[]; Features.y=[]; Features.z=[]; Features.Matl=[]; Features.Q=[]; Features.Matl=''; 
 Features.dz=0; Features.dy=0; Features.dz=0;
@@ -447,10 +489,10 @@ Features.dz=0; Features.dy=0; Features.dz=0;
 %0 = init has not been complete, 1 = init has been completed
 handles.InitComplete = 1; 
 guidata(hObject,handles)
-x=2
+x=2;
 
-FeaturesMatrix = get(handles.features,'Data')
-ExtBoundMatrix = get(handles.ExtCondTable,'Data')
+FeaturesMatrix = get(handles.features,'Data');
+ExtBoundMatrix = get(handles.ExtCondTable,'Data');
 
 %Setting Structural BCs, using direction below if non-zero
     ExternalConditions.h_Left=ExtBoundMatrix{1,1};    %Heat transfer coefficient from each side to the external environment
@@ -488,7 +530,7 @@ ExtBoundMatrix = get(handles.ExtCondTable,'Data')
 
 
 
-[rows,cols]=size(FeaturesMatrix)
+[rows,cols]=size(FeaturesMatrix);
 CheckMatrix=FeaturesMatrix(:,[1:8 11:12]);
 for K=1:length(CheckMatrix(:))
     if isempty(CheckMatrix{K})
@@ -504,7 +546,7 @@ for count = 1:rows
     %that corner of the features are at points (X1, Y1, Z1) and (X2, Y2, Z2).
     %It is possible to define zero thickness features where Z1=Z2 (or X or Y)
      %to ensure a heat source at a certain layer or a certain discretization.
-    Features(count).x  =  [FeaturesMatrix{count, 1} FeaturesMatrix{count, 4}]  % X Coordinates of edges of elements
+    Features(count).x  =  [FeaturesMatrix{count, 1} FeaturesMatrix{count, 4}];  % X Coordinates of edges of elements
     Features(count).y =   [FeaturesMatrix{count, 2} FeaturesMatrix{count, 5}];  % y Coordinates of edges of elements
     Features(count).z =   [FeaturesMatrix{count, 3} FeaturesMatrix{count, 6}]; % Height in z directions
     
@@ -532,7 +574,7 @@ TestCaseModel.ExternalConditions=ExternalConditions;
 TestCaseModel.Features=Features;
 TestCaseModel.Params=Params;
 TestCaseModel.PottingMaterial=PottingMaterial;
-TestCaseModel.MatLib=MatLib
+TestCaseModel.MatLib=MatLib;
 
 MI=FormModel(TestCaseModel);
 
@@ -540,12 +582,14 @@ MI=FormModel(TestCaseModel);
 setappdata(handles.figure1,'TestCaseModel',TestCaseModel)
 setappdata(handles.figure1,'MI',MI);
 
-MI=getappdata(handles.figure1,'MI')
-figure(2)
+MI=getappdata(handles.figure1,'MI');
+axes(handles.GeometryVisualization)
+%figure(2)
 
+AddStatusLine('drawing...',true)
 Visualize ('Model Input', MI, 'modelgeom','ShowQ')
+AddStatusLine('Done',true)
 pause(.001)
-
 
 
 
@@ -613,8 +657,10 @@ D = str2num(D);
 if isempty(D)
     fprintf('Error: No feature selected, please select feature')
 else 
-    data(D,:)=[];
-    set(handles.features, 'Data', data); 
+    if not(isempty(data))
+        data(D,:)=[];
+        set(handles.features, 'Data', data); 
+    end
 end
 
 
@@ -633,20 +679,31 @@ axes(handles.GeometryVisualization)
 cla reset;
 
 %Clear figures external to GUI 
-Figures = findobj( 'Type', 'Figure' , '-not' , 'Tag' , get(ParaPowerGUI_V2, 'Tag' ) );
+%Figures = findobj( 'Type', 'Figure' , '-not' , 'Tag' , get(ParaPowerGUI_V2, 'Tag' ) );
+Figures = findobj( 'Type', 'Figure' );
 NFigures = length( Figures );
 for nFigures = 1 : NFigures;
-  close( Figures( nFigures ) );
-end;
+    if isempty(get(Figures(nFigures),'filename'))
+        close( Figures( nFigures ) );
+    end
+end
+
+Kids=get(handles.uipanel5,'children');
+for i=1:length(Kids)
+    if strcmpi(get(Kids(i),'userdata'),'REMOVE');
+        delete(Kids(i))
+    end
+end
 
 %Delete features matrix
-data = get(handles.features, 'Data');
-[M,N] = size(data);
-for count = 1:M
-    data(1,:)=[];
-end
-data(1,:)=mat2cell(0,1,1);
-set(handles.features, 'Data', data);
+% data = get(handles.features, 'Data');
+% [M,N] = size(data);
+% for count = 1:M
+%     data(1,:)=[];
+% end
+% data(1,:)=mat2cell(0,1,1);
+%set(handles.features, 'Data',data);
+set(handles.features, 'Data',{}); %Just replace features with an empty matrix
 
 %Set Environmental Parameters to zero 
 T = num2cell([0]);
@@ -659,6 +716,8 @@ set(handles.Tinit,'String',zero);
 set(handles.TimeStep,'String',zero); 
 set(handles.NumTimeSteps,'String',one)
 set(handles.Tprocess,'String',zero);
+handles.InitComplete = 0;
+guidata(hObject, handles);
 
 
 
@@ -729,6 +788,7 @@ StateN=round(NumStep*TimeStepOutput,0); %time step of interest
 if get(handles.VisualTemp,'Value')==1
            numplots = numplots+1;
            figure(numplots)
+           set(gcf,'userdata','REMOVE')
            pause(.001)
            
            T=Tprnt(:,:,:,end);
@@ -743,6 +803,7 @@ if get(handles.VisualTemp,'Value')==1
        if get(handles.VisualStress,'Value')==1
            numplots =numplots+1;
            figure(numplots)
+           set(gcf,'userdata','REMOVE')
            pause(.001)
            Visualize(sprintf('t=%1.2f ms, State: %i of %i',StateN*MI.DeltaT*1000, StateN,length(Stress(1,1,1,:))),MI ...
            ,'state', Stress(:,:,:,StateN) ...
@@ -752,6 +813,7 @@ if get(handles.VisualTemp,'Value')==1
        
        if get(handles.VisualMelt,'Value')==1
            figure(numplots+1)
+           set(gcf,'Userdata','REMOVE')
            pause(.001)
            Visualize(sprintf('t=%1.2f ms, State: %i of %i',StateN*MI.DeltaT*1000, StateN,length(MeltFrac(1,1,1,:))),MI ...
            ,'state', MeltFrac(:,:,:,StateN) ...
@@ -828,3 +890,43 @@ function LogoAxes_CreateFcn(hObject, eventdata, handles)
 % Hint: place code in OpeningFcn to populate LogoAxes
 
 imshow('ARLlogoParaPower.png')
+
+function AddStatusLine(textline,AddToLastLine)
+    if not(exist('AddToLastLine','var'))
+        AddToLastLine=false;
+    end
+    handles=guidata(gcf);
+    Hstat=handles.text10;
+    OldUnit=get(Hstat,'unit');
+    set(Hstat,'unit','char');
+    Pos=get(Hstat,'posit');
+    Lines=floor(Pos(1));
+    MaxChar=floor(Pos(3));
+    if strcmpi(textline,'ClearStatus')
+        set(Hstat,'string','')
+    else
+        OldText=get(Hstat,'string');
+        textline=textline(1:min([MaxChar length(textline)]));
+        if isempty(OldText)
+            NewText=textline;
+        else
+            if AddToLastLine
+                NewText=str2mat(OldText(1:end-1,:), [strtrim(OldText(end,:)) textline]);
+            else
+                OldLines=length(OldText(:,1));
+                OldText=OldText(max([1 OldLines-Lines+1]):end,:);
+                NewText=str2mat(OldText,textline);
+            end
+        end
+        E=Pos(3)+1;
+        while E>Pos(3)
+            set(Hstat,'string',NewText)
+            E=get(Hstat,'extent');
+            E=E(3);
+            NewText=NewText(:,1:end-1);
+        end
+    set(Hstat,'unit',OldUnit);
+    end
+    
+    
+    

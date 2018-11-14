@@ -26,6 +26,18 @@ function Visualize (PlotTitle, MI, varargin)
 %  Z cross section
 %  Vectorize
 
+
+    ThisAxis=gca;
+    AxisParent=get(ThisAxis,'parent');
+    Kids=get(AxisParent,'children');
+    for i=1:length(Kids)
+        if strcmpi(get(Kids(i),'userdata'),'REMOVE');
+            delete(Kids(i))
+        end
+    end
+    cla;drawnow
+    DrawStatus=text(0,0,'Drawing...','fontsize',40,'userdata','REMOVE','horizontal','center'); drawnow
+
     DeltaCoord=  {MI.X MI.Y MI.Z};
     ModelMatrix=MI.Model;
 	
@@ -115,8 +127,7 @@ function Visualize (PlotTitle, MI, varargin)
         end
 
     end
-
-    cla;drawnow
+    
     Direx=FormModel('GetDirex');
     
     if ~all(size(PlotState)==size(ModelMatrix))
@@ -311,9 +322,21 @@ function Visualize (PlotTitle, MI, varargin)
     hold off
  
     pbaspect([1 1 1])
-
-    view(3)
-    CB=colorbar;
+    
+    if isempty(TwoD)
+        view(3)
+    else
+        if any(TwoD{1}=='Z')
+            view(2)
+        elseif any(TwoD{1}=='X')
+            view(90,0)
+        elseif any(TwoD{1}=='Y')
+            view(0,0)
+        end
+    end
+    set(ThisAxis,'unit','normal')
+    CB=colorbar;    
+    set(CB,'userdata','REMOVE')
     if ~PlotGeom
         ylabel(CB,ColorTitle);
         Scale=linspace(0,1,11);
@@ -335,23 +358,32 @@ function Visualize (PlotTitle, MI, varargin)
         end
         set(CB,'ticklabels',matlist(ColorList));
     end
+    Pos=get(CB,'position');
+    set(CB,'position',[1-Pos(3) Pos(2) Pos(3) Pos(4)]);
+    set(CB,'yaxislocation','left')
 
     if ~isempty(Q)
         %CurA=gca;
+        P=get(ThisAxis,'posit');
+        PBorder=1-(P(3)+P(1));
+%        set(ThisAxis,'posit',[PBorder P(2) 1-2*PBorder P(4)]);
         KeyList=keys(QList);
         QColor(:,1)=(length(KeyList):-1:0)/(length(KeyList));
         QColor(:,2)=0;
         QColor(:,3)=0;
-        QCB=axes;
-        set(QCB,'posit',([1 0 0 0]-get(CB,'posit')).*[.9 -1 -1 -1]);
+        QCB=axes(get(gca,'parent'));
+        set(QCB,'userdata','REMOVE');
+        set(QCB,'posit',([0 0 0 0]-get(CB,'posit')).*[0 -1 -1 -1]);
         for Ki=1:length(KeyList)
             set(QList(KeyList{Ki}),'edgecolor',QColor(Ki,:),'linewidth',3);
-            rectangle('position',[0,(Ki-1)/length(KeyList),1,1/length(KeyList)],'facecolor',QColor(Ki,:));
-            text(0,(Ki-1)/length(KeyList)+.5/length(KeyList),KeyList{Ki},'horizontalalig','right');
+            rectangle('position',[0,(Ki-1)/length(KeyList),1,1/length(KeyList)],'facecolor',QColor(Ki,:),'userdata','REMOVE');
+            BarText=sprintf('%4.2g',str2num(KeyList{Ki}));
+            TT=text(1,(Ki-1)/length(KeyList)+.5/length(KeyList),BarText,'horizontalalig','right','rotation',90,'verticalalign','top','userdata','REMOVE');
         end
         set(QCB,'vis','off')
         %axes(CurA); %Takes lots of time
     end
+    delete(DrawStatus)
     drawnow
 end
 
