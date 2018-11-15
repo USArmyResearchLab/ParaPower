@@ -135,6 +135,9 @@ ModelMatrix=zeros(length(X)-1,length(Y)-1,length(Z)-1);
 Q=zeros([size(ModelMatrix) Params.Tsteps]);
 %Q=zeros(length(X)-1,length(Y)-1,length(Z)-1,Params.Tsteps);
 GlobalTime=[0:Params.DeltaT:(Params.Tsteps-1)*Params.DeltaT];
+if isempty(GlobalTime)
+    GlobalTime=0;
+end
 
 %Get minimum values of feature coords for visualization purposes.
 MinCoord=[min(X) min(Y) min(Z)];

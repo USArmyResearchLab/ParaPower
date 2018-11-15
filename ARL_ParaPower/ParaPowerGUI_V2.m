@@ -1,3 +1,6 @@
+%Wish List
+%   Modify a banner to show up on graphic when model is changed saying "model must be updated" or something.
+
 function varargout = ParaPowerGUI_V2(varargin)
 % PARAPOWERGUI_V2 MATLAB code for ParaPowerGUI_V2.fig
 %      PARAPOWERGUI_V2, by itself, creates a new PARAPOWERGUI_V2 or raises the existing
@@ -73,11 +76,13 @@ UpdateMatList(TableHandle, Ci, 'Do Not Open Mat Dialog Box')
 AddStatusLine('ClearStatus')
 disp('Visual stress checkbox is currently disabled because stress functionality is not implemented in this GUI yet.')
 set(handles.VisualStress,'enable','off');
+disp('stop button functionality is not implemented in this GUI yet.')
+set(handles.pushbutton18,'enable','off')
 
-set(handles.features, 'Data',{}); 
 axes(handles.PPLogo)
 imshow('ARLlogoParaPower.png')
 set(handles.GeometryVisualization,'visi','off')
+ClearGUI_Callback(handles.ClearGUI, eventdata, handles)
 
 %LogoAxes_CreateFcn(hObject, eventdata, handles)
 
@@ -107,14 +112,15 @@ figure(2)
 
 cla;Visualize ('', MI, 'modelgeom','ShowQ')
 
-% --- Executes on button press in AddFeature.
-function AddFeature_Callback(hObject, eventdata, handles)
-% hObject    handle to AddFeature (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-data = get(handles.features,'Data');
-data(end+1,:)=0;
-set(handles.features,'Data',data)
+%Removed as this seems to have been replaced by below without the capital "A"
+% % --- Executes on button press in AddFeature.
+% function AddFeature_Callback(hObject, eventdata, handles)
+% % hObject    handle to AddFeature (see GCBO)
+% % eventdata  reserved - to be defined in a future version of MATLAB
+% % handles    structure with handles and user data (see GUIDATA)
+% data = get(handles.features,'Data');
+% data(end+1,:)=0;
+% set(handles.features,'Data',data)
 
 
 
@@ -125,7 +131,13 @@ function addfeature_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
     x = get(handles.features,'Data');
-    x(end+1,:)=mat2cell(0,1,1);
+    NumCols=length(get(handles.features,'columnWidth'));
+    EmptyRow{1,12}=[];
+    if isempty(x)
+        x=EmptyRow;
+    else
+        x(end+1,:)=EmptyRow;
+    end
     set(handles.features,'Data',x)
 
 
@@ -299,10 +311,16 @@ function RunAnalysis_Callback(hObject, eventdata, handles)
 
         if handles.InitComplete == 0 
             Initialize_Callback(hObject, eventdata, handles)
+        else
+            Initialize_Callback(handles.Initialize, eventdata, handles, false)
         end
         numplots = 1;
         AddStatusLine('Analysis running...');
         MI = getappdata(handles.figure1,'MI');
+        if isempty(MI)
+            AddStatusLine('Model not yet fully defined.')
+            return
+        end
         %MI=FormModel(TestCaseModel);
         %figure(numplots)
         %Visualize ('Model Input', MI, 'modelgeom','ShowQ')
@@ -359,9 +377,6 @@ function VisualStress_Callback(hObject, eventdata, handles)
 
 % Hint: get(hObject,'Value') returns toggle state of VisualStress
 
-
-
-
 % --- Executes during object creation, after setting all properties.
 function listbox2_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to listbox2 (see GCBO)
@@ -373,10 +388,6 @@ function listbox2_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-
-
-
-
 
 % --- Executes on slider movement.
 function slider1_Callback(hObject, eventdata, handles)
@@ -399,10 +410,6 @@ TimeStep = str2num(get(handles.TimeStep,'String'));  %individual time step in se
 timeofinterest = TimeStep*NumStep*TimeStepOutput;
 TimeString = strcat('Time of Interest = ',num2str(timeofinterest),' sec');
 set(handles.InterestTime,'String',TimeString)
-
-
-       
-
 
 % --- Executes during object creation, after setting all properties.
 function slider1_CreateFcn(hObject, eventdata, handles)
@@ -428,12 +435,15 @@ UpdateMatList(TableHandle, Ci)
 
 
 % --- Executes on button press in Initialize.
-function Initialize_Callback(hObject, eventdata, handles)
+function Initialize_Callback(hObject, eventdata, handles, Visual)
 % hObject    handle to Initialize (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
 %Clear the main variables that are passed out from it.
+if not(exist('Visual'))
+    Visual=true;
+end
 AddStatusLine('Initializing...')
 clear Features ExternalConditions Params PottingMaterial Descr
 Features.x=[]; Features.y=[]; Features.z=[]; Features.Matl=[]; Features.Q=[]; Features.Matl=''; 
@@ -448,6 +458,13 @@ x=2;
 
 FeaturesMatrix = get(handles.features,'Data');
 ExtBoundMatrix = get(handles.ExtCondTable,'Data');
+for K=1:length(ExtBoundMatrix(:))
+    if isempty(ExtBoundMatrix{K})
+        AddStatusLine('Error.',true);
+        AddStatusLine('Env. parameters must be fully populated');
+        return
+    end
+end
 
 %Setting Structural BCs, using direction below if non-zero
     ExternalConditions.h_Left=ExtBoundMatrix{1,1};    %Heat transfer coefficient from each side to the external environment
@@ -492,7 +509,8 @@ else
     CheckMatrix=FeaturesMatrix(:,[1:8 11:12]);
     for K=1:length(CheckMatrix(:))
         if isempty(CheckMatrix{K})
-            msgbox('Features table is not fully defined.','Warning')
+            AddStatusLine('Error.',true);
+            AddStatusLine('Features table is not fully defined.')
             return
         end
     end
@@ -546,10 +564,12 @@ else
     axes(handles.GeometryVisualization)
     %figure(2)
 
-    AddStatusLine('drawing...',true)
-    Visualize ('', MI, 'modelgeom','ShowQ')
-    AddStatusLine('Done',true)
-    pause(.001)
+    if Visual
+        AddStatusLine('drawing...',true)
+        Visualize ('', MI, 'modelgeom','ShowQ')
+        AddStatusLine('Done',true)
+        drawnow
+    end
 end
 
 function Feature2Del_Callback(hObject, eventdata, handles)
@@ -648,6 +668,14 @@ set(handles.TimeStep,'String',zero);
 set(handles.NumTimeSteps,'String',one)
 set(handles.Tprocess,'String',zero);
 set(handles.GeometryVisualization,'visi','off')
+set(handles.features, 'Data',{}); 
+
+RowNames=get(handles.ExtCondTable,'rowname');
+set(handles.ExtCondTable,'rowname',RowNames(1:2,:))
+NumCols=length(get(handles.ExtCondTable,'columnwidth'));
+TableData{2,NumCols}=[];
+set(handles.ExtCondTable,'Data',TableData)
+
 handles.InitComplete = 0;
 guidata(hObject, handles);
 
@@ -720,51 +748,52 @@ StateN=round(NumStep*TimeStepOutput,0); %time step of interest
 if TimeStepOutput==0
     StateN=1;
 end
-
 if get(handles.VisualTemp,'Value')==1
-   numplots = numplots+1;
-   figure(numplots)
-   pause(.001)
-   Visualize(sprintf('t=%1.2f ms, State: %i of %i',StateN*MI.DeltaT*1000, StateN,length(Tprnt(1,1,1,:))),MI ...
-   ,'state', Tprnt(:,:,:,StateN), 'RemoveMaterial',[0] ...
-   ,'scaletitle', 'Temperature' ...
-   )                      
+    if isempty(Tprnt)
+        AddStatusLine('No temperature solution exists.')
+    else
+       numplots = numplots+1;
+       figure(numplots)
+       pause(.001)
+       Visualize(sprintf('t=%1.2f ms, State: %i of %i',StateN*MI.DeltaT*1000, StateN,length(Tprnt(1,1,1,:))),MI ...
+       ,'state', Tprnt(:,:,:,StateN), 'RemoveMaterial',[0] ...
+       ,'scaletitle', 'Temperature' ...
+       )                      
+    end
 end
 
 if get(handles.VisualStress,'Value')==1
-   numplots =numplots+1;
-   figure(numplots)
-   pause(.001)
-   Visualize(sprintf('t=%1.2f ms, State: %i of %i',StateN*MI.DeltaT*1000, StateN,length(Stress(1,1,1,:))),MI ...
-   ,'state', Stress(:,:,:,StateN) ...
-   ,'scaletitle', 'Stress' ...
-   )                      
+    if isempty(Stress)
+        AddStatusLine('No stress solution exists.')
+    else
+       numplots =numplots+1;
+       figure(numplots)
+       pause(.001)
+       Visualize(sprintf('t=%1.2f ms, State: %i of %i',StateN*MI.DeltaT*1000, StateN,length(Stress(1,1,1,:))),MI ...
+       ,'state', Stress(:,:,:,StateN) ...
+       ,'scaletitle', 'Stress' ...
+       )                      
+    end
 end
 
 if get(handles.VisualMelt,'Value')==1
-   figure(numplots+1)
-   pause(.001)
-   Visualize(sprintf('t=%1.2f ms, State: %i of %i',StateN*MI.DeltaT*1000, StateN,length(MeltFrac(1,1,1,:))),MI ...
-   ,'state', MeltFrac(:,:,:,StateN) ...
-   ,'scaletitle', 'Melt Fraction' ...
-   )                      
+    if isempty(MeltFrac)
+        AddStatusLine('No melt-fraction solution exists.')
+    else
+       figure(numplots+1)
+       pause(.001)
+       Visualize(sprintf('t=%1.2f ms, State: %i of %i',StateN*MI.DeltaT*1000, StateN,length(MeltFrac(1,1,1,:))),MI ...
+       ,'state', MeltFrac(:,:,:,StateN) ...
+       ,'scaletitle', 'Melt Fraction' ...
+       )                      
+    end
 end
-
 
 % --- Executes during object creation, after setting all properties.
 function VisualTemp_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to VisualTemp (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
-
-
-
-
-
-
-
-
-
 
 function TimeStep_Callback(hObject, eventdata, handles)
 % hObject    handle to TimeStep (see GCBO)
@@ -782,9 +811,6 @@ TotalTime = TimeStepOutput*NumStepOutput;
 TimeStepString = strcat('Total Time = ',num2str(TotalTime), ' sec'); %create output string
 set(handles.totaltime,'String',TimeStepString);   %output string to GUI
 
-
-
-
 function NumTimeSteps_Callback(hObject, eventdata, handles)
 % hObject    handle to NumTimeSteps (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -794,7 +820,6 @@ function NumTimeSteps_Callback(hObject, eventdata, handles)
 %        str2double(get(hObject,'String')) returns contents of NumTimeSteps as a double
 
 TimeStep_Callback(hObject, eventdata, handles);
-
 
 % --- Executes when user attempts to close figure1.
 function figure1_CloseRequestFcn(hObject, eventdata, handles)

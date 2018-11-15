@@ -10,7 +10,7 @@ function Visualize (PlotTitle, MI, varargin)
 %      multiplie time to include multiple faces.
 %   ScaleTitle  - title of the colorbar, value is a char array
 %   State - a matrix the same dimenstions as modelmat with the state to plot, value is 3 dim array
-%   RemoveMaterial=[] - Which materials to remove from the plot, value is array of mat numbers
+%   PlotParms.RemoveMaterial=[] - Which materials to remove from the plot, value is array of mat numbers
 %   EdgeOnlyMaterial=[] - Show only the edges of this material, value is array of mat numbers
 %   Transparency=0.5 - FaceAlpha value, 0-clear, 1-opaque, value is a scalar between 0 & 1
 %   ShowQ - Display Q on each face, no value, this is a flag
@@ -56,17 +56,17 @@ function Visualize (PlotTitle, MI, varargin)
     Ta=MI.Ta;
     matlist=MI.matlist;
 
+    PlotParms.RemoveMatl=[0];
+    PlotParms.TransMatl=[];
+    PlotParms.Transparency=0.5;
+    PlotParms.EdgeColor=[];
+    PlotParms.EdgeOnlyMat=[];
+    PlotParms.PlotAxes=true;
+    PlotParms.TwoD={};
     MinCoord=[0 0 0];
-    RemoveMatl=[0];
-    TransMatl=[];
     ColorTitle='';
     PlotState=ModelMatrix;
-    Transparency=0.5;
-    EdgeColor=[];
-    EdgeOnlyMat=[];
     Q=[];
-    PlotAxes=true;
-    TwoD={};
 
     strleft=@(S,n) S(1:min(n,length(S)));
 
@@ -90,30 +90,30 @@ function Visualize (PlotTitle, MI, varargin)
                 ColorTitle=Value;
             case strleft('2d',Pl)
                 [Value, PropValPairs]=Pop(PropValPairs); 
-                TwoD=[TwoD upper(Value)];
+                PlotParms.TwoD=[PlotParms.TwoD upper(Value)];
             case strleft('state',Pl)
                 [Value, PropValPairs]=Pop(PropValPairs); 
                 PlotGeom=false;
                 PlotState=Value;
             case strleft('removematerial',Pl)
                 [Value, PropValPairs]=Pop(PropValPairs); 
-                RemoveMatl=[RemoveMatl Value];
+                PlotParms.RemoveMatl=[PlotParms.RemoveMatl Value];
             case strleft('edgeonlymaterial',Pl)
                 [Value, PropValPairs]=Pop(PropValPairs); 
-                EdgeOnlyMat=Value;
+                PlotParms.EdgeOnlyMat=Value;
             case strleft('transmaterial',Pl)
                 [Value, PropValPairs]=Pop(PropValPairs); 
-                TransMatl=Value;
+                PlotParms.TransMatl=Value;
             case strleft('transparency',Pl)
                 [Value, PropValPairs]=Pop(PropValPairs); 
-                Transparency=Value;
+                PlotParms.Transparency=Value;
             case strleft('showq',Pl)
                 Q=MI.Q;
             case strleft('noaxes',Pl)
-                PlotAxes=false;
-            case strleft('edgecolor',Pl)
+                PlotParms.PlotAxes=false;
+            case strleft('edgeColor',Pl)
                 [Value, PropValPairs]=Pop(PropValPairs); 
-                EdgeColor=Value;
+                PlotParms.EdgeColor=Value;
             case strleft('mincoord',Pl)
                 [Value, PropValPairs]=Pop(PropValPairs); 
                 MinCoord=Value;
@@ -161,7 +161,7 @@ function Visualize (PlotTitle, MI, varargin)
     for Xi=1:length(X)-1
         for Yi=1:length(Y)-1
             for Zi=1:length(Z)-1
-                if isempty(find(ModelMatrix(Xi,Yi,Zi) == RemoveMatl, 1))
+                if isempty(find(ModelMatrix(Xi,Yi,Zi) == PlotParms.RemoveMatl, 1))
                     Zoffset=0;
                     Xoffset=0;
                     Yoffset=0;
@@ -177,7 +177,7 @@ function Visualize (PlotTitle, MI, varargin)
                             Yoffset=min(DeltaCoord{2}(DeltaCoord{2}>0))*.01;
                         end
                     else
-                        FaceAlpha=Transparency;
+                        FaceAlpha=PlotParms.Transparency;
                     end
                     P(1,:)=[X(Xi)   Y(Yi)   Z(Zi)  ] + [  Xoffset  Yoffset  Zoffset] ;
                     P(2,:)=[X(Xi)   Y(Yi+1) Z(Zi)  ] + [  Xoffset -Yoffset  Zoffset] ; 
@@ -188,8 +188,8 @@ function Visualize (PlotTitle, MI, varargin)
                     P(7,:)=[X(Xi+1) Y(Yi+1) Z(Zi+1)] + [ -Xoffset -Yoffset -Zoffset] ;
                     P(8,:)=[X(Xi+1) Y(Yi)   Z(Zi+1)] + [ -Xoffset  Yoffset -Zoffset] ;
                     %fprintf('Xi=%i, Yi=%i, Zi=%i  (%g, %g, %g) (%g, %g, %g)\n',Xi, Yi,Zi, X1, Y1, Z1, X2, Y2, Z2)
-                    if ~isempty(find(ModelMatrix(Xi,Yi,Zi) == TransMatl, 1))
-                        FaceAlpha=Transparency;
+                    if ~isempty(find(ModelMatrix(Xi,Yi,Zi) == PlotParms.TransMatl, 1))
+                        FaceAlpha=PlotParms.Transparency;
                     end
                     if PlotGeom
                         ThisColor=find(ColorList==PlotState(Xi,Yi,Zi));
@@ -198,31 +198,31 @@ function Visualize (PlotTitle, MI, varargin)
                         %fprintf('%i ',ThisColor)
                     end
                     if ~isnan(ThisColor)
-                        if isempty(TwoD)
+                        if isempty(PlotParms.TwoD)
                             F   =patch('faces',[1 2 3 4 1 5 6 2 1 4 8 5 1],'vertices',P,'facecolor',CM(ThisColor,:),'FaceAlpha',FaceAlpha);
                             F(2)=patch('faces',[7 6 5 8 7 8 4 3 7 3 2 6 7],'vertices',P,'Facecolor',CM(ThisColor,:),'FaceAlpha',FaceAlpha);
                         else
                             F=[];
-                            if any(strcmp(TwoD,'X+'))
+                            if any(strcmp(PlotParms.TwoD,'X+'))
                                 F=[F patch('faces',[4 3 7 8],'vertices',P,'facecolor',CM(ThisColor,:),'FaceAlpha',FaceAlpha)];
                             end
-                            if any(strcmp(TwoD,'X-'))
+                            if any(strcmp(PlotParms.TwoD,'X-'))
                                 F=[F patch('faces',[1 2 6 5],'vertices',P,'facecolor',CM(ThisColor,:),'FaceAlpha',FaceAlpha)];
                             end
-                            if any(strcmp(TwoD,'Y+'))
+                            if any(strcmp(PlotParms.TwoD,'Y+'))
                                 F=[F patch('faces',[7 3 2 6],'vertices',P,'facecolor',CM(ThisColor,:),'FaceAlpha',FaceAlpha)];
                             end
-                            if any(strcmp(TwoD,'Y-'))
+                            if any(strcmp(PlotParms.TwoD,'Y-'))
                                 F=[F patch('faces',[1 4 8 5],'vertices',P,'facecolor',CM(ThisColor,:),'FaceAlpha',FaceAlpha)];
                             end
-                            if any(strcmp(TwoD,'Z+'))
+                            if any(strcmp(PlotParms.TwoD,'Z+'))
                                 F=[F patch('faces',[5 6 7 8],'vertices',P,'facecolor',CM(ThisColor,:),'FaceAlpha',FaceAlpha)];
                             end
-                            if any(strcmp(TwoD,'Z-'))
+                            if any(strcmp(PlotParms.TwoD,'Z-'))
                                 F=[F patch('faces',[1 2 3 4],'vertices',P,'facecolor',CM(ThisColor,:),'FaceAlpha',FaceAlpha)];
                             end
                         end
-                        if ~isempty(find(ModelMatrix(Xi,Yi,Zi) == EdgeOnlyMat, 1))
+                        if ~isempty(find(ModelMatrix(Xi,Yi,Zi) == PlotParms.EdgeOnlyMat, 1))
                             set(F,'EdgeColor',get(F(1),'facecolor'));
                             set(F,'facecolor','none');
                         end
@@ -249,15 +249,15 @@ function Visualize (PlotTitle, MI, varargin)
 %                             else
 %                                 T=[T Sp sprintf('Q=f(t)')];
 %                             end
-%                             set(F,'edgecolor',[1 0 0]);
+%                             set(F,'PlotParms.EdgeColor',[1 0 0]);
 %                             set(F,'linewidth',5);
 %                             NoHeat=false;
                         end
                         text(mean([X(Xi) X(Xi+1)]), mean([Y(Yi) Y(Yi+1)]), mean([Z(Zi) Z(Zi+1)]),T,'horiz','center')
                     end
-                    if ~isempty(EdgeColor) && NoHeat
-                        set(F,'edgecolor',EdgeColor);
-    %                        set(F,'facealpha',Transparency);
+                    if ~isempty(PlotParms.EdgeColor) && NoHeat
+                        set(F,'EdgeColor',PlotParms.EdgeColor);
+    %                        set(F,'facealpha',PlotParms.Transparency);
                     end
                 end
             end
@@ -309,7 +309,7 @@ function Visualize (PlotTitle, MI, varargin)
     title(PlotTitle)
     set(gca,'visi','on')
     %Display axes in green.
-    if PlotAxes
+    if PlotParms.PlotAxes
         Xmax=max(max([X Y Z]))*1.1;
         Ymax=Xmax;
         Zmax=Xmax; %max(Z)*1.1;
@@ -326,14 +326,14 @@ function Visualize (PlotTitle, MI, varargin)
  
     pbaspect([1 1 1])
     
-    if isempty(TwoD)
-        view(3)
+    if isempty(PlotParms.TwoD)
+        view(45*3, 45*0.5)
     else
-        if any(TwoD{1}=='Z')
+        if any(PlotParms.TwoD{1}=='Z')
             view(2)
-        elseif any(TwoD{1}=='X')
+        elseif any(PlotParms.TwoD{1}=='X')
             view(90,0)
-        elseif any(TwoD{1}=='Y')
+        elseif any(PlotParms.TwoD{1}=='Y')
             view(0,0)
         end
     end
@@ -382,17 +382,18 @@ function Visualize (PlotTitle, MI, varargin)
         set(QCB,'userdata','REMOVE');
         set(QCB,'posit',[0 .09 .05 .8]);
         for Ki=1:length(KeyList)
-            set(QList(KeyList{Ki}),'edgecolor',QColor(Ki,:),'linewidth',3);
+            set(QList(KeyList{Ki}),'EdgeColor',QColor(Ki,:),'linewidth',3);
             rectangle('position',[0,(Ki-1)/length(KeyList),1,1/length(KeyList)],'facecolor',QColor(Ki,:),'userdata','REMOVE');
             BarText=sprintf('%4.2g',str2num(KeyList{Ki}));
             TT=text(1,(Ki-1)/length(KeyList)+.5/length(KeyList),BarText,'horizontalalig','right','rotation',90,'verticalalign','top','userdata','REMOVE');
         end
         set(QCB,'vis','off')
-        text(0,0,'Q','vertical','top')
+        text(0,0,'Q (w)','vertical','top')
         
         %axes(CurA); %Takes lots of time
     end
     delete(DrawStatus)
+    set(ThisAxis,'userdata',PlotParms)
     drawnow
 end
 
