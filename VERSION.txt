@@ -22,3 +22,7 @@ V3.0.0 - Complete GUI rewrite
 Features to Add
 1. Enable voids in solution
 2. In 'visualize' click different materials 'on' and 'off'
+3. Add banner text across visualization to note that model is outdated when any feature/matl/etc changes.
+4. Change text on "init" button to "Draw Model" or "Visualize" or something like that.
+5. Re-enable stress analysis
+6. Enable 'stop' button on GUI
