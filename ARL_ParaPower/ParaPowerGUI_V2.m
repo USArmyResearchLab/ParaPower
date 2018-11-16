@@ -81,6 +81,7 @@ set(handles.pushbutton18,'enable','off')
 
 axes(handles.PPLogo)
 imshow('ARLlogoParaPower.png')
+text(0,0,['Version ' ARLParaPowerVersion],'vertical','bott')
 set(handles.GeometryVisualization,'visi','off')
 ClearGUI_Callback(handles.ClearGUI, eventdata, handles)
 
