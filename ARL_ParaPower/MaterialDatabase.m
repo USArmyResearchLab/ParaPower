@@ -1,11 +1,3 @@
-%To Do List
-%   1.) Add Material Button
-%   2.) Delete material button (with column)
-%   3.) Clean up buttons
-%   4.) Sort Buttons on column headings
-
-
-
 function varargout = MaterialDatabase(varargin)
 % MATERIALDATABASE MATLAB code for MaterialDatabase.fig
 %      MATERIALDATABASE, by itself, creates a new MATERIALDATABASE or raises the existing
@@ -72,18 +64,6 @@ guidata(hObject, handles);
 set(handles.MatDatabaseGroup,'vis','on')
 set(handles.ErrorPanel,'vis','off')
 NewWindow=not(isappdata(handles.MatDbaseFigure,'ExistingFigure'));
-if length(varargin)==1 && strcmpi(varargin{1},'modal')
-    handles.modal=true;
-    set(handles.MatDbaseFigure,'windowstyle','modal');
-else
-    handles.modal=false;
-    set(handles.MatDbaseFigure,'windowstyle','normal');
-    if length(varargin)==1 && not(strcmpi(varargin{1},'nonmodal'))
-        disp('For normal usage, this function should be called with an argument of ''modal''');
-        disp('without that argument, the material database will not necessarily be updated ');
-        disp('when other windows are activated.  For example: MaterialDatabase(''modal'')')
-    end
-end
 if NewWindow
     DefFname='DefaultMaterials';
     if exist([DefFname '.mat'],'file')==2
@@ -99,6 +79,13 @@ if NewWindow
 end
 GUIColNames=strtrim(get(handles.MatTable,'columnname'));
 set(handles.SortByMenu,'string',GUIColNames,'value',2)
+
+%Set delete column width
+CW=get(handles.MatTable,'columnwidth');
+CW{1}=30;
+set(handles.MatTable,'columnwidth',CW)
+
+
 
 % --- Outputs from this function are returned to the command line.
 function varargout = MaterialDatabase_OutputFcn(hObject, eventdata, handles) 
@@ -228,15 +215,6 @@ function ErrorOKButton_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 set(handles.ErrorPanel,'vis','off')
 
-
-
-function edit1_Callback(hObject, eventdata, handles)
-% hObject    handle to edit1 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of edit1 as text
-%        str2double(get(hObject,'String')) returns contents of edit1 as a double
 
 
 % --- Executes during object creation, after setting all properties.
@@ -403,10 +381,13 @@ Text{end+1}='When first called, it creates a dialog box.  When closed it turns';
 Text{end+1}='the dialog box invisible, but it still exists in memory so that the';
 Text{end+1}='material data can be extracted from it.';
 Text{end+1}='';
-Text{end+1}='It is called using the following command:';
-Text{end+1}='   F=MaterialDatabase(''modal'');';
-Text{end+1}='   Note: this makes the material database modal which is not ';
-Text{end+1}='         desirable during debugging, ''nonmodal'' can be used.';
+Text{end+1}='On first call the following form should be used:';
+Text{end+1}='   F=MaterialDatabase;';
+Text{end+1}='To make the dialog box modal (which is desired when running';
+Text{end+1}='ARL ParaPower use';
+Text{end+1}='   set(F,''windowsstyle'',''modal'')';
+Text{end+1}='To return the dialog box to non-modal normal behavior use:';
+Text{end+1}='   set(F,''windowsstyle'',''normal'')';
 Text{end+1}='';
 Text{end+1}='To extract data from the database:';
 Text{end+1}='    Materials=getappdata(F,''Materials'');';
@@ -422,20 +403,11 @@ Text{end+1}='If properties are added to the materials, the ''GetMatPropIndex''';
 Text{end+1}='';
 
 
-
 TextOutput='';
 for I=1:length(Text)
     TextOutput=[TextOutput Text{I}  char(10)];
 end
 msgbox(TextOutput,'Help','modal');
-
-
-% --- Executes during object creation, after setting all properties.
-function MatDbaseFigure_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to MatDbaseFigure (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
 
 % --- Executes on button press in DelChkButton.
 function DelChkButton_Callback(hObject, eventdata, handles)
@@ -485,8 +457,6 @@ for I=1:length(NewRow)
 end
 MatDbase(end+1,:)=NewRow;
 set(handles.MatTable,'Data',MatDbase);
-
-
 
 % --- Executes on button press in SortButton.
 function SortButton_Callback(hObject, eventdata, handles)

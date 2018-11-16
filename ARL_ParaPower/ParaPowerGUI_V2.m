@@ -84,6 +84,7 @@ imshow('ARLlogoParaPower.png')
 set(handles.GeometryVisualization,'visi','off')
 ClearGUI_Callback(handles.ClearGUI, eventdata, handles)
 
+
 %LogoAxes_CreateFcn(hObject, eventdata, handles)
 
 
@@ -679,14 +680,6 @@ set(handles.ExtCondTable,'Data',TableData)
 handles.InitComplete = 0;
 guidata(hObject, handles);
 
-
-
-
-
-
-
-
-
 % --- Executes on button press in pushbutton18.
 function pushbutton18_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton18 (see GCBO)
@@ -854,7 +847,12 @@ function AddStatusLine(textline,AddToLastLine)
     set(Hstat,'unit','char');
     Pos=get(Hstat,'posit');
     Lines=floor(Pos(1));
+    set(Hstat,'style','edit');
+    set(Hstat,'enable','inactive')
+    set(Hstat,'pos',[Pos(1) Pos(2) Pos(3) floor(Pos(4))+.5]);
     MaxChar=floor(Pos(3));
+    MaxWidth=Pos(3)+1;
+    set(Hstat,'max',10);
     if strcmpi(textline,'ClearStatus')
         set(Hstat,'string','')
     else
@@ -864,14 +862,16 @@ function AddStatusLine(textline,AddToLastLine)
             NewText=textline;
         else
             if AddToLastLine
-                NewText=str2mat(OldText(1:end-1,:), [strtrim(OldText(end,:)) textline]);
+%                NewText=str2mat(OldText(1:end-1,:), [strtrim(OldText(end,:)) textline]);
+                NewText=str2mat([strtrim(OldText(1,:)), textline],OldText(1:end-1,:) );
             else
                 OldLines=length(OldText(:,1));
-                OldText=OldText(max([1 OldLines-Lines+1]):end,:);
-                NewText=str2mat(OldText,textline);
+                %OldText=OldText(max([1 OldLines-Lines+1]):end,:);
+%                NewText=str2mat(OldText,textline);
+                NewText=str2mat(textline,OldText);
             end
         end
-        E=Pos(3)+1;
+        E=MaxWidth;  %The following while ensure that lines don't wrap around.
         while E>Pos(3)
             set(Hstat,'string',NewText)
             E=get(Hstat,'extent');

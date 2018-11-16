@@ -3,11 +3,10 @@ function UpdateMatList(TableHandle, Ci, CloseImmediately)
 %TableHandle is a handle to the table of inerest
 %Ci is the column number of that table that has materials listed
 
-        
     F=get(TableHandle,'userdata');
     
-    if isempty(F)
-        F=MaterialDatabase('nonmodal');
+    if isempty(F) || not(isvalid(F))
+        F=MaterialDatabase;  %Instantiate the materials database window
         set(TableHandle,'userdata',F);
     end
     
@@ -17,8 +16,8 @@ function UpdateMatList(TableHandle, Ci, CloseImmediately)
         set(F,'windowstyle','modal')
         set(F,'visible','on')
         uiwait(F)
+        set(F,'windowstyle','normal')
     end
-    
     
     M=getappdata(F,'Materials');
     NewMatList=M.AllMatsList;

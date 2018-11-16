@@ -14,6 +14,7 @@ Documentation for the software is contained in the "GUI Documentation" directory
 This software has had many contributors including
 	Dr. Lauren Boteler (US Army Research Laboratory)
 	Dr. Steven Miner (US Naval Academy)
+	Dr. Michael Fish (Postdoc at Army Research Laboratory)
 	Michael Rego (Drexel University)
 	Michael Deckard (Texas A&M University)
 	

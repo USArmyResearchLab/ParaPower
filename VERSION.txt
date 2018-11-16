@@ -11,9 +11,14 @@ V1.1.0 - Adding PCM
 
 V2.0.0 - Added transient and PCM
 
+V3.0.0 - Complete GUI rewrite
+         Core parapowerthermal rewritten to be directionally agnostic
+		 Core parapowerthermal rewritten to be better vectorized
+		 FormModel and Visualize intermediary functions added to ease model build by script
+		 MaterialDatabase added to replace matlibfun
+		 Voids do not quite work yet.
+		 
 
 Features to Add
-
-1. Remove dependency on Excel .dll
-2. Fix tabs should be highlighted when selected
-3. 1x1 column of elements appears to break code
+1. Enable voids in solution
+2. In 'visualize' click different materials 'on' and 'off'
