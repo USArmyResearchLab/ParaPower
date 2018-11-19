@@ -1,5 +1,6 @@
 %Wish List
-%   Modify a banner to show up on graphic when model is changed saying "model must be updated" or something.
+%   Got to figure out how to change cell edit callback to invoke update
+%   status.
 
 function varargout = ParaPowerGUI_V2(varargin)
 % PARAPOWERGUI_V2 MATLAB code for ParaPowerGUI_V2.fig
@@ -85,6 +86,11 @@ text(0,0,['Version ' ARLParaPowerVersion],'vertical','bott')
 set(handles.GeometryVisualization,'visi','off')
 ClearGUI_Callback(handles.ClearGUI, eventdata, handles)
 
+%Setup callbacks to ensure that geometry update notification is displayed
+DispNotice=@(hobject,eventdata) ParaPowerGUI_V2('VisUpdateStatus',guidata(hobject),true);
+set(handles.features,'celleditcallback',DispNotice)
+set(handles.ExtCondTable,'celleditcallback',DispNotice)
+
 
 %LogoAxes_CreateFcn(hObject, eventdata, handles)
 
@@ -108,12 +114,12 @@ function visualize_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-MI=getappdata(handles.figure1,'MI')
+MI=getappdata(handles.figure1,'MI');
 
 figure(2)
 
 cla;Visualize ('', MI, 'modelgeom','ShowQ')
-
+VisUpdateStatus(false)
 %Removed as this seems to have been replaced by below without the capital "A"
 % % --- Executes on button press in AddFeature.
 % function AddFeature_Callback(hObject, eventdata, handles)
@@ -141,7 +147,7 @@ function addfeature_Callback(hObject, eventdata, handles)
         x(end+1,:)=EmptyRow;
     end
     set(handles.features,'Data',x)
-
+    VisUpdateStatus(handles,true);
 
 
 % --- Executes during object creation, after setting all properties.
@@ -300,9 +306,8 @@ function loadbutton_Callback(hObject, eventdata, handles)
        set(handles.NumTimeSteps,'String',Params.Tsteps)
        set(handles.Tprocess,'String',ExternalConditions.Tproc)
     end
-   
-
-
+    Initialize_Callback(hObject, eventdata, handles, true)
+    
     
 
 % --- Executes on button press in RunAnalysis.
@@ -569,6 +574,7 @@ else
     if Visual
         AddStatusLine('drawing...',true)
         Visualize ('', MI, 'modelgeom','ShowQ')
+        VisUpdateStatus(handles,false);
         AddStatusLine('Done',true)
         drawnow
     end
@@ -615,7 +621,7 @@ else
         set(handles.features, 'Data', data); 
     end
 end
-
+VisUpdateStatus(handles,true);
 
 
 
@@ -628,6 +634,7 @@ function ClearGUI_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 %Clear figure in GUI
+AddStatusLine('Clearing GUI...')
 axes(handles.GeometryVisualization)
 cla reset;
 
@@ -678,8 +685,17 @@ NumCols=length(get(handles.ExtCondTable,'columnwidth'));
 TableData{2,NumCols}=[];
 set(handles.ExtCondTable,'Data',TableData)
 
+VisUpdateStatus(handles,false)
+CurTitle=get(handles.figure1,'name');
+Colon=strfind(CurTitle,':');
+if not(isempty(Colon))
+    CurTitle(Colon:end)='';
+end
+set(handles.figure1,'name',CurTitle);
+
 handles.InitComplete = 0;
 guidata(hObject, handles);
+AddStatusLine('Done.', true)
 
 % --- Executes on button press in pushbutton18.
 function pushbutton18_Callback(hObject, eventdata, handles)
@@ -844,46 +860,67 @@ function AddStatusLine(textline,AddToLastLine)
     end
     handles=guidata(gcf);
     Hstat=handles.text10;
-    OldUnit=get(Hstat,'unit');
-    set(Hstat,'unit','char');
-    Pos=get(Hstat,'posit');
-    Lines=floor(Pos(1));
-    set(Hstat,'style','edit');
-    set(Hstat,'enable','inactive')
-    set(Hstat,'pos',[Pos(1) Pos(2) Pos(3) floor(Pos(4))+.5]);
-    MaxChar=floor(Pos(3));
-    MaxWidth=Pos(3)+1;
-    set(Hstat,'max',10);
-    if strcmpi(textline,'ClearStatus')
-        set(Hstat,'string','')
+    if strcmpi(class(textline),'boolean') && textline
+        set(Hstat,'text',{})
     else
-        OldText=get(Hstat,'string');
-        textline=textline(1:min([MaxChar length(textline)]));
-        if isempty(OldText)
-            NewText=textline;
+        OldUnit=get(Hstat,'unit');
+        set(Hstat,'unit','char');
+        Pos=get(Hstat,'posit');
+        Lines=floor(Pos(1));
+        set(Hstat,'style','edit');
+        set(Hstat,'enable','inactive')
+        set(Hstat,'pos',[Pos(1) Pos(2) Pos(3) floor(Pos(4))+.5]);
+        MaxChar=floor(Pos(3));
+        MaxWidth=Pos(3)+1;
+        set(Hstat,'max',10);
+        if strcmpi(textline,'ClearStatus')
+            set(Hstat,'string','')
         else
-            if AddToLastLine
-%                NewText=str2mat(OldText(1:end-1,:), [strtrim(OldText(end,:)) textline]);
-                NewText=str2mat([strtrim(OldText(1,:)), textline],OldText(1:end-1,:) );
+            OldText=get(Hstat,'string');
+            textline=textline(1:min([MaxChar length(textline)]));
+            if isempty(OldText)
+                NewText=textline;
             else
-                OldLines=length(OldText(:,1));
-                %OldText=OldText(max([1 OldLines-Lines+1]):end,:);
-%                NewText=str2mat(OldText,textline);
-                NewText=str2mat(textline,OldText);
+                if AddToLastLine
+    %                NewText=str2mat(OldText(1:end-1,:), [strtrim(OldText(end,:)) textline]);
+                    NewText=str2mat([strtrim(OldText(1,:)), textline],OldText(2:end,:) );
+                else
+                    OldLines=length(OldText(:,1));
+                    %OldText=OldText(max([1 OldLines-Lines+1]):end,:);
+    %                NewText=str2mat(OldText,textline);
+                    NewText=str2mat(textline,OldText);
+                end
             end
+            E=MaxWidth;  %The following while ensure that lines don't wrap around.
+            while E>Pos(3)
+                set(Hstat,'string',NewText)
+                E=get(Hstat,'extent');
+                E=E(3);
+                NewText=NewText(:,1:end-1);
+            end
+        set(Hstat,'unit',OldUnit);
         end
-        E=MaxWidth;  %The following while ensure that lines don't wrap around.
-        while E>Pos(3)
-            set(Hstat,'string',NewText)
-            E=get(Hstat,'extent');
-            E=E(3);
-            NewText=NewText(:,1:end-1);
-        end
-    set(Hstat,'unit',OldUnit);
     end
     
+function VisUpdateStatus(handles, NeedsUpdate)
+    %handles=guidata(gcf);
+    AxisHandle=handles.GeometryVisualization;
+    if not(isfield(handles,'VisualUpdateText')) || not(isvalid(handles.VisualUpdateText))
+        handles.VisualUpdateText=text(AxisHandle,0.5,0.85,'Geometry Visualization Needs to be Updated',...
+            'unit','normal',...
+            'horizon','center',...
+            'vis','off',...
+            'color','white',...
+            'background','red',...
+            'fontweight','bold')
+        guidata(AxisHandle,handles);
+    end
     
-    
+    if NeedsUpdate
+        set(handles.VisualUpdateText,'vis','on');
+    else
+        set(handles.VisualUpdateText,'vis','off');
+    end
 
 % --- Executes during object creation, after setting all properties.
 function GeometryVisualization_CreateFcn(hObject, eventdata, handles)
