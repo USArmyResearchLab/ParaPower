@@ -263,8 +263,10 @@ function loadbutton_Callback(hObject, eventdata, handles)
 % hObject    handle to loadbutton (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-[fname,path]=uigetfile('*.mat','Load Material Database');
+oldpathname=get(handles.loadbutton,'userdata');
+[fname,path]=uigetfile([oldpathname '*.mat'],'Load Material Database');
 if fname ~= 0
+    set(handles.loadbutton,'userdata',pathname);
     load([path fname],'MatDbase');  
     set(handles.MatTable,'Data',MatDbase);
 end
@@ -274,8 +276,10 @@ function savebutton_Callback(hObject, eventdata, handles)
 % hObject    handle to savebutton (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-[fname,path]=uiputfile('*.mat','Save Material Database');
+oldpathname=get(handles.loadbutton,'userdata');
+[fname,path]=uiputfile([oldpathname '*.mat'],'Save Material Database');
 if fname ~= 0
+    set(handles.loadbutton,'userdata',pathname);
     MatDbase=get(handles.MatTable,'Data');  
     save([path fname],'MatDbase');
 end
