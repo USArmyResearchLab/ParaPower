@@ -100,6 +100,7 @@ end
 % Form loop over the number of time steps desired
 
 for it=1:steps
+    
     T(:,it)=(A+Atrans)\(-B*Ta(fullheader)'+Qv+C);  %T is temps at the end of the it'th step, C holds info about temps prior to it'th step
 
     if any(isPCM(Mat(Mat~=0))) && steps > 1 %melting disabled for static analyses

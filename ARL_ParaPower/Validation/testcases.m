@@ -54,7 +54,14 @@ for Icase=1:length(testcasefiles)
         clear VarsOrig VarsNew
     
         figure(1);clf; figure(2);clf; figure(1)
-        TestCaseModel.MatLib=Mats
+        %Material Properties
+        if isfield(TestCaseModel,'MatLib')
+            MatLib=TestCaseModel.MatLib;
+        else
+            disp('Adding default materials from the material database to the model')
+            TestCaseModel.MatLib=Mats;
+            return
+        end        
         MI=FormModel(TestCaseModel);
         Visualize ('Model Input', MI, 'modelgeom','ShowQ')
         pause(.001)

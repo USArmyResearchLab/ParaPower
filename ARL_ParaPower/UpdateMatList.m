@@ -8,10 +8,11 @@ function UpdateMatList(TableHandle, Ci, CloseImmediately)
     if isempty(F) || not(isvalid(F))
         F=MaterialDatabase;  %Instantiate the materials database window
         set(TableHandle,'userdata',F);
+        drawnow  %Seems to be needed to ensure that GUI can render properly
     end
     
     if exist('CloseImmediately','var')
-        close(F)
+        set(F,'visible','off')
     else
         set(F,'windowstyle','modal')
         set(F,'visible','on')

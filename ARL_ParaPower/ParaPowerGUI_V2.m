@@ -83,13 +83,13 @@ set(handles.pushbutton18,'enable','off')
 axes(handles.PPLogo)
 imshow('ARLlogoParaPower.png')
 text(0,0,['Version ' ARLParaPowerVersion],'vertical','bott')
-set(handles.GeometryVisualization,'visi','off')
+set(handles.GeometryVisualization,'visi','off');
 ClearGUI_Callback(handles.ClearGUI, eventdata, handles)
 
 %Setup callbacks to ensure that geometry update notification is displayed
 DispNotice=@(hobject,eventdata) ParaPowerGUI_V2('VisUpdateStatus',guidata(hobject),true);
-set(handles.features,'celleditcallback',DispNotice)
-set(handles.ExtCondTable,'celleditcallback',DispNotice)
+set(handles.features,'celleditcallback',DispNotice);
+set(handles.ExtCondTable,'celleditcallback',DispNotice);
 
 
 %LogoAxes_CreateFcn(hObject, eventdata, handles)
@@ -674,7 +674,7 @@ zero = num2str(0);
 one = num2str(1);
 set(handles.Tinit,'String',zero);
 set(handles.TimeStep,'String',zero); 
-set(handles.NumTimeSteps,'String',one)
+set(handles.NumTimeSteps,'String',one);
 set(handles.Tprocess,'String',zero);
 set(handles.GeometryVisualization,'visi','off')
 set(handles.features, 'Data',{}); 
@@ -683,7 +683,7 @@ RowNames=get(handles.ExtCondTable,'rowname');
 set(handles.ExtCondTable,'rowname',RowNames(1:2,:))
 NumCols=length(get(handles.ExtCondTable,'columnwidth'));
 TableData{2,NumCols}=[];
-set(handles.ExtCondTable,'Data',TableData)
+set(handles.ExtCondTable,'Data',TableData);
 
 VisUpdateStatus(handles,false)
 CurTitle=get(handles.figure1,'name');
@@ -912,7 +912,7 @@ function VisUpdateStatus(handles, NeedsUpdate)
             'vis','off',...
             'color','white',...
             'background','red',...
-            'fontweight','bold')
+            'fontweight','bold');
         guidata(AxisHandle,handles);
     end
     
