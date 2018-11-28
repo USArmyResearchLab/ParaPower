@@ -26,7 +26,7 @@ function varargout = ParaPowerGUI_V2(varargin)
 
 % Edit the above text to modify the response to help ParaPowerGUI_V2
 
-% Last Modified by GUIDE v2.5 13-Nov-2018 13:36:43
+% Last Modified by GUIDE v2.5 27-Nov-2018 16:24:38
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -617,8 +617,14 @@ if isempty(D)
     fprintf('Error: No feature selected, please select feature')
 else 
     if not(isempty(data))
+        QData=getappdata(gcf,TableDataName);
+        if length(QData)<length(data(:,1))
+            QData{length(data(:,1))}=[];
+        end
+        QData=[QData(1:D-1) QData(D+1:end)];
         data(D,:)=[];
         set(handles.features, 'Data', data); 
+        setappdata(gcf,TableDataName,QData);
     end
 end
 VisUpdateStatus(handles,true);
@@ -677,7 +683,10 @@ set(handles.TimeStep,'String',zero);
 set(handles.NumTimeSteps,'String',one);
 set(handles.Tprocess,'String',zero);
 set(handles.GeometryVisualization,'visi','off')
-set(handles.features, 'Data',{}); 
+set(handles.features, 'Data',{ [] [] [] [] [] [] [] [] [] [] [] [] }); 
+if isappdata(gcf,TableDataName);
+    rmappdata(gcf,TableDataName)
+end
 
 RowNames=get(handles.ExtCondTable,'rowname');
 set(handles.ExtCondTable,'rowname',RowNames(1:2,:))
@@ -929,4 +938,259 @@ function GeometryVisualization_CreateFcn(hObject, eventdata, handles)
 % handles    empty - handles not created until after all CreateFcns called
 
 % Hint: place code in OpeningFcn to populate GeometryVisualization
+
+function T=TableShowDataText
+    T='Show Data';
+
+%The data for each table entry is stored in an appdata structure.  The
+%structure has the same number of elements as the data table has rows.  It
+%is up to the user to ensure that the rows of the data tables remain
+%consistent with the parent table.
+
+%TableOpenClose is called in the selection callback
+%TableDataName is used with getappdata to extract the table data
+%TableShowDataText is called in the selection callbback to show text that
+%is used.
+
+function H=TableEditHandles(Description)
+    C=get(gcf,'children');
+    Panel=C(strcmpi(get(C,'tag'),'TableEdit'));
+    Cp=get(Panel,'children');
+    switch lower(Description)
+        case 'panel'
+            H=Panel;
+        case 'axes'
+            H=Cp(strcmpi(get(Cp,'type'),'axes'));
+        case 'label'
+            H=Cp(strcmpi(get(Cp,'tag'),'FeatureLabel'));
+        case 'table'
+            H=Cp(strcmpi(get(Cp,'type'),'uitable'));
+        case 'sourcetable'
+            F=C(strcmpi(get(C,'tag','DefineFeatures')));
+            Fc=get(F,'children');
+            H=cp(strcmpi(get(Cp,'tag'),'Features'));
+        otherwise
+            warning([Description 'Unknown handle requested.'])
+                
+    end
+            
+                
+                
+function T=TableDataName
+    T='Qtables';
+    
+function TableOpenClose(Action,SourceTableHandle, Index)
+    Data=getappdata(gcf,TableDataName);
+    if exist('SourceTableHandle','var')
+        setappdata(gcf,'SourceTableHandle',SourceTableHandle);
+    else
+        SourceTableHandle=getappdata(gcf,'SourceTableHandle');
+    end
+    FrameHandle=TableEditHandles('panel');
+    %HList=get(FrameHandle,'children');
+    LabelH=TableEditHandles('label');
+    TableH=TableEditHandles('table');
+    if strcmpi(Action,'open')
+        Childs=get(gcf,'children');
+        ChildVisState=get(Childs,'visible');
+        setappdata(gcf,'ChildVisState',{Childs ChildVisState})
+        set(Childs,'vis','off');
+        set(FrameHandle,'userdata',Index);
+        if Index > length(Data)
+            Data=[0 0];
+        else
+            if isempty(Data{Index});
+                Data=[ 0 0 ];
+            else
+                Data=Data{Index};
+            end
+        end
+        TableData(:,2:3)=num2cell(Data);
+        for I=1:length(TableData(:,1));
+            TableData{I,1}=false;
+        end
+        set(TableH,'data',TableData);  
+        set(LabelH,'string',sprintf('Feature %i',Index))
+        TableGraph
+        set(FrameHandle,'visible','on');
+    elseif strcmpi(Action,'close')
+        Index=get(FrameHandle,'userdata');
+        TableData=get(TableH,'data');
+        TableData=TableData(:,2:3);
+        TableData=cell2mat(TableData);
+        Data{Index}=TableData;
+        setappdata(gcf,TableDataName,Data)
+        C_States=getappdata(gcf,'ChildVisState');
+        ChildHandles=C_States{1};
+        ChildStates=C_States{2};
+        for I=1:length(ChildHandles)
+            set(ChildHandles(I),'vis',ChildStates{I});
+        end
+    end
+    
+% --- Executes on button press in TableAddRow.
+function TableAddRow_Callback(hObject, eventdata, handles)
+% hObject    handle to TableAddRow (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+%TableH=get(get(hObject,'parent'),'children');
+TableH=TableEditHandles('table');
+Table=get(TableH,'data');
+AddEndRow=true;
+for I=length(Table(:,1)):-1:1
+    if Table{I,1}
+        Table{I,1}=false;
+        AddEndRow=false;
+        Table=[Table(1:I-1,:); { false [0] [0] }; Table(I:end,:)];
+    end
+end
+if AddEndRow
+    Table=[Table; { false [0] [0] }];
+end    
+set(TableH,'data',Table)
+TableGraph(hObject)
+
+% --- Executes on button press in TableDelRow.
+function TableDelRow_Callback(hObject, eventdata, handles)
+% hObject    handle to TableDelRow (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+%TableH=get(get(hObject,'parent'),'children');
+TableH=TableEditHandles('table');
+Table=get(TableH,'data');
+for I=length(Table(:,1)):-1:1
+    if Table{I,1}
+        Table=[Table(1:I-1,:); Table(I+1:end,:)];
+    end
+end
+set(TableH,'data',Table)  
+TableGraph(hObject)
+
+% --- Executes on button press in TableClose.
+function TableClose_Callback(hObject, eventdata, handles)
+% hObject    handle to TableClose (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+TableOpenClose('close')
+set(get(hObject,'parent'),'visible','off')
+
+%function GraphTable (hObject)
+%    TableH=TableEditHandles('table');
+%    AxesH=TableEditHandles('axes');
+    
+
+% --- Executes on button press in TableGraph.
+function TableGraph(hObject, eventdata, handles)
+% hObject    handle to TableGraph (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+TableH=TableEditHandles('table');
+AxesH=TableEditHandles('axes');
+Table=get(TableH,'data');
+NTable=cell2mat(Table(:,2:3));
+plot(AxesH,NTable(:,1),NTable(:,2))
+
+
+% --- Executes when entered data in editable cell(s) in TableTable.
+function TableTable_CellEditCallback(hObject, eventdata, handles)
+% hObject    handle to TableTable (see GCBO)
+% eventdata  structure with the following fields (see MATLAB.UI.CONTROL.TABLE)
+%	Indices: row and column indices of the cell(s) edited
+%	PreviousData: previous data for the cell(s) edited
+%	EditData: string(s) entered by the user
+%	NewData: EditData or its converted form set on the Data property. Empty if Data was not changed
+%	Error: error string when failed to convert EditData to appropriate value for Data
+% handles    structure with handles and user data (see GUIDATA)
+TableGraph(hObject)
+% 
+% % --- Executes on button press in TableAddRow.
+% function TableAddRow_Callback(hObject, eventdata, handles)
+% % hObject    handle to TableAddRow (see GCBO)
+% % eventdata  reserved - to be defined in a future version of MATLAB
+% % handles    structure with handles and user data (see GUIDATA)
+% 
+% 
+% % --- Executes on button press in TableDelRow.
+% function TableDelRow_Callback(hObject, eventdata, handles)
+% % hObject    handle to TableDelRow (see GCBO)
+% % eventdata  reserved - to be defined in a future version of MATLAB
+% % handles    structure with handles and user data (see GUIDATA)
+% 
+% 
+% % --- Executes on button press in TableClose.
+% function TableClose_Callback(hObject, eventdata, handles)
+% % hObject    handle to TableClose (see GCBO)
+% % eventdata  reserved - to be defined in a future version of MATLAB
+% % handles    structure with handles and user data (see GUIDATA)
+% 
+% 
+% % --- Executes when entered data in editable cell(s) in TableTable.
+% function TableTable_CellEditCallback(hObject, eventdata, handles)
+% % hObject    handle to TableTable (see GCBO)
+% % eventdata  structure with the following fields (see MATLAB.UI.CONTROL.TABLE)
+% %	Indices: row and column indices of the cell(s) edited
+% %	PreviousData: previous data for the cell(s) edited
+% %	EditData: string(s) entered by the user
+% %	NewData: EditData or its converted form set on the Data property. Empty if Data was not changed
+% %	Error: error string when failed to convert EditData to appropriate value for Data
+% % handles    structure with handles and user data (see GUIDATA)
+
+function v=QValueCol
+    v=9;
+function v=QTypeCol
+    v=8;
+
+
+
+% --- Executes when selected cell(s) is changed in features.
+function features_CellSelectionCallback(hObject, eventdata, handles)
+% hObject    handle to features (see GCBO)
+% eventdata  structure with the following fields (see MATLAB.UI.CONTROL.TABLE)
+%	Indices: row and column indices of the cell(s) currently selecteds
+% handles    structure with handles and user data (see GUIDATA)
+if not(isempty(eventdata.Indices))
+    Row=eventdata.Indices(1);
+    Col=eventdata.Indices(2);
+    Table=get(hObject, 'Data');
+    if Col==QValueCol && strcmpi(Table{Row,QValueCol},TableShowDataText)
+        TempData=get(hObject,'data');
+        set(hObject,'data',[])
+        set(hObject,'data',TempData)
+        TableOpenClose('open',hObject,Row)
+    end
+end
+
+
+function features_CellEditCallback(hObject, eventdata, handles)
+% hObject    handle to features (see GCBO)
+% eventdata  structure with the following fields (see MATLAB.UI.CONTROL.TABLE)
+%	Indices: row and column indices of the cell(s) edited
+%	PreviousData: previous data for the cell(s) edited
+%	EditData: string(s) entered by the user
+%	NewData: EditData or its converted form set on the Data property. Empty if Data was not changed
+%	Error: error string when failed to convert EditData to appropriate value for Data
+% handles    structure with handles and user data (see GUIDATA)
+%Check to see if column with Q Type is being modified
+Row=eventdata.Indices(1);
+Col=eventdata.Indices(2);
+%CellTableData=get(hObject,'userdata');
+if Col==QTypeCol
+    %disp('changing Q Type')
+    Table=get(hObject,'data');
+    if strcmpi(eventdata.NewData,'Table')
+        Table{Row,QValueCol}=TableShowDataText;
+%        CellTableData{Row}=[0 0];
+    else
+        Table{Row,QValueCol}=[];
+%        CellTableData{Row}=[];
+    end
+    set(hObject,'Data',Table);
+ %   set(hObject,'userdata',CellTableData);
+elseif Col==QValueCol
+    if strcmpi(eventdata.PreviousData,TableShowDataText)
+        Table{Row,QValueCol}=TableShowDataText;
+        set(hObject,'Data',Table);
+    end
+end
+
 

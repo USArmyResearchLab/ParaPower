@@ -247,7 +247,7 @@ function GraphTable (hObject)
     
 
 % --- Executes on button press in TableGraph.
-function TableGraph_Callback(hObject, eventdata, handles)
+function TableGraph(hObject, eventdata, handles)
 % hObject    handle to TableGraph (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
