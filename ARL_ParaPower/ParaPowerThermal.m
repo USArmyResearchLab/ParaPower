@@ -44,10 +44,24 @@ RHO(Mat ~=0) = rho(Mat(Mat~=0));
 % CP = spht(reshape(Mat,[],1))'; %Specific heat vector for effective nodal specific heats. Updatable with time
 % RHO = rho(reshape(Mat,[],1))'; %effective density vector. Updatable with time
 
-Qv=Q(:,:,:,1);
+%convert Q from function handle form to value at single time of Qtime
+Qtime=0; %Evaluate Q at time=0
+for i=1:length(Q(:))
+    if isempty(Q{i})
+        Qv(i)=0;
+    else
+        Qv(i)=Q{i}(Qtime);
+    end
+end
+Qv=reshape(Qv,size(Q));
+        
+%Qv=Q(:,:,:,1);
 Qv=reshape(Qv(Mat>0),[],1);  %pull a column vector from the i,j,k format of the first timestep
 
-
+%Indicator for static analysis, if steps is empty.
+if isempty(steps)
+    steps=1;
+end
 
 
 [isPCM,kondl,rhol,sphtl,Lw,Tm,PH,PH_init] = PCM_init(Mat,matprops,Num_Row,Num_Col,Num_Lay,steps);

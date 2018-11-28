@@ -13,7 +13,7 @@ function Visualize (PlotTitle, MI, varargin)
 %   PlotParms.RemoveMaterial=[] - Which materials to remove from the plot, value is array of mat numbers
 %   EdgeOnlyMaterial=[] - Show only the edges of this material, value is array of mat numbers
 %   Transparency=0.5 - FaceAlpha value, 0-clear, 1-opaque, value is a scalar between 0 & 1
-%   ShowQ - Display Q on each face, no value, this is a flag
+%   ShowQ, time - Display Q on each face, no value, this is a flag and value.  If no value, then 0 is assumed
 %   EdgeColor=[0 0 0] - Color of the edges ('none' or [R,G,B] value), value is color as 3x1 RGB array
 %   ModelGeometry - plot model geometry, no value, this is a flag to just plot model geometry
 %   TransMaterial=[] - List of materials to make transparent, value is array of mat numbers that should be transparent
@@ -67,6 +67,7 @@ function Visualize (PlotTitle, MI, varargin)
     ColorTitle='';
     PlotState=ModelMatrix;
     Q=[];
+    Qt=0; %Time at which Q will be evaluated
 
     strleft=@(S,n) S(1:min(n,length(S)));
 
@@ -108,6 +109,11 @@ function Visualize (PlotTitle, MI, varargin)
                 [Value, PropValPairs]=Pop(PropValPairs); 
                 PlotParms.Transparency=Value;
             case strleft('showq',Pl)
+                [Value, NewPropValPairs]=Pop(PropValPairs);
+                if isnumeric(Value)
+                    PropValPairs=NewPropValPairs;
+                    Qt=Value;
+                end
                 Q=MI.Q;
             case strleft('noaxes',Pl)
                 PlotParms.PlotAxes=false;
@@ -231,7 +237,15 @@ function Visualize (PlotTitle, MI, varargin)
                     NoHeat=true;
                     if ~isempty(Q)
                         T='';
-                        ThisQ=unique(Q(Xi,Yi,Zi,:));
+                        if iscell(Q)
+                            if isempty(Q{Xi,Yi,Zi})
+                                ThisQ=0;
+                            else
+                                ThisQ=Q{Xi,Yi,Zi}(Qt);
+                            end
+                        else
+                            ThisQ=unique(Q(Xi,Yi,Zi,:));
+                        end
                         if (~isscalar(ThisQ)) || ThisQ ~=0
                             if isreal(ThisQ)
                                 ThisQ=sprintf('%g',ThisQ);
@@ -398,7 +412,15 @@ function Visualize (PlotTitle, MI, varargin)
 end
 
 function [Val, PV]=Pop(PV) 
-    Val=PV{1};
-    PV=PV(2:end);
+    if length(PV)>=1
+        Val=PV{1};
+    else
+        Val={};
+    end
+    if length(PV)>=2
+        PV=PV(2:end);
+    else
+        PV={};
+    end
 end
     

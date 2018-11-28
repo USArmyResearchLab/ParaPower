@@ -132,8 +132,11 @@ DeltaCoord.Z=Z(2:end)-Z(1:end-1);
 
 Params.Tsteps=floor(Params.Tsteps);
 ModelMatrix=zeros(length(X)-1,length(Y)-1,length(Z)-1);
-Q=zeros([size(ModelMatrix) Params.Tsteps]);
-%Q=zeros(length(X)-1,length(Y)-1,length(Z)-1,Params.Tsteps);
+%Q=zeros([size(ModelMatrix) Params.Tsteps]);
+S=size(ModelMatrix);
+Q{S(1),S(2),S(3)}=[];
+%Q=zeros([size(ModelMatrix) Params.Tsteps]);
+
 GlobalTime=[0:Params.DeltaT:(Params.Tsteps-1)*Params.DeltaT];
 if isempty(GlobalTime)
     GlobalTime=0;
@@ -215,48 +218,61 @@ for Fii=1:length(ZeroThickness)
     ModelMatrix(InX, InY, InZ)=MatNum;
 end
 
-%Apply Q's
+%Apply Q's (Note that Q's are now defined as function handles)
 for Fi=1:length(Features)
     %Define Q for the feature
      %Negate Q so that postive Q is corresponds to heat generation
-     ThisQ=(-1)*Features(Fi).Q;
-
-
-     if ThisQ ~= 0 
-         if isscalar(ThisQ)
-             ThisQ=ones(size(GlobalTime))*ThisQ;
+     if strcmpi(class(Features(Fi).Q),'function_handle');
+         ThisQ=@(t)Features(Fi).Q(t)*(-1);
+         
+     elseif isscalar(Features(Fi).Q)
+         if Features(Fi).Q==0
+             ThisQ=[];
          else
-             disp('Defining time dependent Q')
-             if ThisQ(1,1) > GlobalTime(1) %If Q for features is not defined at time beginning, then define it
-                 ThisQ=[[GlobalTime(1) ThisQ(1,2)]; ThisQ];
-                 disp('Defining Q at min(time)')
-             end
-             if ThisQ(end,1) < GlobalTime(end)
-                 disp('Defining Q at max(time)')
-                 ThisQ=[ThisQ; [GlobalTime(end) ThisQ(end,2)]];
-             end
-             ThisQ=interp1(ThisQ(:,1),ThisQ(:,2), GlobalTime,'spline');    
+            ThisQ=@(t)(-1)*Features(Fi).Q;
          end
+     elseif isempty(Features(Fi).Q)
+         ThisQ=[];
+     else
+         ThisQ=@(t)(-1)*interp1(Features(Fi).Q(:,1),Features(Fi).Q(:,2),t);
+     end
 
 
-         %Scale Q so that total of all elements results in total Q
-         InX=GetInXYZ(Features(Fi).x, X);
-         InY=GetInXYZ(Features(Fi).y, Y);
-         InZ=GetInXYZ(Features(Fi).z, Z);
-
+     if not(isempty(ThisQ)) 
+%          if isscalar(ThisQ)
+%              ThisQ=ones(size(GlobalTime))*ThisQ;
+%          else
+%              disp('Defining time dependent Q')
+%              if ThisQ(1,1) > GlobalTime(1) %If Q for features is not defined at time beginning, then define it
+%                  ThisQ=[[GlobalTime(1) ThisQ(1,2)]; ThisQ];
+%                  disp('Defining Q at min(time)')
+%              end
+%              if ThisQ(end,1) < GlobalTime(end)
+%                  disp('Defining Q at max(time)')
+%                  ThisQ=[ThisQ; [GlobalTime(end) ThisQ(end,2)]];
+%              end
+%              ThisQ=interp1(ThisQ(:,1),ThisQ(:,2), GlobalTime,'spline');    
+%          end
+% 
+% 
+%          %Scale Q so that total of all elements results in total Q
+%          InX=GetInXYZ(Features(Fi).x, X);
+%          InY=GetInXYZ(Features(Fi).y, Y);
+%          InZ=GetInXYZ(Features(Fi).z, Z);
+% 
          for Xi=InX
              for Yi=InY
                  for Zi=InZ
                      if isscalar(unique(Features(Fi).x))  %X is zero thickness
-                         ScaledQ=ThisQ*DeltaCoord.Z(Zi)*DeltaCoord.Y(Yi)/abs(Features(Fi).TotalArea);
+                         ScaledQ=@(t)ThisQ(t)*DeltaCoord.Z(Zi)*DeltaCoord.Y(Yi)/abs(Features(Fi).TotalArea);
                      elseif isscalar(unique(Features(Fi).y)) %y is zero thickness
-                         ScaledQ=ThisQ*DeltaCoord.Z(Zi)*DeltaCoord.X(Xi)/abs(Features(Fi).TotalArea);
+                         ScaledQ=@(t)ThisQ(t)*DeltaCoord.Z(Zi)*DeltaCoord.X(Xi)/abs(Features(Fi).TotalArea);
                      elseif isscalar(unique(Features(Fi).z)) %z is zero thickness
-                         ScaledQ=ThisQ*DeltaCoord.X(Xi)*DeltaCoord.Y(Yi)/abs(Features(Fi).TotalArea);
+                         ScaledQ=@(t)ThisQ(t)*DeltaCoord.X(Xi)*DeltaCoord.Y(Yi)/abs(Features(Fi).TotalArea);
                      else
-                         ScaledQ=ThisQ*DeltaCoord.X(Xi)*DeltaCoord.Z(Zi)*DeltaCoord.Y(Yi)/abs(Features(Fi).TotalVolume);
+                         ScaledQ=@(t)ThisQ(t)*DeltaCoord.X(Xi)*DeltaCoord.Z(Zi)*DeltaCoord.Y(Yi)/abs(Features(Fi).TotalVolume);
                      end
-                     Q(Xi,Yi,Zi,:)=ScaledQ;
+                     Q{Xi,Yi,Zi}=ScaledQ;
                  end
              end
          end
