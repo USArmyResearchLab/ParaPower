@@ -1,7 +1,6 @@
 function ModelInput=FormModel(TestCaseModel)
 %disp('============================')
 
-
 %Overall structures orientation/BCs for ease of reference
 Left  = 1; %X- Face
 Right = 2; %X+ Face
@@ -23,6 +22,9 @@ if ischar(TestCaseModel)
         error('Invalid optional argument');
     end
 else
+    if not(isfield(TestCaseModel,'Version')) || not(strcmpi(TestCaseModel.Version,'V2.0'))
+        error(['Incorrect TestCaseModel version.  V2.0 required, this data is ' TestCaseModel.Version]);
+    end
     ExternalConditions=TestCaseModel.ExternalConditions;
     Features=TestCaseModel.Features;
     Params=TestCaseModel.Params;
@@ -137,9 +139,10 @@ S=size(ModelMatrix);
 Q{S(1),S(2),S(3)}=[];
 %Q=zeros([size(ModelMatrix) Params.Tsteps]);
 
-GlobalTime=[0:Params.DeltaT:(Params.Tsteps-1)*Params.DeltaT];
-if isempty(GlobalTime)
-    GlobalTime=0;
+if isempty(Params.Tsteps)
+    GlobalTime=[];
+else
+    GlobalTime=[0:Params.DeltaT:(Params.Tsteps-1)*Params.DeltaT];
 end
 
 %Get minimum values of feature coords for visualization purposes.
@@ -222,7 +225,7 @@ end
 for Fi=1:length(Features)
     %Define Q for the feature
      %Negate Q so that postive Q is corresponds to heat generation
-     if strcmpi(class(Features(Fi).Q),'function_handle');
+     if strcmpi(class(Features(Fi).Q),'function_handle')
          ThisQ=@(t)Features(Fi).Q(t)*(-1);
          
      elseif isscalar(Features(Fi).Q)
@@ -235,31 +238,11 @@ for Fi=1:length(Features)
          ThisQ=[];
      else
          ThisQ=@(t)(-1)*interp1(Features(Fi).Q(:,1),Features(Fi).Q(:,2),t);
+         GlobalTime=[GlobalTime Features(Fi).Q(:,1)];
      end
 
 
      if not(isempty(ThisQ)) 
-%          if isscalar(ThisQ)
-%              ThisQ=ones(size(GlobalTime))*ThisQ;
-%          else
-%              disp('Defining time dependent Q')
-%              if ThisQ(1,1) > GlobalTime(1) %If Q for features is not defined at time beginning, then define it
-%                  ThisQ=[[GlobalTime(1) ThisQ(1,2)]; ThisQ];
-%                  disp('Defining Q at min(time)')
-%              end
-%              if ThisQ(end,1) < GlobalTime(end)
-%                  disp('Defining Q at max(time)')
-%                  ThisQ=[ThisQ; [GlobalTime(end) ThisQ(end,2)]];
-%              end
-%              ThisQ=interp1(ThisQ(:,1),ThisQ(:,2), GlobalTime,'spline');    
-%          end
-% 
-% 
-%          %Scale Q so that total of all elements results in total Q
-%          InX=GetInXYZ(Features(Fi).x, X);
-%          InY=GetInXYZ(Features(Fi).y, Y);
-%          InZ=GetInXYZ(Features(Fi).z, Z);
-% 
          for Xi=InX
              for Yi=InY
                  for Zi=InZ
@@ -292,10 +275,8 @@ end
 ModelMatrix(isnan(ModelMatrix))=MatNum;
 
 [NR, NC, NL]=size(ModelMatrix);
+GlobalTime = uniquetol(GlobalTime, eps(max(GlobalTime)));
 
-ModelInput.NL=NL;
-ModelInput.NR=NR;
-ModelInput.NC=NC;
 ModelInput.h=h;
 ModelInput.Ta=Ta;
 ModelInput.X=DeltaCoord.X;
@@ -304,12 +285,12 @@ ModelInput.Z=DeltaCoord.Z;
 ModelInput.Tproc=Tproc;
 ModelInput.Model=ModelMatrix;
 ModelInput.Q=Q;
-ModelInput.DeltaT=Params.DeltaT;
+ModelInput.GlobalTime=GlobalTime;
 ModelInput.Tinit=Params.Tinit;
-ModelInput.Tsteps=Params.Tsteps;
 ModelInput.MatLib=MatLib;
 ModelInput.matprops=MatLib.matprops;
 ModelInput.matlist=MatLib.matlist;
+ModelInput.Version='V2.0';
 
 return
 

@@ -26,7 +26,7 @@ function varargout = ParaPowerGUI_V2(varargin)
 
 % Edit the above text to modify the response to help ParaPowerGUI_V2
 
-% Last Modified by GUIDE v2.5 28-Nov-2018 16:04:46
+% Last Modified by GUIDE v2.5 29-Nov-2018 11:34:19
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -139,14 +139,19 @@ function addfeature_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
     x = get(handles.features,'Data');
-    NumCols=length(get(handles.features,'columnWidth'));
     EmptyRow=EmptyFeatureRow;
     if isempty(x)
         x=EmptyRow;
     else
         x(end+1,:)=EmptyRow;
     end
+    QData=getappdata(gcf,TableDataName);
+    QData{length(x(:,1))}=[];
+    
+    INCLUDELOGICFORTABLES
     set(handles.features,'Data',x)
+    setappdata(gcf,TableDataName,QData);
+
     VisUpdateStatus(handles,true);
 
 
@@ -163,7 +168,7 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 
 function E=EmptyFeatureRow
-    E{1,14}=[];
+    E{1,12}=[];
     E{QValueCol}='0';
     E{QTypeCol}='Scalar';
 
@@ -208,10 +213,11 @@ function savebutton_Callback(hObject, eventdata, handles)
 
     oldpathname=get(handles.loadbutton,'userdata');
     [fname,pathname] = uiputfile ([oldpathname '*.mat']);
-    if fname ~= 0 
+    if fname ~= 0
+        Initialize_Callback(hObject, eventdata, handles)
         set(handles.loadbutton,'userdata',pathname);
         AddStatusLine(['Savinging "' pathname fname '".']);
-        TestCaseModel = getappdata(handles.figure1,'TestCaseModel');
+        TestCaseModel = getappdata(gcf,'TestCaseModel');
         %save([pathname fname], '-struct' , 'TestCaseModel')
         %Remove saving as struct, just save TestCaseModel as a whole
         %variable itself
@@ -256,7 +262,21 @@ function loadbutton_Callback(hObject, eventdata, handles)
             TestCaseModel.Params=Params;
             TestCaseModel.PottingMaterial=PottingMaterial;
         end
-        setappdata(handles.figure1,'TestCaseModel',TestCaseModel)
+        OldVersion=false;
+        if isfield(TestCaseModel,'Version')
+           if not(strcmpi(TestCaseModel.Version,'V2.0') )
+               OldVersion=true
+           end
+        else
+            TestCaseModel.Version='';
+            OldVersion=true;
+        end
+        
+        if OldVersion
+            AddStatusLine('Attempting to load data from previous version, profile may be corrupted.')
+        end
+             
+        setappdata(gcf,'TestCaseModel',TestCaseModel)
         ExternalConditions=TestCaseModel.ExternalConditions;
         Features=TestCaseModel.Features;
         Params=TestCaseModel.Params;
@@ -287,23 +307,38 @@ function loadbutton_Callback(hObject, eventdata, handles)
        %that won't be used.
        tabledata = {};
        [m n] = size(Features); 
+       QData={};
 
        for count = 1: n 
             %FEATURESTABLE
-           tabledata(count,1) = false;
-           tabledata(count,2) = mat2cell(Features(count).x(1),1,1);
-           tabledata(count,3) = mat2cell(Features(count).y(1),1,1);
-           tabledata(count,4) = mat2cell(Features(count).z(1),1,1);
-           tabledata(count,5) = mat2cell(Features(count).x(2),1,1);
-           tabledata(count,6) = mat2cell(Features(count).y(2),1,1);
-           tabledata(count,7) = mat2cell(Features(count).z(2),1,1);
-           tabledata(count,8) = cellstr(Features(count).Matl);
-           tabledata(count,9) = mat2cell(Features(count).Q,1,1);
-           tabledata(count,12) = mat2cell(Features(count).dx,1,1);
-           tabledata(count,13) = mat2cell(Features(count).dz,1,1);
+           tabledata(count,1)  = {false};
+           tabledata(count,2)  = mat2cell(Features(count).x(1),1,1);
+           tabledata(count,3)  = mat2cell(Features(count).y(1),1,1);
+           tabledata(count,4)  = mat2cell(Features(count).z(1),1,1);
+           tabledata(count,5)  = mat2cell(Features(count).x(2),1,1);
+           tabledata(count,6)  = mat2cell(Features(count).y(2),1,1);
+           tabledata(count,7)  = mat2cell(Features(count).z(2),1,1);
+           tabledata(count,8)  = cellstr(Features(count).Matl);
+           if ischar(Features(count).Q)
+                tabledata(count,9)  = {'Function(t)'};
+                tabledata(count,10) = mat2cell(Features(count).Q,1,1);
+           elseif isscalar(Features(count).Q)
+                tabledata(count,9)  = {'Scalar'};
+                tabledata(count,10) = mat2cell(Features(count).Q,1,1);
+           elseif isnumeric(Features(count).Q) && length(Features(count).Q(1,:))==2
+                tabledata(count,9)  = {'Table'};
+                tabledata(count,10) = {TableShowDataText};
+                QData{count}=Features(count).Q;
+           end
+           tabledata(count,11) = mat2cell(Features(count).dx,1,1);
+           tabledata(count,12) = mat2cell(Features(count).dz,1,1);
        end 
 
        set(handles.features,'Data',tabledata)
+       if length(QData) < n
+           QData{n}=[];
+       end
+       setappdata(gcf,TableDataName, QData)
 
        %%%Set Parameters
        set(handles.Tinit,'String', Params.Tinit)
@@ -328,27 +363,19 @@ function RunAnalysis_Callback(hObject, eventdata, handles)
         end
         numplots = 1;
         AddStatusLine('Analysis running...');
-        MI = getappdata(handles.figure1,'MI');
+        MI = getappdata(gcf,'MI');
         if isempty(MI)
             AddStatusLine('Model not yet fully defined.')
             return
         end
-        %MI=FormModel(TestCaseModel);
-        %figure(numplots)
-        %Visualize ('Model Input', MI, 'modelgeom','ShowQ')
 
-        pause(.001)
+        drawnow
         fprintf('Analysis executing...')
         
         TimeStepOutput = get(handles.slider1,'Value');
 
-        GlobalTime=[0:MI.Tsteps-1]*MI.DeltaT;  %Since there is global time vector, construct one here.
-        [Tprnt, Stress, MeltFrac]=ParaPowerThermal(MI.NL,MI.NR,MI.NC, ...
-                                               MI.h,MI.Ta, ...
-                                               MI.X,MI.Y,MI.Z, ...
-                                               MI.Tproc, ...
-                                               MI.Model,MI.Q, ...
-                                               MI.DeltaT,MI.Tsteps,MI.Tinit,MI.matprops);
+        GlobalTime=MI.GlobalTime;  %Since there is global time vector, construct one here.
+        [Tprnt, Stress, MeltFrac]=ParaPowerThermal(MI);
                                        
        fprintf('Complete.\n')
        
@@ -525,7 +552,7 @@ end
 if rows==0
     AddStatusLine('No features to initialize.')
 else
-    CheckMatrix=FeaturesMatrix(:,[1:7 10:13]);
+    CheckMatrix=FeaturesMatrix(:,[1:7 10:11]);  %FEATURESMATRIX
     for K=1:length(CheckMatrix(:))
         if isempty(CheckMatrix{K})
             AddStatusLine('Error.',true);
@@ -554,9 +581,9 @@ else
         %values from 2 to infinity, only odd values ensure that there is an element
         %at the center of each features
 
-        Features(count).dx =  FeaturesMatrix{count, 12}; %Number of divisions/feature in X
-        Features(count).dy =  FeaturesMatrix{count, 12}; %Number of divisions/feature in Y
-        Features(count).dz =  FeaturesMatrix{count, 13}; %Number of divisions/feature in Z (layers)
+        Features(count).dx =  FeaturesMatrix{count, 10}; %Number of divisions/feature in X
+        Features(count).dy =  FeaturesMatrix{count, 10}; %Number of divisions/feature in Y
+        Features(count).dz =  FeaturesMatrix{count, 11}; %Number of divisions/feature in Z (layers)
 
 
         
@@ -566,11 +593,10 @@ else
         Qtype=lower(Qtype(1:5));
         switch Qtype
             case 'scala'
-                QValue=str2double(QValue);
                 if QValue==0
                     Features(count).Q = 0;
                 else
-                    Features(count).Q = @(t)QValue;
+                    Features(count).Q = QValue;
                 end
             case 'table'
                 Table=QData{count};
@@ -595,13 +621,14 @@ else
                         Table=[0 0; Table(1,1)-2*eps(MaxTime) 0; Table];
                         AddStatusLine(['Feature ' num2str(count) ' time adjusted to begin at t=0, value of 0'])
                     end
-                    Features(count).Q = @(t)interp1(Table(:,1), Table(:,2), t);
+                    %Features(count).Q = @(t)interp1(Table(:,1), Table(:,2), t);
+                    Features(count).Q = Table;
                 end
             case 'funct'
                 if isempty(QValue)
                     Features(count).Q=0;
                 else
-                    Features(count).Q = @(t)eval(QValue);
+                    Features(count).Q = QValue;
                 end
             otherwise
                 AddStatusLine(['Unknown Q type "' FeaturesMatrix{count, QTypeCol} '"' ] )
@@ -623,6 +650,7 @@ else
     TestCaseModel.Params=Params;
     TestCaseModel.PottingMaterial=PottingMaterial;
     TestCaseModel.MatLib=MatLib;
+    TestCaseModel.Version='V2.0';
 
     if KillInit
         AddStatusLine('Unable to execute model due to errors.')
@@ -632,8 +660,8 @@ else
     %    axes(handles.GeometryVisualization);
     %    Visualize ('Model Input', MI, 'modelgeom','ShowQ')
 
-        setappdata(handles.figure1,'TestCaseModel',TestCaseModel);
-        setappdata(handles.figure1,'MI',MI);
+        setappdata(gcf,'TestCaseModel',TestCaseModel);
+        setappdata(gcf,'MI',MI);
 
         MI=getappdata(handles.figure1,'MI');
         axes(handles.GeometryVisualization)
@@ -649,30 +677,6 @@ else
     end
 end
 
-function Feature2Del_Callback(hObject, eventdata, handles)
-% hObject    handle to Feature2Del (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of Feature2Del as text
-%        str2double(get(hObject,'String')) returns contents of Feature2Del as a double
-
-
-% --- Executes during object creation, after setting all properties.
-
-
-% function Feature2Del_CreateFcn(hObject, eventdata, handles)
-% % hObject    handle to Feature2Del (see GCBO)
-% % eventdata  reserved - to be defined in a future version of MATLAB
-% % handles    empty - handles not created until after all CreateFcns called
-% 
-% % Hint: edit controls usually have a white background on Windows.
-% %       See ISPC and COMPUTER.
-% if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-%     set(hObject,'BackgroundColor','white');
-% end
-
-
 % --- Executes on button press in DeleteFeature.
 function DeleteFeature_Callback(hObject, eventdata, handles)
 % hObject    handle to DeleteFeature (see GCBO)
@@ -682,38 +686,22 @@ function DeleteFeature_Callback(hObject, eventdata, handles)
 data = get(handles.features, 'Data');
 
 
+QData=getappdata(gcf,TableDataName);
+if length(QData)<length(data(:,1))
+	QData{length(data(:,1))}=[];
+end
 for I=length(data(:,1)):-1:1
     if data{I,1}
-        data=[data(1:I-1,:); data(I+1:end,:)];
+        data =[data(1:I-1,:); data(I+1:end,:)];
+        QData=[QData(1:I-1)  QData(I+1:end)];
     end
 end
+
 if length(data(:,1))==0
     data=EmptyFeatureRow;
 end
 set(handles.features, 'Data', data);
-
-% 
-% D = get(handles.Feature2Del, 'String');
-% D = str2num(D);
-% if isempty(D)
-%     fprintf('Error: No feature selected, please select feature')
-% else 
-%     if not(isempty(data))
-%         QData=getappdata(gcf,TableDataName);
-%         if length(QData)<length(data(:,1))
-%             QData{length(data(:,1))}=[];
-%         end
-%         QData=[QData(1:D-1) QData(D+1:end)];
-%         data(D,:)=[];
-%         set(handles.features, 'Data', data); 
-%         setappdata(gcf,TableDataName,QData);
-%     end
-% end
 VisUpdateStatus(handles,true);
-
-
-
-
 
 % --- Executes on button press in ClearGUI.
 function ClearGUI_Callback(hObject, eventdata, handles)
@@ -743,14 +731,6 @@ for i=1:length(Kids)
     end
 end
 
-%Delete features matrix
-% data = get(handles.features, 'Data');
-% [M,N] = size(data);
-% for count = 1:M
-%     data(1,:)=[];
-% end
-% data(1,:)=mat2cell(0,1,1);
-%set(handles.features, 'Data',data);
 
 %Set Environmental Parameters to zero 
 T = num2cell([0]);
@@ -955,7 +935,7 @@ function AddStatusLine(textline,AddToLastLine)
         AddToLastLine=false;
     end
     handles=guidata(gcf);
-    Hstat=handles.text10;
+    Hstat=handles.StatusWindow;
     if strcmpi(class(textline),'boolean') && textline
         set(Hstat,'text',{})
     else
@@ -963,7 +943,7 @@ function AddStatusLine(textline,AddToLastLine)
         set(Hstat,'unit','char');
         Pos=get(Hstat,'posit');
         Lines=floor(Pos(1));
-        set(Hstat,'style','edit');
+        %set(Hstat,'style','edit');
         set(Hstat,'enable','inactive')
         set(Hstat,'pos',[Pos(1) Pos(2) Pos(3) floor(Pos(4))+.5]);
         MaxChar=floor(Pos(3));
@@ -971,6 +951,7 @@ function AddStatusLine(textline,AddToLastLine)
         set(Hstat,'max',10);
         if strcmpi(textline,'ClearStatus')
             set(Hstat,'string','')
+            set(Hstat,'value',1)
         else
             OldText=get(Hstat,'string');
             textline=textline(1:min([MaxChar length(textline)]));
@@ -979,22 +960,34 @@ function AddStatusLine(textline,AddToLastLine)
             else
                 if AddToLastLine
     %                NewText=str2mat(OldText(1:end-1,:), [strtrim(OldText(end,:)) textline]);
-                    NewText=str2mat([strtrim(OldText(1,:)), textline],OldText(2:end,:) );
+    %                NewText=str2mat(OldText(2:end,:), [strtrim(OldText(1,:)), textline] );
+                    NewText=[OldText(1:end-1); [strtrim(OldText{end}), textline] ];
                 else
-                    OldLines=length(OldText(:,1));
+                    %OldLines=length(OldText(:,1));
                     %OldText=OldText(max([1 OldLines-Lines+1]):end,:);
     %                NewText=str2mat(OldText,textline);
-                    NewText=str2mat(textline,OldText);
+                    NewText=[OldText; textline];
                 end
             end
-            E=MaxWidth;  %The following while ensure that lines don't wrap around.
-            while E>Pos(3)
-                set(Hstat,'string',NewText)
-                E=get(Hstat,'extent');
-                E=E(3);
-                NewText=NewText(:,1:end-1);
+
+            if ischar(NewText)
+                NewText={NewText};
             end
-        set(Hstat,'unit',OldUnit);
+            E=MaxWidth;  %The following while ensure that lines don't wrap around.
+%             while E>Pos(3)  %This was need to ensure lines in an edit box didn't wrap around.
+%                 set(Hstat,'string',NewText)
+%                 E=get(Hstat,'extent');
+%                 E=E(3);
+%                 for k=1:length(NewText)
+%                     NewText{k}=NewText{k}(1:end-1);
+%                     if isempty(NewText{k})
+%                         NewText{k}=' ';
+%                     end
+%                 end
+%             end
+            set(Hstat,'string',NewText)
+            set(Hstat,'unit',OldUnit);
+            set(Hstat,'value',length(NewText(:,1)))
         end
     end
     
@@ -1189,38 +1182,6 @@ function TableTable_CellEditCallback(hObject, eventdata, handles)
 %	Error: error string when failed to convert EditData to appropriate value for Data
 % handles    structure with handles and user data (see GUIDATA)
 TableGraph(hObject)
-% 
-% % --- Executes on button press in TableAddRow.
-% function TableAddRow_Callback(hObject, eventdata, handles)
-% % hObject    handle to TableAddRow (see GCBO)
-% % eventdata  reserved - to be defined in a future version of MATLAB
-% % handles    structure with handles and user data (see GUIDATA)
-% 
-% 
-% % --- Executes on button press in TableDelRow.
-% function TableDelRow_Callback(hObject, eventdata, handles)
-% % hObject    handle to TableDelRow (see GCBO)
-% % eventdata  reserved - to be defined in a future version of MATLAB
-% % handles    structure with handles and user data (see GUIDATA)
-% 
-% 
-% % --- Executes on button press in TableClose.
-% function TableClose_Callback(hObject, eventdata, handles)
-% % hObject    handle to TableClose (see GCBO)
-% % eventdata  reserved - to be defined in a future version of MATLAB
-% % handles    structure with handles and user data (see GUIDATA)
-% 
-% 
-% % --- Executes when entered data in editable cell(s) in TableTable.
-% function TableTable_CellEditCallback(hObject, eventdata, handles)
-% % hObject    handle to TableTable (see GCBO)
-% % eventdata  structure with the following fields (see MATLAB.UI.CONTROL.TABLE)
-% %	Indices: row and column indices of the cell(s) edited
-% %	PreviousData: previous data for the cell(s) edited
-% %	EditData: string(s) entered by the user
-% %	NewData: EditData or its converted form set on the Data property. Empty if Data was not changed
-% %	Error: error string when failed to convert EditData to appropriate value for Data
-% % handles    structure with handles and user data (see GUIDATA)
 
 function v=QValueCol
     v=10;
@@ -1228,8 +1189,6 @@ function v=QTypeCol
     v=9;
 function v=MatListCol
     v=8;
-
-
 
 % --- Executes when selected cell(s) is changed in features.
 function features_CellSelectionCallback(hObject, eventdata, handles)
@@ -1309,3 +1268,50 @@ function AnalysisType_SelectionChangedFcn(hObject, eventdata, handles)
     elseif strncmpi(Chooser,'transient',8)
         set([handles.text5 handles.text4 handles.TimeStep handles.NumTimeSteps handles.totaltime],'enable','on');
     end
+
+    
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                      FEATURES TABLE SPECIAL HANDLING          %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% A feature can include a Q vs. t table that requires special   %
+% handling.  The data for those tables is stored as appdata and %
+% is set/retreived with Data=getappdata(gcf, TableDataName) and %
+% setappdata(gcf,TableDataName, Data).  As the features table   %
+% updated, the programmer MUST modify the table to ensure that  %
+% the table data remains synchronized to the features table.    %
+% Thus far the following functions include logic to ensure that %
+% synchronization: loadbutton_Callback,  addfeature_Callback,   %
+% Initialize_Callback, DeleteFeature_Callback.                  %
+%                                                               %
+% The tables are coded with widgets that begin with "Table" in  %
+% their tags.  The functions function QValueCol, QTypeCol, and  %
+% MatListCol identify the column numbers in the host table that %
+% the Q value data tables interact with and MUST be updated if  %
+% host table (features) changes structure. A handle to the      %
+% source table is stored in getappdata(gcf,'SourceTableHandle').%
+% This handle is stored dynamically and does not need to be     %
+% managed by the programmer.                                    %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+% --- Executes on selection change in StatusWindow.
+function StatusWindow_Callback(hObject, eventdata, handles)
+% hObject    handle to StatusWindow (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: contents = cellstr(get(hObject,'String')) returns StatusWindow contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from StatusWindow
+
+
+% --- Executes during object creation, after setting all properties.
+function StatusWindow_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to StatusWindow (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: listbox controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end

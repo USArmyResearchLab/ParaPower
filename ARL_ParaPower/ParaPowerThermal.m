@@ -7,19 +7,36 @@
 %stresses from processing temperatures have not been implemented for all
 %materials
         
-function [Tres,Stress,PHres] = ParaPowerThermal(NL,NR,NC,h,Ta,dx,dy,dz,Tproc,Mat,Q,delta_t,steps,T_init,matprops)
+function [Tres,Stress,PHres] = ParaPowerThermal(ModelInput)
+
+
+h=ModelInput.h;
+Ta=ModelInput.Ta;
+dx=ModelInput.X;
+dy=ModelInput.Y;
+dz=ModelInput.Z;
+Tproc=ModelInput.Tproc;
+Mat=ModelInput.Model;
+Q=ModelInput.Q;
+T_init=ModelInput.Tinit;
+matprops=ModelInput.matprops;
+GlobalTime=ModelInput.GlobalTime;
+
 % This program uses the resistance network concept to solve for the
 % temperatures and stresses due to CTE mismatch in an electronic component
 % module
+if not(strcmpi(ModelInput.Version,'V2.0'))
+    error(['Incorrect ModelInput version.  V2.0 required, this data is ' ModelInput.Version]);
+end
 
 time_thermal = tic; %start recording time taken to do bulk of analysis
 new_method = true;
 
 
-%% Initialize variables
-Num_Lay = NL;
-Num_Row = NR;
-Num_Col = NC;
+% %% Initialize variables
+% Num_Lay = NL;
+% Num_Row = NR;
+% Num_Col = NC;
 
 
 kond = matprops(:,1)'; %Thermal conductivity of the solid
@@ -59,12 +76,15 @@ Qv=reshape(Qv,size(Q));
 Qv=reshape(Qv(Mat>0),[],1);  %pull a column vector from the i,j,k format of the first timestep
 
 %Indicator for static analysis, if steps is empty.
-if isempty(steps)
-    steps=1;
+if isempty(GlobalTime)
+    disp('Static Analysis');
+else
+    disp('Transient Analysis');
 end
 
 
-[isPCM,kondl,rhol,sphtl,Lw,Tm,PH,PH_init] = PCM_init(Mat,matprops,Num_Row,Num_Col,Num_Lay,steps);
+%[isPCM,kondl,rhol,sphtl,Lw,Tm,PH,PH_init] = PCM_init(Mat,matprops,Num_Row,Num_Col,Num_Lay,steps);
+[isPCM,kondl,rhol,sphtl,Lw,Tm,PH,PH_init] = PCM_init(Mat,matprops,length(GlobalTime));
 Lv=(rho+rhol)/2 .* Lw;  %generate volumetric latent heat of vap using average density
 %should we have a PH_init?
 
@@ -78,12 +98,12 @@ nlsub=1; % # layers that are substrate material
 % Q=zeros(NR,NC,NL); % Nodal heat generation matrix, W
 
 C=zeros(nnz(Mat>0),1); % Nodal capacitance terms for transient effects
-T=zeros(nnz(Mat>0),steps); % Temperature DOF vector
-Tres=zeros(numel(Mat),steps); % Nodal temperature results
+T=zeros(nnz(Mat>0),length(GlobalTime)); % Temperature DOF vector
+Tres=zeros(numel(Mat),length(GlobalTime)); % Nodal temperature results
 PHres=Tres;
 %Tprnt=zeros(Num_Row,Num_Col,Num_Lay); % Nodal temperature results realigned to match mesh layout
-Stress=zeros(Num_Row,Num_Col,Num_Lay); % Nodal thermal stress results
-Strprnt=zeros(Num_Row,Num_Col,Num_Lay); % Nodal stress results realigned to match mesh layout
+Stress=zeros(size(Mat)); % Nodal thermal stress results
+Strprnt=zeros(size(Mat)); % Nodal stress results realigned to match mesh layout
 
 if new_method
     hint=[];
@@ -100,7 +120,8 @@ else
     [A,B] = Resistance_Network(Num_Row,Num_Col,Num_Lay,A,B,Ta,Mat,h,K,dx,dy,dz);
 end
 
-if steps > 1
+if not(isempty(GlobalTime))
+    delta_t=GlobalTime(2:end)-GlobalTime(1:end-1);
     % Calculate the capacitance term associated with each node and adjust the 
     % A matrix (implicit end - future) and C vector (explicit - present) to include the transient effects
     [Cap,vol]=mass(dx,dy,dz,RHO,CP,Mat); %units of J/K
@@ -108,16 +129,25 @@ if steps > 1
     Atrans=-spdiags(Cap,0,size(A,1),size(A,2))./delta_t(1);  %Save Transient term for the diagonal of A matrix, units W/K
     C=-Cap./delta_t(1).*T_init; %units of watts
 else
+    delta_t=NaN;
     Atrans=spalloc(size(A,1),size(A,2),0); %allocate Atrans as zero
+    GlobalTime=[0 NaN];
     %C is zero from init
 end
 % Form loop over the number of time steps desired
 
-for it=1:steps
+%Globaltime is to single time step from 0 to NaN if static analysis is needed
+%delta_t is based off of GlobalTime for transient analysis and set to NaN
+%   for static analysis.  
+%For time step "it" that corresponds to t=GlobalTime(it).  The preceding 
+%   delta time is delta_t(it-1).  So, the delta_t leading up to time step
+%   5 [GlobalTime(5)] is delta_t(4)
+
+for it=2:length(GlobalTime)
     
     T(:,it)=(A+Atrans)\(-B*Ta(fullheader)'+Qv+C);  %T is temps at the end of the it'th step, C holds info about temps prior to it'th step
 
-    if any(isPCM(Mat(Mat~=0))) && steps > 1 %melting disabled for static analyses
+    if any(isPCM(Mat(Mat~=0))) && not(isnan(GlobalTime(2))) %melting disabled for static analyses
         if it==1  %use PH_init
             [T(:,it),PH(:,it),changing,K,CP,RHO]=vec_Phase_Change(T(:,it),PH_init,Mat,newMap,kond,kondl,spht,sphtl,rho,rhol,Tm,Lv,K,CP,RHO);
         else      %use PH of previous step
@@ -125,7 +155,7 @@ for it=1:steps
         end
     end
 
-    if steps > 1 && it~=steps  %Do we have timesteps to undertake?
+    if not(isnan(GlobalTime(2))) && it~=length(GlobalTime)  %Do we have timesteps to undertake?
         
        if exist('changing','var') && any(changing)  %Have material properties changed?
             touched=find((abs(A)*changing)>0);  %find not only those elements changing, but those touched by changing elements
@@ -144,8 +174,8 @@ for it=1:steps
         end
         
         
-        Atrans=-spdiags(Cap,0,size(A,1),size(A,2))./delta_t(1);  %Save Transient term for the diagonal of A matrix, units W/K
-        C=-Cap./delta_t(1).*T(:,it); %units of watts
+        Atrans=-spdiags(Cap,0,size(A,1),size(A,2))./delta_t(it-1);  %Save Transient term for the diagonal of A matrix, units W/K
+        C=-Cap./delta_t(it-1).*T(:,it); %units of watts
     end
     
     %Time history of A and B are not being stored, instead overwritten
@@ -154,8 +184,8 @@ end
 Tres(Mat>0,:)=T;
 PHres(Mat>0,:)=PH;
 
-Tres=reshape(Tres,[size(Mat) steps]);
-PHres=reshape(PHres,[size(Mat) steps]);
+Tres=reshape(Tres,[size(Mat) length(GlobalTime)]);
+PHres=reshape(PHres,[size(Mat) length(GlobalTime)]);
 
 
 %{
