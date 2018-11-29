@@ -148,7 +148,7 @@ function addfeature_Callback(hObject, eventdata, handles)
     QData=getappdata(gcf,TableDataName);
     QData{length(x(:,1))}=[];
     
-    INCLUDELOGICFORTABLES
+    %INCLUDELOGICFORTABLES
     set(handles.features,'Data',x)
     setappdata(gcf,TableDataName,QData);
 
@@ -593,6 +593,7 @@ else
         Qtype=lower(Qtype(1:5));
         switch Qtype
             case 'scala'
+                QValue=str2double(QValue);
                 if QValue==0
                     Features(count).Q = 0;
                 else

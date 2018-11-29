@@ -15,7 +15,6 @@ Ta=ModelInput.Ta;
 dx=ModelInput.X;
 dy=ModelInput.Y;
 dz=ModelInput.Z;
-Tproc=ModelInput.Tproc;
 Mat=ModelInput.Model;
 Q=ModelInput.Q;
 T_init=ModelInput.Tinit;
@@ -169,7 +168,7 @@ ModelInput.A_areas=A_areas;
 ModelInput.B_areas=B_areas;
 ModelInput.A_hLengths=A_hLengths;
 ModelInput.B_hLengths=B_hLengths;
-ModelInput.Map=newMap;
+ModelInput.Map=newMap;  %The rows of A correspond to elements enumerated by Mat(Map)
 
 thermal_elapsed = toc(time_thermal);
 
