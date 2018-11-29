@@ -242,7 +242,11 @@ for Fi=1:length(Features)
      end
 
 
-     if not(isempty(ThisQ)) 
+     if not(isempty(ThisQ))
+         InX=GetInXYZ(Features(Fi).x, X);
+         InY=GetInXYZ(Features(Fi).y, Y);
+         InZ=GetInXYZ(Features(Fi).z, Z);
+         
          for Xi=InX
              for Yi=InY
                  for Zi=InZ

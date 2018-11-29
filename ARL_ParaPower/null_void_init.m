@@ -1,4 +1,4 @@
-function [A,B,Map,header,Mat]=null_void_init(Mat,hint,A,B,varargin)
+function [A,B,Map,fullheader,Ta_vec]=null_void_init(Mat,h,hint,A,B,Map,Ta,Ta_void)
 % Modifies connectivity maps to account for internal voids and null
 % materials.  The returned index Map is updated from optional 4th arg or
 % from default constructed via Mat.
@@ -6,13 +6,8 @@ function [A,B,Map,header,Mat]=null_void_init(Mat,hint,A,B,varargin)
 %  explicitly zero conductances.  Row/Col of nulled materials deleted, void
 %  connections reordered to become part of B.
 
-if nargin==5
-    Map=reshape(varargin{1},[],1);
-elseif nargin==4
-    Map=(1:numel(Mat))';
-else
-    error('Wrong number of arguments!')
-end
+Map=reshape(Map,[],1);
+
 
 %{
 Aold=A;
@@ -103,5 +98,9 @@ if any(Mat(:)==0)  %Handle any null materials and reconfigure
     Map=Map(remap);     %consolidate Map and Mat
     Mat=Mat(remap);
 end
+
+fullheader=[header find(h)]; %fullheader is a rowvector of negative matnums and a subset of 1 thru 6
+Ta_vec=Ta_void(-(header)); 
+Ta_vec=[Ta_vec Ta(h~=0)];  %grab just those Ta corresponding to the active ext boundaries
 
 end
