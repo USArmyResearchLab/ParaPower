@@ -148,7 +148,6 @@ function addfeature_Callback(hObject, eventdata, handles)
     QData=getappdata(gcf,TableDataName);
     QData{length(x(:,1))}=[];
     
-    INCLUDELOGICFORTABLES
     set(handles.features,'Data',x)
     setappdata(gcf,TableDataName,QData);
 
@@ -596,7 +595,7 @@ else
                 if QValue==0
                     Features(count).Q = 0;
                 else
-                    Features(count).Q = QValue;
+                    Features(count).Q = num2double(QValue);
                 end
             case 'table'
                 Table=QData{count};
