@@ -136,6 +136,9 @@ Params.Tsteps=floor(Params.Tsteps);
 ModelMatrix=zeros(length(X)-1,length(Y)-1,length(Z)-1);
 %Q=zeros([size(ModelMatrix) Params.Tsteps]);
 S=size(ModelMatrix);
+if length(S)<3
+    error(['Model cannot be planar. It must have a minimum of 2 elements in each direction.'])
+end
 Q{S(1),S(2),S(3)}=[];
 %Q=zeros([size(ModelMatrix) Params.Tsteps]);
 
@@ -234,14 +237,20 @@ for Fi=1:length(Features)
             ThisQ=@(t)(-1)*Features(Fi).Q;
          end
      elseif ischar(Features(Fi).Q)
-         ThisQ=@(t)eval(Features(Fi).Q);
+         ThisQ=@(t)eval(Features(Fi).Q)*(-1);
+         try
+             ThisQ(0);
+         catch ErrTrap
+             error(['"' Features(Fi).Q '" is not a valid function.'])
+         end
      elseif isempty(Features(Fi).Q)
          ThisQ=[];
-     else
+     elseif length(Features(Fi).Q(1,:))==2
          ThisQ=@(t)(-1)*interp1(Features(Fi).Q(:,1),Features(Fi).Q(:,2),t);
-         GlobalTime=[GlobalTime Features(Fi).Q(:,1)];
+         GlobalTime=[GlobalTime Features(Fi).Q(:,1)'];
+     else
+         error(['Unknown form of Q for feature ' num2str(Fi)])
      end
-
 
      if not(isempty(ThisQ))
          InX=GetInXYZ(Features(Fi).x, X);
@@ -279,8 +288,8 @@ else
 end
 ModelMatrix(isnan(ModelMatrix))=MatNum;
 
-[NR, NC, NL]=size(ModelMatrix);
-GlobalTime = uniquetol(GlobalTime, eps(max(GlobalTime)));
+%[NR, NC, NL]=size(ModelMatrix);
+GlobalTime = uniquetol(GlobalTime, 10*eps(max(GlobalTime)));
 
 ModelInput.h=h;
 ModelInput.Ta=Ta;

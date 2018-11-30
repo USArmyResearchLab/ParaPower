@@ -83,6 +83,7 @@ set(handles.pushbutton18,'enable','off')
 axes(handles.PPLogo)
 imshow('ARLlogoParaPower.png')
 text(0,0,['Version ' ARLParaPowerVersion],'vertical','bott')
+setappdata(gcf,'Version',ARLParaPowerVersion)
 set(handles.GeometryVisualization,'visi','off');
 ClearGUI_Callback(handles.ClearGUI, eventdata, handles)
 
@@ -210,17 +211,24 @@ function savebutton_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
+    Initialize_Callback(hObject, eventdata, handles)
+    TestCaseModel = getappdata(gcf,'TestCaseModel');
     oldpathname=get(handles.loadbutton,'userdata');
-    [fname,pathname] = uiputfile ([oldpathname '*.mat']);
-    if fname ~= 0
-        Initialize_Callback(hObject, eventdata, handles)
-        set(handles.loadbutton,'userdata',pathname);
-        AddStatusLine(['Savinging "' pathname fname '".']);
-        TestCaseModel = getappdata(gcf,'TestCaseModel');
-        %save([pathname fname], '-struct' , 'TestCaseModel')
-        %Remove saving as struct, just save TestCaseModel as a whole
-        %variable itself
+    if isnumeric(oldpathname)
+        oldpathname='';
+    end
+    if isempty(TestCaseModel)
+        AddStatusLine('Error.',true)
+        AddStatusLine('Complete model cannot be saved due to errors. GUI state saved instead.')
+        [fname,pathname] = uiputfile ([oldpathname '*.guistate']);
+        hgsave(gcf,[pathname fname])
+    else
+        [fname,pathname] = uiputfile ([oldpathname '*.mat']);
+        AddStatusLine(['Saving "' pathname fname '".']);
         save([pathname fname],'TestCaseModel')  
+    end
+    if fname ~= 0
+        set(handles.loadbutton,'userdata',pathname);
         CurTitle=get(handles.figure1,'name');
         Colon=strfind(CurTitle,':');
         if not(isempty(Colon))
@@ -231,7 +239,6 @@ function savebutton_Callback(hObject, eventdata, handles)
     end
 
 
-
 % --- Executes on button press in loadbutton.
 function loadbutton_Callback(hObject, eventdata, handles)
 % hObject    handle to loadbutton (see GCBO)
@@ -239,113 +246,137 @@ function loadbutton_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
     oldpathname=get(hObject,'userdata');
-    [filename,pathname] = uigetfile([oldpathname '*.mat']);
-    if filename~=0
-        AddStatusLine(['Loading "' pathname filename '".']);
-        CurTitle=get(handles.figure1,'name');
-        Colon=strfind(CurTitle,':');
-        if not(isempty(Colon))
-            CurTitle(Colon:end)='';
-        end
-        CurTitle=[CurTitle ': ' filename];
-        set(handles.figure1,'name',CurTitle);
-        set(hObject,'userdata',pathname);
-%        TestCaseModel = uiimport([pathname filename]);
-        %Changing from data saved as fields to saved as a structured variable
-        
-        load([pathname filename]);
-        if not(exist('TestCaseModel','var'))
-            warning(sprintf('"%s" saved in old format.  File will be loaded anyway with no user action necessary. File will be saved in new format by default.',[pathname filename]))
-            TestCaseModel.ExternalConditions=ExternalConditions;
-            TestCaseModel.Features=Features;
-            TestCaseModel.Params=Params;
-            TestCaseModel.PottingMaterial=PottingMaterial;
-        end
-        OldVersion=false;
-        if isfield(TestCaseModel,'Version')
-           if not(strcmpi(TestCaseModel.Version,'V2.0') )
-               OldVersion=true
-           end
-        else
-            TestCaseModel.Version='';
-            OldVersion=true;
-        end
-        
-        if OldVersion
-            AddStatusLine('Attempting to load data from previous version, profile may be corrupted.')
-        end
-             
-        setappdata(gcf,'TestCaseModel',TestCaseModel)
-        ExternalConditions=TestCaseModel.ExternalConditions;
-        Features=TestCaseModel.Features;
-        Params=TestCaseModel.Params;
-        PottingMaterial=TestCaseModel.PottingMaterial;
-
-        %%% Set the External Conditions into the table 
-        tabledata = get(handles.ExtCondTable,'data');
-
-       tabledata(1,1) =  mat2cell(ExternalConditions.h_Left,1,1);
-       tabledata(1,2) =  mat2cell(ExternalConditions.h_Right,1,1);
-       tabledata(1,3) =  mat2cell(ExternalConditions.h_Front,1,1);
-       tabledata(1,4) =  mat2cell(ExternalConditions.h_Back,1,1);
-       tabledata(1,5) =  mat2cell(ExternalConditions.h_Top,1,1);
-       tabledata(1,6) =  mat2cell(ExternalConditions.h_Bottom,1,1);
-
-       tabledata(2,1) =  mat2cell(ExternalConditions.Ta_Left,1,1);
-       tabledata(2,2) =  mat2cell(ExternalConditions.Ta_Right,1,1);
-       tabledata(2,3) =  mat2cell(ExternalConditions.Ta_Front,1,1);
-       tabledata(2,4) =  mat2cell(ExternalConditions.Ta_Back,1,1);
-       tabledata(2,5) =  mat2cell(ExternalConditions.Ta_Top,1,1);
-       tabledata(2,6) =  mat2cell(ExternalConditions.Ta_Bottom,1,1);
-
-       set(handles.ExtCondTable,'Data',tabledata)
-
-
-       %%%%Set the features into the table
-       %tabledata = get(handles.features,'data');  %No need to load data
-       %that won't be used.
-       tabledata = {};
-       [m n] = size(Features); 
-       QData={};
-
-       for count = 1: n 
-            %FEATURESTABLE
-           tabledata(count,1)  = {false};
-           tabledata(count,2)  = mat2cell(Features(count).x(1),1,1);
-           tabledata(count,3)  = mat2cell(Features(count).y(1),1,1);
-           tabledata(count,4)  = mat2cell(Features(count).z(1),1,1);
-           tabledata(count,5)  = mat2cell(Features(count).x(2),1,1);
-           tabledata(count,6)  = mat2cell(Features(count).y(2),1,1);
-           tabledata(count,7)  = mat2cell(Features(count).z(2),1,1);
-           tabledata(count,8)  = cellstr(Features(count).Matl);
-           if ischar(Features(count).Q)
-                tabledata(count,9)  = {'Function(t)'};
-                tabledata(count,10) = mat2cell(Features(count).Q,1,1);
-           elseif isscalar(Features(count).Q)
-                tabledata(count,9)  = {'Scalar'};
-                tabledata(count,10) = mat2cell(Features(count).Q,1,1);
-           elseif isnumeric(Features(count).Q) && length(Features(count).Q(1,:))==2
-                tabledata(count,9)  = {'Table'};
-                tabledata(count,10) = {TableShowDataText};
-                QData{count}=Features(count).Q;
-           end
-           tabledata(count,11) = mat2cell(Features(count).dx,1,1);
-           tabledata(count,12) = mat2cell(Features(count).dz,1,1);
-       end 
-
-       set(handles.features,'Data',tabledata)
-       if length(QData) < n
-           QData{n}=[];
-       end
-       setappdata(gcf,TableDataName, QData)
-
-       %%%Set Parameters
-       set(handles.Tinit,'String', Params.Tinit)
-       set(handles.TimeStep,'String',Params.DeltaT)
-       set(handles.NumTimeSteps,'String',Params.Tsteps)
-       set(handles.Tprocess,'String',ExternalConditions.Tproc)
+    if isnumeric(oldpathname)
+        oldpathname='';
     end
-    Initialize_Callback(hObject, eventdata, handles, true)
+    [filename, pathname]= uigetfile({'*.mat' 'Models'; '*.guistate' 'GUI State'; '*.*' 'All Files'},'',oldpathname);
+    %[filename,pathname] = uigetfile([oldpathname '*.mat']);
+    CurTitle=get(handles.figure1,'name');
+    Colon=strfind(CurTitle,':');
+    if not(isempty(Colon))
+        CurTitle(Colon:end)='';
+    end
+    CurTitle=[CurTitle ': ' filename];
+    if filename~=0
+        set(gcf,'name',CurTitle);
+        set(hObject,'userdata',pathname);
+        try %Load file not knowing if it's a guistate or model. If it's not a GUI state it will kick out an error and be trapped.
+            F_Old=gcf;
+            OldVersion=getappdata(gcf,'Version');
+            Fnew=hgload([pathname filename]);
+            NewVersion=getappdata(Fnew,'Version');
+            if not(strcmpi(OldVersion,NewVersion))
+                AddStatusLine(['GUISTATE from "' pathname filename '" is version ' NewVersion '.']);
+                AddStatusLine(['Current GUI is version ' OldVersion ' thus file not loaded.' ]);
+                delete(Fnew)
+            else
+                delete(F_Old);
+                drawnow
+                AddStatusLine(['Loading GUISTATE from "' pathname filename '".']);
+                set(gcf,'name',CurTitle);
+            end
+        catch
+            load ([pathname filename]);
+%        end
+%        if not(strncmpi('etatsiug.',filename(end:-1:1),8)) %If filename is not .guistate, then load model into the GUI
+            AddStatusLine(['Loading model"' pathname filename '".']);
+    %        TestCaseModel = uiimport([pathname filename]);
+            %Changing from data saved as fields to saved as a structured variable
+
+            load([pathname filename]);
+            if not(exist('TestCaseModel','var'))
+                warning(sprintf('"%s" saved in old format.  File will be loaded anyway with no user action necessary. File will be saved in new format by default.',[pathname filename]))
+                TestCaseModel.ExternalConditions=ExternalConditions;
+                TestCaseModel.Features=Features;
+                TestCaseModel.Params=Params;
+                TestCaseModel.PottingMaterial=PottingMaterial;
+            end
+            OldVersion=false;
+            if isfield(TestCaseModel,'Version')
+               if not(strcmpi(TestCaseModel.Version,'V2.0') )
+                   OldVersion=true
+               end
+            else
+                TestCaseModel.Version='';
+                OldVersion=true;
+            end
+
+            if OldVersion
+                AddStatusLine('Attempting to load data from previous version, profile may be corrupted.')
+            end
+
+            setappdata(gcf,'TestCaseModel',TestCaseModel)
+            ExternalConditions=TestCaseModel.ExternalConditions;
+            Features=TestCaseModel.Features;
+            Params=TestCaseModel.Params;
+            PottingMaterial=TestCaseModel.PottingMaterial;
+
+            %%% Set the External Conditions into the table 
+            tabledata = get(handles.ExtCondTable,'data');
+
+           tabledata(1,1) =  mat2cell(ExternalConditions.h_Left,1,1);
+           tabledata(1,2) =  mat2cell(ExternalConditions.h_Right,1,1);
+           tabledata(1,3) =  mat2cell(ExternalConditions.h_Front,1,1);
+           tabledata(1,4) =  mat2cell(ExternalConditions.h_Back,1,1);
+           tabledata(1,5) =  mat2cell(ExternalConditions.h_Top,1,1);
+           tabledata(1,6) =  mat2cell(ExternalConditions.h_Bottom,1,1);
+
+           tabledata(2,1) =  mat2cell(ExternalConditions.Ta_Left,1,1);
+           tabledata(2,2) =  mat2cell(ExternalConditions.Ta_Right,1,1);
+           tabledata(2,3) =  mat2cell(ExternalConditions.Ta_Front,1,1);
+           tabledata(2,4) =  mat2cell(ExternalConditions.Ta_Back,1,1);
+           tabledata(2,5) =  mat2cell(ExternalConditions.Ta_Top,1,1);
+           tabledata(2,6) =  mat2cell(ExternalConditions.Ta_Bottom,1,1);
+
+           set(handles.ExtCondTable,'Data',tabledata)
+
+
+           %%%%Set the features into the table
+           %tabledata = get(handles.features,'data');  %No need to load data
+           %that won't be used.
+           tabledata = {};
+           [m n] = size(Features); 
+           QData={};
+
+           for count = 1: n 
+                %FEATURESTABLE
+               tabledata(count,1)  = {false};
+               tabledata(count,2)  = mat2cell(Features(count).x(1),1,1);
+               tabledata(count,3)  = mat2cell(Features(count).y(1),1,1);
+               tabledata(count,4)  = mat2cell(Features(count).z(1),1,1);
+               tabledata(count,5)  = mat2cell(Features(count).x(2),1,1);
+               tabledata(count,6)  = mat2cell(Features(count).y(2),1,1);
+               tabledata(count,7)  = mat2cell(Features(count).z(2),1,1);
+               tabledata(count,8)  = cellstr(Features(count).Matl);
+               if ischar(Features(count).Q)
+                    tabledata(count,9)  = {'Function(t)'};
+                    tabledata(count,10) = mat2cell(Features(count).Q,1,1);
+               elseif isscalar(Features(count).Q)
+                    tabledata(count,9)  = {'Scalar'};
+                    tabledata(count,10) = mat2cell(Features(count).Q,1,1);
+               elseif isnumeric(Features(count).Q) && length(Features(count).Q(1,:))==2
+                    tabledata(count,9)  = {'Table'};
+                    tabledata(count,10) = {TableShowDataText};
+                    QData{count}=Features(count).Q;
+               end
+               tabledata(count,11) = mat2cell(Features(count).dx,1,1);
+               tabledata(count,12) = mat2cell(Features(count).dz,1,1);
+           end 
+
+           set(handles.features,'Data',tabledata)
+           if length(QData) < n
+               QData{n}=[];
+           end
+           setappdata(gcf,TableDataName, QData)
+
+           %%%Set Parameters
+           set(handles.Tinit,'String', Params.Tinit)
+           set(handles.TimeStep,'String',Params.DeltaT)
+           set(handles.NumTimeSteps,'String',Params.Tsteps)
+           set(handles.Tprocess,'String',ExternalConditions.Tproc)
+           Initialize_Callback(hObject, eventdata, handles, true)
+        end
+    end
     
     
 
@@ -485,6 +516,10 @@ end
 KillInit=0;
 AddStatusLine('Initializing...')
 clear Features ExternalConditions Params PottingMaterial Descr
+
+setappdata(gcf,'TestCaseModel',[]);
+setappdata(gcf,'MI',[]);
+
 Features.x=[]; Features.y=[]; Features.z=[]; Features.Matl=[]; Features.Q=[]; Features.Matl=''; 
 Features.dz=0; Features.dy=0; Features.dz=0;
 
@@ -528,10 +563,16 @@ end
     Params.DeltaT=str2num(get(handles.TimeStep,'String')); %Time Step Size
     if get(handles.Static,'value')==1
         Params.Tsteps=[]; %Number of time steps
-        MaxTime = 0;
+        FindEps = 0;
     elseif get(handles.transient,'value')==1
         Params.Tsteps=str2num(get(handles.NumTimeSteps,'String')); %Number of time steps
-        MaxTime = Params.Tsteps * Params.DeltaT;
+        FindEps = Params.Tsteps * Params.DeltaT;
+        if FindEps==0
+            AddStatusLine('Error.',true);
+            AddStatusLine('End time is 0.  Redefine time step or run as a static analysis.');
+            return
+        end
+        MaxTime=Params.Tsteps * Params.DeltaT;
     end
     PottingMaterial  = 0;  %Material that surrounds features in each layer as defined by text strings in matlibfun. 
                        %If Material is 0, then the space is empty and not filled by any material.
@@ -590,32 +631,36 @@ else
         QValue=FeaturesMatrix{count, QValueCol-1};
         Qtype=FeaturesMatrix{count, QTypeCol-1};
         Qtype=lower(Qtype(1:5));
+        FindEps=0;
+        for I=1:length(QData)
+            FindEps=max([FindEps; QData{I}(:)]);
+        end
         switch Qtype
             case 'scala'
                 QValue=str2double(QValue);
                 if QValue==0
                     Features(count).Q = 0;
                 else
-                    Features(count).Q = num2double(QValue);
+                    Features(count).Q = QValue;
                 end
             case 'table'
                 Table=QData{count};
-                MakeUnique=eps(MaxTime)*2; %Use a value of 3 * epsilon to add to the time steps
+                MakeUnique=eps(FindEps)*2; %Use a value of 3 * epsilon to add to the time steps
                 DeltaT=Table(2:end,1)-Table(1:end-1,1);
-                if min(DeltaT) < eps(MaxTime)*3
+                if min(DeltaT(DeltaT~=0)) < eps(FindEps)*9
                     AddStatusLine(['Smallest Delta T must be greater than 3*epsilon (machine precision for MaxTime) for feature ' num2str(count)]);
                     KillInit=1;
                 else
-                    DupTime=(Table(2:end,1)-Table(1:end-1)==0)*eps(MaxTime)*2;
-                    DupTime=[0 DupTime];
+                    DupTime=(Table(2:end,1)-Table(1:end-1,1)==0)*eps(FindEps)*10;
+                    DupTime=[0; DupTime];
                     Table(:,1)=Table(:,1)+DupTime;
                     if min(Table(2:end,1)-Table(1:end-1,1)) <= 0
                         AddStatusLine(['Time must be increasing.  It is not for feature ' num2str(count)]);
                         KillInit=1;
                     end
-                    if max(Table(:,1)<MaxTime)
+                    if max(Table(:,1))<MaxTime
                         Table(end+1,:)=[MaxTime Table(end,2)];
-                        AddStatusLine(['Feature ' num2str(count) ' time extended to maxtime with a flat line.'])
+                        AddStatusLine(['Feature ' num2str(count) ' time extended to ' num2str(MaxTime) 's with a flat line from last value.'])
                     end
                     if min(Table(:,1))>0
                         Table=[0 0; Table(1,1)-2*eps(MaxTime) 0; Table];
@@ -628,6 +673,14 @@ else
                 if isempty(QValue)
                     Features(count).Q=0;
                 else
+                    try
+                        TestQ=@(t)eval(QValue)*(-1);
+                        TestQ(0);
+                    catch ErrTrap
+                        AddStatusLine('Error.', true);
+                        AddStatusLine(['For feature ' num2str(count) ' "' QValue '" is not a valid function for Q.'])
+                        return
+                    end
                     Features(count).Q = QValue;
                 end
             otherwise
@@ -710,6 +763,7 @@ function ClearGUI_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 %Clear figure in GUI
+AddStatusLine('CLEARSTATUS');
 AddStatusLine('Clearing GUI...')
 axes(handles.GeometryVisualization)
 cla reset;
@@ -740,8 +794,8 @@ set(handles.ExtCondTable, 'Data', [T T T T T T; T T T T T T]);
 zero = num2str(0);
 one = num2str(1);
 set(handles.Tinit,'String',zero);
-set(handles.TimeStep,'String',zero); 
-set(handles.NumTimeSteps,'String',one);
+set(handles.TimeStep,'String',num2str(0.1)); 
+set(handles.NumTimeSteps,'String',num2str(10));
 set(handles.Tprocess,'String',zero);
 set(handles.GeometryVisualization,'visi','off')
 
@@ -959,17 +1013,14 @@ function AddStatusLine(textline,AddToLastLine)
                 NewText=textline;
             else
                 if AddToLastLine
-    %                NewText=str2mat(OldText(1:end-1,:), [strtrim(OldText(end,:)) textline]);
-    %                NewText=str2mat(OldText(2:end,:), [strtrim(OldText(1,:)), textline] );
                     NewText=[OldText(1:end-1); [strtrim(OldText{end}), textline] ];
                 else
-                    %OldLines=length(OldText(:,1));
-                    %OldText=OldText(max([1 OldLines-Lines+1]):end,:);
-    %                NewText=str2mat(OldText,textline);
                     NewText=[OldText; textline];
                 end
             end
-
+            if strcmpi(NewText,'CLEARSTATUS')
+                NewText='';
+            end
             if ischar(NewText)
                 NewText={NewText};
             end
