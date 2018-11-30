@@ -18,7 +18,6 @@ dz=ModelInput.Z;
 Mat=ModelInput.Model;
 Q=ModelInput.Q;
 T_init=ModelInput.Tinit;
-matprops=ModelInput.matprops;
 GlobalTime=ModelInput.GlobalTime;
 
 hint=[];
@@ -33,12 +32,9 @@ end
 
 time_thermal = tic; %start recording time taken to do bulk of analysis
 
-kond = matprops(:,1)'; %Thermal conductivity of the solid
-cte = matprops(:,2)'; %Coeficient of Thermal Expansion
-E = matprops(:,3)'; %Young's Modulus
-nu = matprops(:,4)'; %poissons ratio
-rho = matprops(:,5)'; %density of the solid state
-spht = matprops(:,6)'; %solid specific heat
+kond = ModelInput.Matlib.kond; %Thermal conductivity of the solid
+rho = ModelInput.Matlib.rho; %density of the solid state
+spht = ModelInput.Matlib.spht; %solid specific heat
 
 K = zeros(size(Mat));
 K = reshape(K,[],1);
@@ -56,7 +52,7 @@ RHO(Mat ~=0) = rho(Mat(Mat~=0));
 % RHO = rho(reshape(Mat,[],1))'; %effective density vector. Updatable with time
 
 %convert Q from function handle form to value at single time of Qtime
-Qtime=0; %Evaluate Q at time=0
+Qtime=zeros(length(Q(:)),1); %Evaluate Q at time=0
 for i=1:length(Q(:))
     if isempty(Q{i})
         Qv(i)=0;
@@ -84,7 +80,7 @@ Tres=zeros(numel(Mat),length(GlobalTime)); % Nodal temperature results
 
 PHres=Tres;
 %[isPCM,kondl,rhol,sphtl,Lw,Tm,PH,PH_init] = PCM_init(Mat,matprops,Num_Row,Num_Col,Num_Lay,steps);
-[isPCM,kondl,rhol,sphtl,Lw,Tm,PH,PH_init] = PCM_init(Mat,matprops,length(GlobalTime));
+[kondl,rhol,sphtl,Lw,Tm,PH,PH_init] = PCM_init(ModelInput);
 PH(:,1)=PH_init;
 Lv=(rho+rhol)/2 .* Lw;  %generate volumetric latent heat of vap using average density
 %should we have a PH_init?
@@ -129,7 +125,7 @@ for it=2:length(GlobalTime)
     
     T(:,it)=(A+Atrans)\(-B*Ta_vec'+Qv+C);  %T is temps at the end of the it'th step, C holds info about temps prior to it'th step
 
-    if any(isPCM(Mat(Mat~=0))) && not(isnan(GlobalTime(2))) %melting disabled for static analyses
+    if any(MATTYPE) && not(isnan(GlobalTime(2))) %melting disabled for static analyses
         [T(:,it),PH(:,it),changing,K,CP,RHO]=vec_Phase_Change(T(:,it),PH(:,it-1),Mat,newMap,kond,kondl,spht,sphtl,rho,rhol,Tm,Lv,K,CP,RHO);
     end
 
