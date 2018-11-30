@@ -14,6 +14,7 @@ drawnow
 
 MatF=MaterialDatabase('nonmodal');
 Mats=getappdata(MatF,'Materials');
+
 close(MatF)
      
 for Icase=1:length(testcasefiles)

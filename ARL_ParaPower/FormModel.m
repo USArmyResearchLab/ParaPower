@@ -180,12 +180,12 @@ for Fii=1:length(NonZeroThickness)
     Features(Fi).TotalArea=NaN;
   
     %Define Material for the feature
-    MatNum=find(strcmpi(MatLib.AllMatsList,Features(Fi).Matl));
+    MatNum=find(strcmpi(MatLib.Material,Features(Fi).Matl));
     if isempty(MatNum)
         fprintf('Material %s not found in database. Check spelling\n',Features(Fi).Matl)
         MatNum=nan;
-    else
-        MatNum=MatLib.AllMatsNum(MatNum);
+   % else
+   %     MatNum=MatLib.Material(MatNum);
     end
     ModelMatrix(InX, InY, InZ)=MatNum;
 end
@@ -214,12 +214,12 @@ for Fii=1:length(ZeroThickness)
         ModelMatrix(:,:,InZ)=ModelMatrix(:,:,UseLayer);
     end
     %Define Material for the feature
-    MatNum=find(strcmpi(MatLib.AllMatsList,Features(Fi).Matl));
+    MatNum=find(strcmpi(MatLib.Material,Features(Fi).Matl));
     if isempty(MatNum)
         fprintf('Material %s not found in database. Check spelling\n',Features(Fi).Matl)
         MatNum=nan;
-    else
-        MatNum=MatLib.AllMatsNum(MatNum);
+   % else
+   %     MatNum=MatLib.AllMatsNum(MatNum);
     end
     ModelMatrix(InX, InY, InZ)=MatNum;
 end
@@ -302,8 +302,8 @@ ModelInput.Q=Q;
 ModelInput.GlobalTime=GlobalTime;
 ModelInput.Tinit=Params.Tinit;
 ModelInput.MatLib=MatLib;
-ModelInput.matprops=MatLib.matprops;
-ModelInput.matlist=MatLib.matlist;
+%ModelInput.matprops=MatLib.matprops;
+%ModelInput.matlist=MatLib.matlist;
 ModelInput.Version='V2.0';
 
 return
