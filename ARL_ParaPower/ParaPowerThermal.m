@@ -7,7 +7,7 @@
 %stresses from processing temperatures have not been implemented for all
 %materials
         
-function [Tres,Stress,PHres] = ParaPowerThermal(ModelInput)
+function [Tres,ModelInput,PHres] = ParaPowerThermal(ModelInput)
 
 
 h=ModelInput.h;
@@ -15,12 +15,14 @@ Ta=ModelInput.Ta;
 dx=ModelInput.X;
 dy=ModelInput.Y;
 dz=ModelInput.Z;
-Tproc=ModelInput.Tproc;
 Mat=ModelInput.Model;
 Q=ModelInput.Q;
 T_init=ModelInput.Tinit;
 matprops=ModelInput.matprops;
 GlobalTime=ModelInput.GlobalTime;
+
+hint=[];
+Ta_void=[];
 
 % This program uses the resistance network concept to solve for the
 % temperatures and stresses due to CTE mismatch in an electronic component
@@ -30,14 +32,6 @@ if not(strcmpi(ModelInput.Version,'V2.0'))
 end
 
 time_thermal = tic; %start recording time taken to do bulk of analysis
-new_method = true;
-
-
-% %% Initialize variables
-% Num_Lay = NL;
-% Num_Row = NR;
-% Num_Col = NC;
-
 
 kond = matprops(:,1)'; %Thermal conductivity of the solid
 cte = matprops(:,2)'; %Coeficient of Thermal Expansion
@@ -82,43 +76,31 @@ else
     disp('Transient Analysis');
 end
 
+C=zeros(nnz(Mat>0),1); % Nodal capacitance terms for transient effects
+T=zeros(nnz(Mat>0),length(GlobalTime)); % Temperature DOF vector
+T(:,1)=T_init;
+Tres=zeros(numel(Mat),length(GlobalTime)); % Nodal temperature results
 
+
+PHres=Tres;
 %[isPCM,kondl,rhol,sphtl,Lw,Tm,PH,PH_init] = PCM_init(Mat,matprops,Num_Row,Num_Col,Num_Lay,steps);
 [isPCM,kondl,rhol,sphtl,Lw,Tm,PH,PH_init] = PCM_init(Mat,matprops,length(GlobalTime));
+PH(:,1)=PH_init;
 Lv=(rho+rhol)/2 .* Lw;  %generate volumetric latent heat of vap using average density
 %should we have a PH_init?
 
 
 
-nlsub=1; % # layers that are substrate material
-% Pre-load Matrices with zeros
-%A=zeros(Num_Row*Num_Col*Num_Lay,Num_Row*Num_Col*Num_Lay); % Conductance matrix in [A](T)={B}
-%Atrans=zeros(Num_Row*Num_Col*Num_Lay,Num_Row*Num_Col*Num_Lay); % diagonal matrix that will hold transient contributions
-%B=zeros(Num_Row*Num_Col*Num_Lay,1); % BC vector in [A](T)={B}
-% Q=zeros(NR,NC,NL); % Nodal heat generation matrix, W
-
-C=zeros(nnz(Mat>0),1); % Nodal capacitance terms for transient effects
-T=zeros(nnz(Mat>0),length(GlobalTime)); % Temperature DOF vector
-Tres=zeros(numel(Mat),length(GlobalTime)); % Nodal temperature results
-PHres=Tres;
-%Tprnt=zeros(Num_Row,Num_Col,Num_Lay); % Nodal temperature results realigned to match mesh layout
-Stress=zeros(size(Mat)); % Nodal thermal stress results
-Strprnt=zeros(size(Mat)); % Nodal stress results realigned to match mesh layout
-
-if new_method
-    hint=[];
-    [Acon,Bcon,Bext,Map]=Connect_Init(Mat,h);
-    [Acon,Bcon,newMap,header]=null_void_init(Mat,hint,Acon,Bcon,Map);
-    fullheader=[header find(h)];
-    [A,B,A_areas,B_areas,A_hLengths,B_hLengths,htcs] = conduct_build(Acon,Bcon,newMap,fullheader,K,hint,h,Mat,dx,dy,dz);
-    if isempty(B)
-        B=spalloc(size(C,1),size(C,2),0);
-        fullheader=[1];
-    end
-               
-else
-    [A,B] = Resistance_Network(Num_Row,Num_Col,Num_Lay,A,B,Ta,Mat,h,K,dx,dy,dz);
+[Acon,Bcon,Bext,Map]=Connect_Init(Mat,h);
+[Acon,Bcon,newMap,fullheader,Ta_vec]=null_void_init(Mat,h,hint,Acon,Bcon,Map,Ta,Ta_void);
+%fullheader=[header find(h)];  %fullheader is a rowvector of negative matnums and a subset of 1 thru 6
+[A,B,A_areas,B_areas,A_hLengths,B_hLengths,htcs] = conduct_build(Acon,Bcon,newMap,fullheader,K,hint,h,Mat,dx,dy,dz);
+if isempty(B)
+    B=spalloc(size(C,1),size(C,2),0);
+    fullheader=1;
+    Ta_vec=1;
 end
+
 
 if not(isempty(GlobalTime))
     delta_t=GlobalTime(2:end)-GlobalTime(1:end-1);
@@ -127,7 +109,7 @@ if not(isempty(GlobalTime))
     [Cap,vol]=mass(dx,dy,dz,RHO,CP,Mat); %units of J/K
     vol=reshape(vol,size(Mat));
     Atrans=-spdiags(Cap,0,size(A,1),size(A,2))./delta_t(1);  %Save Transient term for the diagonal of A matrix, units W/K
-    C=-Cap./delta_t(1).*T_init; %units of watts
+    C=-Cap./delta_t(1).*T(:,1); %units of watts
 else
     delta_t=NaN;
     Atrans=spalloc(size(A,1),size(A,2),0); %allocate Atrans as zero
@@ -145,14 +127,10 @@ end
 
 for it=2:length(GlobalTime)
     
-    T(:,it)=(A+Atrans)\(-B*Ta(fullheader)'+Qv+C);  %T is temps at the end of the it'th step, C holds info about temps prior to it'th step
+    T(:,it)=(A+Atrans)\(-B*Ta_vec'+Qv+C);  %T is temps at the end of the it'th step, C holds info about temps prior to it'th step
 
     if any(isPCM(Mat(Mat~=0))) && not(isnan(GlobalTime(2))) %melting disabled for static analyses
-        if it==1  %use PH_init
-            [T(:,it),PH(:,it),changing,K,CP,RHO]=vec_Phase_Change(T(:,it),PH_init,Mat,newMap,kond,kondl,spht,sphtl,rho,rhol,Tm,Lv,K,CP,RHO);
-        else      %use PH of previous step
-            [T(:,it),PH(:,it),changing,K,CP,RHO]=vec_Phase_Change(T(:,it),PH(:,it-1),Mat,newMap,kond,kondl,spht,sphtl,rho,rhol,Tm,Lv,K,CP,RHO);
-        end
+        [T(:,it),PH(:,it),changing,K,CP,RHO]=vec_Phase_Change(T(:,it),PH(:,it-1),Mat,newMap,kond,kondl,spht,sphtl,rho,rhol,Tm,Lv,K,CP,RHO);
     end
 
     if not(isnan(GlobalTime(2))) && it~=length(GlobalTime)  %Do we have timesteps to undertake?
@@ -167,10 +145,7 @@ for it=2:length(GlobalTime)
             %[A,B,A_areas,B_areas,A_hLengths,B_hLengths,htcs] = conduct_build(Acon,Bcon,newMap,fullheader,K,hint,h,Mat,dx,dy,dz);
             
             %update A and B
-            [Acomp,Bcomp,htcs] = conduct_update(A,B,A_areas,B_areas,A_hLengths,B_hLengths,htcs,K(Map),touched);
-            
-            %diffA=A-Acomp
-            %diffB=B-Bcomp
+            [A,B,htcs] = conduct_update(A,B,A_areas,B_areas,A_hLengths,B_hLengths,htcs,K(Map),touched);
         end
         
         
@@ -187,35 +162,14 @@ PHres(Mat>0,:)=PH;
 Tres=reshape(Tres,[size(Mat) length(GlobalTime)]);
 PHres=reshape(PHres,[size(Mat) length(GlobalTime)]);
 
-
-%{
-% Calculate thermal stress based CTE mismatch
-% Loop over all the time steps
-for it=1:steps
-    % Calculate the difference between the operating temp and the processing
-    % temp for thermal stress calc
-    delT=Tres(:,:,:,it)-Tproc;
-    % Loop over all the nodes in the model
-    for kk=1:Num_Lay
-        for ii=1:Num_Row
-            for jj=1:Num_Col
-                % Calculate the thermal stress
-                % Skip locations that have no material
-                if Mat(ii,jj,kk) == 0
-                    Stress(ii,jj,kk,it)=0;
-                elseif kk <= nlsub
-                    Stress(ii,jj,kk,it)=substrate_ex(ii,jj,kk,delT,dz,cte,E,nu,nlsub,Mat,NL);
-                else
-                    Stress(ii,jj,kk,it)=layer_ex(ii,jj,kk,delT,dz,cte,E,nu,nlsub,Mat,NL);
-                end
-                % Makes the stresses print in the same order as nodes for
-                % any partucular layer
-                Strprnt(Num_Row+1-ii,jj,kk,it)=Stress(ii,jj,kk,it);
-            end
-        end
-    end
-end
-%}
-
+ModelInput.A=A;
+ModelInput.B=B;
+ModelInput.A_areas=A_areas;
+ModelInput.B_areas=B_areas;
+ModelInput.A_hLengths=A_hLengths;
+ModelInput.B_hLengths=B_hLengths;
+ModelInput.Map=newMap;  %The rows of A correspond to elements enumerated by Mat(Map)
 
 thermal_elapsed = toc(time_thermal);
+
+end

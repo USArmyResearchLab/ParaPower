@@ -592,6 +592,7 @@ else
         Qtype=lower(Qtype(1:5));
         switch Qtype
             case 'scala'
+                QValue=str2double(QValue);
                 if QValue==0
                     Features(count).Q = 0;
                 else

@@ -142,7 +142,7 @@ Q{S(1),S(2),S(3)}=[];
 if isempty(Params.Tsteps)
     GlobalTime=[];
 else
-    GlobalTime=[0:Params.DeltaT:(Params.Tsteps-1)*Params.DeltaT];
+    GlobalTime=[0:Params.DeltaT:(Params.Tsteps)*Params.DeltaT];
 end
 
 %Get minimum values of feature coords for visualization purposes.
@@ -243,7 +243,11 @@ for Fi=1:length(Features)
      end
 
 
-     if not(isempty(ThisQ)) 
+     if not(isempty(ThisQ))
+         InX=GetInXYZ(Features(Fi).x, X);
+         InY=GetInXYZ(Features(Fi).y, Y);
+         InZ=GetInXYZ(Features(Fi).z, Z);
+         
          for Xi=InX
              for Yi=InY
                  for Zi=InZ

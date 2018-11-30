@@ -15,7 +15,7 @@ drawnow
 MatF=MaterialDatabase('nonmodal');
 Mats=getappdata(MatF,'Materials');
 close(MatF)
-
+     
 for Icase=1:length(testcasefiles)
     
     CaseName=char(testcasefiles(Icase).name);
@@ -60,7 +60,8 @@ for Icase=1:length(testcasefiles)
         else
             disp('Adding default materials from the material database to the model')
             TestCaseModel.MatLib=Mats;
-            return
+            TestCaseModel.Version='V2.0';
+            %return
         end        
         MI=FormModel(TestCaseModel);
         Visualize ('Model Input', MI, 'modelgeom','ShowQ')
@@ -68,18 +69,14 @@ for Icase=1:length(testcasefiles)
         fprintf('Analysis executing...')
 
 
-        GlobalTime=(0:MI.Tsteps-1)*MI.DeltaT;  %Since there is global time vector, construct one here.
-        [Tprnt, Stress, MeltFrac]=ParaPowerThermal(MI.NL,MI.NR,MI.NC, ...
-                                               MI.h,MI.Ta, ...
-                                               MI.X,MI.Y,MI.Z, ...
-                                               MI.Tproc, ...
-                                               MI.Model,MI.Q, ...
-                                               MI.DeltaT,MI.Tsteps,MI.Tinit,MI.matprops);
+        
+        [Tprnt, MI, MeltFrac]=ParaPowerThermal(MI);
+        
        fprintf('Complete.\n')
                                            
        figure(2);clf; pause(.001)
-       StateN=length(GlobalTime);
-       Visualize(sprintf('t=%1.2f ms, State: %i of %i',StateN*MI.DeltaT*1000, StateN,length(Tprnt(1,1,1,:))),MI ...
+       StateN=length(MI.GlobalTime);
+       Visualize(sprintf('t=%1.2f ms, State: %i of %i',MI.GlobalTime(end), StateN,length(Tprnt(1,1,1,:))),MI ...
        ,'state', Tprnt(:,:,:,StateN) ...
        ,'scaletitle', 'Temperature' ...
        )                                
