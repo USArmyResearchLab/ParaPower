@@ -22,7 +22,7 @@ function varargout = MaterialDatabase(varargin)
 
 % Edit the above text to modify the response to help MaterialDatabase
 
-% Last Modified by GUIDE v2.5 07-Nov-2018 18:40:18
+% Last Modified by GUIDE v2.5 30-Nov-2018 12:40:29
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -70,7 +70,7 @@ if NewWindow
         load(DefFname,'MatDbase')
         set(handles.MatTable,'Data',MatDbase);
         GUIColNames=get(handles.MatTable,'columnname');
-        PopulateMatLib(handles, MatDbase, GUIColNames);
+        PopulateMatLib(handles.MatTable);
         setappdata(handles.MatDbaseFigure,'ExistingFigure',true);
     else
         disp(['No default material database loaded. (' DefFname '.mat)'])
@@ -86,7 +86,6 @@ CW{1}=30;
 set(handles.MatTable,'columnwidth',CW)
 
 
-
 % --- Outputs from this function are returned to the command line.
 function varargout = MaterialDatabase_OutputFcn(hObject, eventdata, handles) 
 % varargout  cell array for returning output args (see VARARGOUT);
@@ -97,64 +96,6 @@ function varargout = MaterialDatabase_OutputFcn(hObject, eventdata, handles)
 % Get default command line output from handles structure
 varargout{1} = handles.output;
 
-function index=GetMatPropIndex(Prop)
-%Returns the index number for the specified material property\
-    Prop=strtrim(Prop);
-    Pl=length(Prop);
-    strleft=@(S,n) S(1:min(n,length(S)));
-	switch lower(Prop)
-		case strleft('cte',Pl)
-			index=2;
-		case strleft('k_s',Pl)
-			index=1;
-		case strleft('e',Pl)
-			index=3;
-		case strleft('nu',Pl)
-			index=4;
-		case strleft('dens_s',Pl)
-			index=5;
-		case strleft('cp_s',Pl)
-			index=6;
-		case strleft('pcm',Pl)
-			index=7;
-		case strleft('k_l',Pl)
-			index=8;
-		case strleft('dens_l',Pl)
-			index=9;
-		case strleft('cp_l',Pl)
-			index=10;
-		case strleft('lw',Pl)
-			index=11;
-		case strleft('tmelt',Pl)
-			index=12;
-		case strleft('color',Pl)
-			index=13;
-        case strleft('h_ibc',Pl)
-            index=1;
-        case strleft('t_ibc',Pl)
-            index=2;
-		case strleft('ibcnum',Pl)
-			index=3;
-		case strleft('matnum',Pl)
-			index=14;
-		case strleft('material',Pl)
-			index=0;
-		case strleft('pcm',Pl)
-			index=[];
-		case strleft('ibc',Pl)
-			index=[];
-		case strleft('del',Pl)
-			index=[];
-		case strleft('nummatprops',Pl)
-			index=14;  %This needs to be adjusted each time the number of properties changes
-		case strleft('numibcprops',Pl)
-			index=3;  %This needs to be adjusted each time the number of properties changes
-        otherwise
-			error(['Material property "' Prop '" not known.']);
-			index=GetMatPropIndex;
-    end
-    
-	
 % --- Executes on button press in MatClose.
 function MatClose_Callback(hObject, eventdata, handles)
 % hObject    handle to MatClose (see GCBO)
@@ -162,14 +103,13 @@ function MatClose_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 set(handles.MatDbaseFigure,'windowstyle','normal');
 MatDbase=get(handles.MatTable,'Data');
-Mats=stripmsb(MatDbase(:,2));
+Mats=strtrim(MatDbase(:,2));
 Mats=Mats(~strcmp(Mats,''));
 ErrorText={};
 strleft=@(S,n) S(1:min(n,length(S)));
 
 if length(Mats)==length(unique(upper(Mats)))
-	GUIColNames=get(handles.MatTable,'columnname');
-    PopulateMatLib(handles, MatDbase, GUIColNames);
+    PopulateMatLib(handles.MatTable);
 else
     ErrorText{end+1}='Duplicate material name.  All material names must be unique.';
 end
@@ -179,8 +119,7 @@ if length(ErrorText) > 0
     for I=1:length(ErrorText)
         TempTxt=[TempTxt char(10) ErrorText{I}];
     end
-    set(handles.ErrorMsg,'string',TempTxt)
-    set(handles.ErrorPanel,'vis','on');
+    ShowError(TempTxt)
     if handles.modal
         set(handles.MatDbaseFigure,'windowstyle','modal');
     else
@@ -192,22 +131,6 @@ else
     uiresume
 end
   
-
-function Str=stripmsb(Str)
-    if iscell(Str)
-        for I=1:length(Str)
-            Stemp=Str{I};
-            l=min(find(Stemp~=' '));
-            r=max(find(Stemp~=' '));
-            Stemp=Stemp(l:r);
-            Str{I}=Stemp;
-        end
-	else
-        l=min(find(Str~=' '));
-        r=max(find(Str~=' '));
-        Str=Str(l:r);
-    end  
-
 % --- Executes on button press in ErrorOKButton.
 function ErrorOKButton_Callback(hObject, eventdata, handles)
 % hObject    handle to ErrorOKButton (see GCBO)
@@ -237,8 +160,8 @@ function DeleteIBCButton_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 MatDbase=get(handles.MatTable,'Data');
 GUIColNames=get(handles.MatTable,'columnname');
-IsIBCCol=find(strcmpi(GUIColNames,'IBC'));
-ToRetain=find(not(cell2mat(MatDbase(:,IsIBCCol))));
+TypeCol=find(strcmpi(GUIColNames,'Type'));
+ToRetain=find(not(strcmpi(MatDbase(:,TypeCol),'IBC')));
 YES='Yes';
 Response=questdlg('Are you sure want to delete all IBCs?','Confirm',YES,'No','No');
 if strcmpi(Response,YES)
@@ -264,10 +187,11 @@ function loadbutton_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 oldpathname=get(handles.loadbutton,'userdata');
-[fname,path]=uigetfile([oldpathname '*.mat'],'Load Material Database');
+[fname,pathname]=uigetfile([oldpathname '*.mat'],'Load Material Database');
 if fname ~= 0
     set(handles.loadbutton,'userdata',pathname);
-    load([path fname],'MatDbase');  
+    load([pathname fname],'MatDbase');  
+    MatDbase=SetNaNData(MatDbase);
     set(handles.MatTable,'Data',MatDbase);
 end
 
@@ -277,11 +201,14 @@ function savebutton_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 oldpathname=get(handles.loadbutton,'userdata');
-[fname,path]=uiputfile([oldpathname '*.mat'],'Save Material Database');
+[fname,pathname]=uiputfile([oldpathname '*.mat'],'Save Material Database');
 if fname ~= 0
     set(handles.loadbutton,'userdata',pathname);
+    MatLib=PopulateMatLib(handles.MatTable);
     MatDbase=get(handles.MatTable,'Data');  
-    save([path fname],'MatDbase');
+    README={'"MatDbase" is inserted directly into the table data (internal use)'; ...
+            '"MatLib" stored in userdata and used in FormModel (external use).'};
+    save([pathname fname],'MatDbase','MatLib','README');
 end
 
 % --- Executes when user attempts to close MatDbaseFigure.
@@ -294,83 +221,68 @@ function MatDbaseFigure_CloseRequestFcn(hObject, eventdata, handles)
 MatClose_Callback(hObject, eventdata, handles)
 set(hObject,'visible','off');
 
-function MatLib=PopulateMatLib(handles, MatDbase, GUIColNames)
+function MatLib=PopulateMatLib(MatTableHandle)
 
-	IBCNum=0;
-	MatNum=0;
-    
-    GUIColNames=strip(GUIColNames); %Remove extra spaces from the names of the GUI columns
-	IsIBCCol=find(strcmpi(GUIColNames,'IBC')); %Determine which column is the IBC flag
-    MatCol=find(strcmpi(GUIColNames,'Material')); %Determine which column holds the name
-    AvailMats=find(not(strcmpi('',MatDbase(:,MatCol)))); 
-    MatDbase=MatDbase(AvailMats,:);
-	Mats=find(not(cell2mat(MatDbase(:,IsIBCCol))));
-	IBCs=find(cell2mat(MatDbase(:,IsIBCCol)));
-    matlist={};
-	matprops=NaN*ones(length(Mats),GetMatPropIndex('NumMatProps'));
-	IBCprops=NaN*ones(length(IBCs),GetMatPropIndex('NumIBCProps'));
-    IBClist=[];
-    if not(isempty(Mats))
-        for Imat=Mats'
-            MatNum=find(Imat==Mats);
-            for Icol=1:length(GUIColNames)
-                if not(isempty(MatDbase{Imat,Icol}))
-                    ColTitle=GUIColNames{Icol};
-                    spaceI=findstr(ColTitle,' ');
-                    if not(isempty(spaceI))
-                        ColTitle=ColTitle(1:spaceI);
-                    end
-                    PropIndex=GetMatPropIndex(ColTitle);
-                    if PropIndex==0
-                        matlist{MatNum}=MatDbase{Imat,Icol};
-                        matprops(MatNum,GetMatPropIndex('matnum'))=MatNum;
-                    elseif not(isempty(PropIndex))
-                        matprops(MatNum,PropIndex)=MatDbase{Imat,Icol};
-                    end
-                end
+    if not(exist('MatTableHandle','var'))
+        F=MaterialDatabase;
+        MatLib=getappdata(F,'Materials');
+        delete(F)
+    else
+        GUIColNames=get(MatTableHandle,'columnname');
+        MatDbase=get(MatTableHandle,'data');
+        GUIColNames=strip(GUIColNames); %Remove extra spaces from the names of the GUI columns
+        MatCol=find(strcmpi(GUIColNames,'Material')); %Determine which column holds the name
+        TypCol=find(strcmpi(GUIColNames,'Type'));
+        AvailMats=find(not(strcmpi('',MatDbase(:,MatCol)))); %List of populated materials
+        MatDbase=MatDbase(AvailMats,:);
+
+        for Col=1:length(GUIColNames)
+            ColName=lower(strtrim(GUIColNames{Col}));
+            FindSpace=strfind(ColName,' ');
+            if ~isempty(FindSpace)
+                ColName=ColName(1:FindSpace-1);
+            end
+            switch ColName
+                case 'material'
+                    MatLib.Material=MatDbase(:,2);
+                case 'type'
+                    MatLib.Type=MatDbase(:,3);
+                case 'cte'
+                    MatLib.cte=cell2mat(MatDbase(:,4));
+                case 'e'
+                    MatLib.e=cell2mat(MatDbase(:,5));
+                case 'nu'
+                    MatLib.nu=cell2mat(MatDbase(:,6));
+                case 'k_s'
+                    MatLib.k=cell2mat(MatDbase(:,7));
+                case 'dens_s'
+                    MatLib.e=cell2mat(MatDbase(:,8));
+                case 'cp_s'
+                    MatLib.cp=cell2mat(MatDbase(:,9));
+                case 'k_l'
+                    MatLib.k_l=cell2mat(MatDbase(:,10));
+                case 'dens_l'
+                    MatLib.rho_l=cell2mat(MatDbase(:,11));
+                case 'cp_l'
+                    MatLib.cp_l=cell2mat(MatDbase(:,12));
+                case 'lw'
+                    MatLib.lf=cell2mat(MatDbase(:,13));
+                case 'tmelt'
+                    MatLib.tmelt=cell2mat(MatDbase(:,14));
+                case 'h_ibc'
+                    MatLib.h_ibc=cell2mat(MatDbase(:,15));
+                case 't_ibc'
+                    MatLib.T_ibc=cell2mat(MatDbase(:,16));
+                case 'del'
+                otherwise
+                    warning(['Unknown column label "' strtrim(GUIColNames{Col}) '"' ]); 
             end
         end
+        TypeList=get(MatTableHandle,'columnformat');
+        TypeList=TypeList{3};
+        MatLib.TypeList=TypeList';
+        setappdata(gcf,'Materials',MatLib);
     end
-    if not(isempty(IBCs))
-        for Iibc=IBCs'
-            IBCNum=find(Iibc==IBCs);
-            for Icol=[MatCol find(strcmpi(GUIColNames,'H_ibc')) find(strcmpi(GUIColNames,'T_ibc'))]
-                if not(isempty(MatDbase{Iibc,Icol}))
-                    ColTitle=GUIColNames{Icol};
-                    spaceI=findstr(ColTitle,' ');
-                    if not(isempty(spaceI))
-                        ColTitle=ColTitle(1:spaceI);
-                    end
-                    PropIndex=GetMatPropIndex(ColTitle);
-                    if PropIndex==0
-                        IBClist{IBCNum}=MatDbase{Iibc,Icol};
-                        IBCprops(IBCNum,GetMatPropIndex('ibcnum'))=-IBCNum;
-                    elseif not(isempty(PropIndex))
-                         IBCprops(IBCNum,PropIndex)=MatDbase{Iibc,Icol};
-                    end
-                    
-                    %if PropIndex~=0 && not(isempty(PropIndex))
-                    %    IBCprops(IBCNum,GetMatPropIndex(strleft(GUIColNames(Icol),4)))=MatDbase{Imat,Icol};
-                    %end
-                end
-            end
-        end
-    end
-	
-    MatLib.matprops=matprops;
-    MatLib.matlist=matlist;
-    MatLib.matcolors=[];
-    MatLib.AllMatsList=[matlist IBClist];
-    MatLib.AllMatsNum=[matprops(:,GetMatPropIndex('matnum')); IBCprops(:,GetMatPropIndex('ibcnum'))];
-    MatLib.kond=matprops(:,GetMatPropIndex('k_s'));
-    MatLib.cte=matprops(:,GetMatPropIndex('cte'));
-    MatLib.E=matprops(:,GetMatPropIndex('E'));
-    MatLib.nu=matprops(:,GetMatPropIndex('nu'));
-    MatLib.rho=matprops(:,GetMatPropIndex('dens_s'));
-    MatLib.spht=matprops(:,GetMatPropIndex('cp_s'));
-    MatLib.ibcprops=IBCprops;
-    MatLib.ibclist=IBClist;
-    setappdata(handles.output,'Materials',MatLib);
 
 
 % --- Executes on button press in helpbutton.
@@ -403,7 +315,7 @@ Text{end+1}='DefaultMaterials.mat.  If that files doesn''t exist, then the';
 Text{end+1}='database starts out empty.  The file can be created using the';
 Text{end+1}='''Save'' button.  To completely eliminate the GUI use delete(F).';
 Text{end+1}='';
-Text{end+1}='If properties are added to the materials, the ''GetMatPropIndex''';
+Text{end+1}='To programmatically pull the material database use P=MaterialDatabase(''PopulateMatLib'')';
 Text{end+1}='';
 
 
@@ -485,3 +397,99 @@ function SortButton_Callback(hObject, eventdata, handles)
         msgbox('Sort failed because some fields in sorted column are empty.','Information');
     end
 
+function Out=MatTypes(Action, Value)
+
+    MatTypes={'Solid'; 'PCM'; 'IBC'};
+    switch lower(Action)
+        case 'enumerate'
+            Out=MatTypes;
+        case 'typecol'
+            Out=3;
+        case 'usedcols'
+            switch lower(Value)
+                case 'pcm'
+                    Out=[4:14];
+                case 'solid'
+                    Out=[4:9];
+                case 'ibc'
+                    Out=[15 16];
+                otherwise
+                    error(['Unknown material type "' Value '"'])
+            end
+            Out = [1 2 3 Out];
+        otherwise
+            error(['Unknown Action "' Action '"'])
+    end
+
+function ShowError(ErrorText)
+    handles=guidata(gcf);
+    set(handles.ErrorPanel,'vis','on')
+    %set(handles.ErrorMsg,'string','Single Line Text')
+    %SingleLineExtent=get(handles.ErrorMsg,'extent');
+    set(handles.ErrorMsg,'string',ErrorText)
+    %Extent=get(handles.ErrorMsg,'extent');
+    %P=get(handles.ErrorPanel,'posit');
+    %set(handles.ErrorPanel,'posit',[P(1) P(2) P(3) Extent(2)+7*SingleLineExtent(4)]);
+
+function Data=SetNaNData (Data)
+
+    ErrorText='';
+    TypeCol=MatTypes('TypeCol');
+    for MatNum=1:length(Data(:,1))
+        NewData=Data{MatNum, TypeCol};
+        if isempty(find(strcmpi(NewData,MatTypes('enumerate')),1))
+            ErrorText=[ErrorText char(10) ['Unknown material type "' NewData '"']];
+        else
+            ColsToKeep=MatTypes('UsedCols',NewData);
+            for Ci=4:length(Data(1,:))
+                if isempty(find(Ci==ColsToKeep,1))
+                    Data(MatNum,Ci)={nan};
+                else
+                    if isempty(Data(MatNum, Ci))
+                        Data(MatNum,Ci)={0};
+                    end
+                end
+            end
+        end
+    end
+    if not(isempty(ErrorText))
+        ShowError(ErrorText)
+    end
+
+
+% --- Executes when entered data in editable cell(s) in MatTable.
+function MatTable_CellEditCallback(hObject, eventdata, handles)
+% hObject    handle to MatTable (see GCBO)
+% eventdata  structure with the following fields (see MATLAB.UI.CONTROL.TABLE)
+%	Indices: row and column indices of the cell(s) edited
+%	PreviousData: previous data for the cell(s) edited
+%	EditData: string(s) entered by the user
+%	NewData: EditData or its converted form set on the Data property. Empty if Data was not changed
+%	Error: error string when failed to convert EditData to appropriate value for Data
+% handles    structure with handles and user data (see GUIDATA)
+    MatNum=eventdata.Indices(1);
+    PrpNum=eventdata.Indices(2);
+    NewData=eventdata.NewData;
+    
+    if PrpNum==3
+        if isempty(find(strcmpi(NewData,MatTypes('enumerate'))))
+            error(['Unknown material type "' NewData '"'])
+        else
+            ColsToKeep=MatTypes('UsedCols',NewData);
+            Data=get(hObject,'data');
+            for Ci=4:length(Data(1,:))
+                if isempty(find(Ci==ColsToKeep,1))
+                    Data(MatNum,Ci)={nan};
+                else
+                    Data(MatNum,Ci)={0};
+                end
+            end
+            set(hObject,'data',Data);
+        end
+    elseif isnan(eventdata.PreviousData)
+        Data=get(hObject,'data');
+        Data(MatNum,PrpNum)={eventdata.PreviousData};
+        set(hObject,'data',Data)
+        ShowError('Parameter is not used in this material type.')
+    end
+            

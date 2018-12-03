@@ -54,7 +54,7 @@ function Visualize (PlotTitle, MI, varargin)
     PlotGeom=true; %If no other parameters are called, then plot the model geom
     h=MI.h;
     Ta=MI.Ta;
-    matlist=MI.matlist;
+    matlist=MI.MatLib.Material;
 
     PlotParms.RemoveMatl=[0];
     PlotParms.TransMatl=[];
@@ -126,7 +126,7 @@ function Visualize (PlotTitle, MI, varargin)
             case strleft('modelgeometry',Pl)
                 h=MI.h;
                 Ta=MI.Ta;
-                matlist=MI.matlist;
+                matlist=MI.MatLib.Material;
                 PlotGeom=true;
             otherwise
                 fprintf('Property "%s" is unknown.\n',Prop)
