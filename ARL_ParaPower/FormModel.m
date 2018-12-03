@@ -22,7 +22,9 @@ if ischar(TestCaseModel)
         error('Invalid optional argument');
     end
 else
-    if not(isfield(TestCaseModel,'Version')) || not(strcmpi(TestCaseModel.Version,'V2.0'))
+    if not(isfield(TestCaseModel,'Version')) 
+        error(['Incorrect TestCaseModel version.  No version is specified']);
+    elseif not(strcmpi(TestCaseModel.Version,'V2.0'))
         error(['Incorrect TestCaseModel version.  V2.0 required, this data is ' TestCaseModel.Version]);
     end
     ExternalConditions=TestCaseModel.ExternalConditions;
@@ -35,6 +37,7 @@ end
 if isfield(TestCaseModel,'MatLib')
     MatLib=TestCaseModel.MatLib;
 else
+    warning('MatLib needs to be included in the TestCaseModel structure')
     msgbox('MatLib needs to be included in the TestCaseModel structure','Warning');
     return
 end
@@ -133,7 +136,7 @@ DeltaCoord.Y=Y(2:end)-Y(1:end-1);
 DeltaCoord.Z=Z(2:end)-Z(1:end-1);
 
 Params.Tsteps=floor(Params.Tsteps);
-ModelMatrix=zeros(length(X)-1,length(Y)-1,length(Z)-1);
+ModelMatrix=nan*zeros(length(X)-1,length(Y)-1,length(Z)-1);
 %Q=zeros([size(ModelMatrix) Params.Tsteps]);
 S=size(ModelMatrix);
 if length(S)<3
@@ -187,6 +190,12 @@ for Fii=1:length(NonZeroThickness)
    % else
    %     MatNum=MatLib.Material(MatNum);
     end
+    %disp(['Feature ' num2str(Fi) ])
+    %ModelMatrix(InX, InY, InZ)
+    AllNaN=all(isnan(reshape(ModelMatrix(InX,InY,InZ),1,[])));
+    if not(AllNaN)
+        warning(['Some solid features overlap.  Behavior for this condition is undefined and may result in incorrect results. (Feature #' num2str(Fi) ')'])
+    end
     ModelMatrix(InX, InY, InZ)=MatNum;
 end
 
@@ -198,6 +207,10 @@ for Fii=1:length(ZeroThickness)
     InZ=GetInXYZ(Features(Fi).z, Z);
     Features(Fi).TotalVolume=NaN;
     
+    AllNaN=all(isnan(reshape(ModelMatrix(InX,InY,InZ),1,[])));
+    if not(AllNaN)
+        warning(['Some zero-thickness features overlap.  Behavior for this condition is undefined and may result in incorrect results. (Feature #' num2str(Fi) ')'])
+    end
     if isscalar(unique(Features(Fi).x))  %X is zero thickness
         UseLayer=GetZeroLayer(X, Features(Fi).x);
         ModelMatrix(InX,:,:)=ModelMatrix(UseLayer,:,:);
