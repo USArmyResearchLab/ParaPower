@@ -69,6 +69,9 @@ X0=[]; %Z coordinates with zero thickness
 Y0=[]; %Z coordinates with zero thickness
 Z0=[]; %Z coordinates with zero thickness
 
+%Go through features list and determine if it's a zero thickness in any
+%direction. Build up X, Y, Z list of coordinates and X0, Y0, Z0 which is
+%the special list that covers zero thickness features.
 for i=1:length(Features)
     Fd=Features(i).x;
     if isscalar(Fd)
@@ -131,18 +134,24 @@ X=sort([X X0]);
 Y=sort([Y Y0]); 
 Z=sort([Z Z0]); 
 
+%Create list of final Delta coordinates that will be used to generate
+%model.
 DeltaCoord.X=X(2:end)-X(1:end-1);
 DeltaCoord.Y=Y(2:end)-Y(1:end-1);
 DeltaCoord.Z=Z(2:end)-Z(1:end-1);
 
 Params.Tsteps=floor(Params.Tsteps);
-ModelMatrix=nan*zeros(length(X)-1,length(Y)-1,length(Z)-1);
+
+%Create model matrix that will hold material/feature number for each delta coord
+%ModelMatrix=nan*zeros(length(X)-1,length(Y)-1,length(Z)-1);
+ModelMatrix=nan*zeros(length(DeltaCoord.X),length(DeltaCoord.Y),length(DeltaCoord.Z));
+
 %Q=zeros([size(ModelMatrix) Params.Tsteps]);
 S=size(ModelMatrix);
 if length(S)<3
     error(['Model cannot be planar. It must have a minimum of 2 elements in each direction.'])
 end
-Q{S(1),S(2),S(3)}=[];
+Q=cell(S);
 %Q=zeros([size(ModelMatrix) Params.Tsteps]);
 
 if isempty(Params.Tsteps)
@@ -160,6 +169,7 @@ MinCoord=[min(X) min(Y) min(Z)];
 %Loop thorugh features with zero thickness and apply non-feature areas as above or below material
 %Set all NaN elements to potting material
 
+%Identify all zero-thickness and non-zero-thickness features
 ZeroThickness=[];
 NonZeroThickness=[];
 for Fi=1:length(Features)
@@ -179,24 +189,11 @@ for Fii=1:length(NonZeroThickness)
     InY=GetInXYZ(Features(Fi).y, Y);
     InZ=GetInXYZ(Features(Fi).z, Z);
     
-    Features(Fi).TotalVolume=diff(Features(Fi).x)*diff(Features(Fi).y)*diff(Features(Fi).z);
-    Features(Fi).TotalArea=NaN;
-  
-    %Define Material for the feature
-    MatNum=find(strcmpi(MatLib.Material,Features(Fi).Matl));
-    if isempty(MatNum)
-        fprintf('Material %s not found in database. Check spelling\n',Features(Fi).Matl)
-        MatNum=nan;
-   % else
-   %     MatNum=MatLib.Material(MatNum);
-    end
-    %disp(['Feature ' num2str(Fi) ])
-    %ModelMatrix(InX, InY, InZ)
     AllNaN=all(isnan(reshape(ModelMatrix(InX,InY,InZ),1,[])));
     if not(AllNaN)
         warning(['Some solid features overlap.  Behavior for this condition is undefined and may result in incorrect results. (Feature #' num2str(Fi) ')'])
     end
-    ModelMatrix(InX, InY, InZ)=MatNum;
+    ModelMatrix(InX, InY, InZ)=Fi;
 end
 
 %Apply materials for zero-thickness elements
@@ -205,37 +202,42 @@ for Fii=1:length(ZeroThickness)
     InX=GetInXYZ(Features(Fi).x, X);
     InY=GetInXYZ(Features(Fi).y, Y);
     InZ=GetInXYZ(Features(Fi).z, Z);
-    Features(Fi).TotalVolume=NaN;
     
     AllNaN=all(isnan(reshape(ModelMatrix(InX,InY,InZ),1,[])));
     if not(AllNaN)
         warning(['Some zero-thickness features overlap.  Behavior for this condition is undefined and may result in incorrect results. (Feature #' num2str(Fi) ')'])
     end
+    %Ensure that zero-thickness layer elements that are undefined as set to
+    %the same mateiral as what is adjacent to eliminate discontinuities.
+    %Change this predefine only for NaN elements.
     if isscalar(unique(Features(Fi).x))  %X is zero thickness
         UseLayer=GetZeroLayer(X, Features(Fi).x);
-        ModelMatrix(InX,:,:)=ModelMatrix(UseLayer,:,:);
-%        error('must be fixed to match z')
-        Features(Fi).TotalArea=diff(Features(Fi).z)*diff(Features(Fi).y);
+        Plane=ModelMatrix(InX,:,:);
+        PlaneUse=ModelMatrix(UseLayer,:,:);
+        Plane(find(isnan(Plane)))=PlaneUse(find(isnan(Plane)));
+        ModelMatrix(InX,:,:)=Plane;
+    %    ModelMatrix(InX,:,:)=ModelMatrix(UseLayer,:,:);
     elseif isscalar(unique(Features(Fi).y)) %y is zero thickness
         UseLayer=GetZeroLayer(Y, Features(Fi).y);
-        ModelMatrix(:,InY,:)=ModelMatrix(:,UseLayer,:);
-        Features(Fi).TotalArea=diff(Features(Fi).z)*diff(Features(Fi).x);
-        %error('must be fixed to match z')
+        Plane=ModelMatrix(:,InY,:);
+        PlaneUse=ModelMatrix(:,UseLayer,:);
+        Plane(find(isnan(Plane)))=PlaneUse(find(isnan(Plane)));
+        ModelMatrix(:,InY,:)=Plane;
+%        ModelMatrix(:,InY,:)=ModelMatrix(:,UseLayer,:);
     elseif isscalar(unique(Features(Fi).z)) %z is zero thickness
         UseLayer=GetZeroLayer(Z, Features(Fi).z);
-        Features(Fi).TotalArea=diff(Features(Fi).x)*diff(Features(Fi).y);
-        ModelMatrix(:,:,InZ)=ModelMatrix(:,:,UseLayer);
+        Plane=ModelMatrix(:,:,InZ);
+        PlaneUse=ModelMatrix(:,:,UseLayer);
+        Plane(find(isnan(Plane)))=PlaneUse(find(isnan(Plane)));
+        ModelMatrix(:,:,InZ)=Plane;
+        %ModelMatrix(:,:,InZ)=ModelMatrix(:,:,UseLayer);
     end
-    %Define Material for the feature
-    MatNum=find(strcmpi(MatLib.Material,Features(Fi).Matl));
-    if isempty(MatNum)
-        fprintf('Material %s not found in database. Check spelling\n',Features(Fi).Matl)
-        MatNum=nan;
-   % else
-   %     MatNum=MatLib.AllMatsNum(MatNum);
-    end
-    ModelMatrix(InX, InY, InZ)=MatNum;
+    ModelMatrix(InX, InY, InZ)=Fi;
 end
+
+%Compute volume (real) and area (imaginary) of model
+VA=ComputeVA(DeltaCoord);
+ScaledQ=zeros(size(ModelMatrix));
 
 %Apply Q's (Note that Q's are now defined as function handles)
 for Fi=1:length(Features)
@@ -266,32 +268,41 @@ for Fi=1:length(Features)
      end
 
      if not(isempty(ThisQ))
-         InX=GetInXYZ(Features(Fi).x, X);
-         InY=GetInXYZ(Features(Fi).y, Y);
-         InZ=GetInXYZ(Features(Fi).z, Z);
+         %Cycle through elements for feature Fi and add their area/volume to scale Q
+         Fmask=(ModelMatrix==Fi);
+        
+         Area=imag(VA(Fmask)); %Area elements
+         Volm=real(VA(Fmask)); %Volume elements
+         TotalA=sum(Area);  %Total Area for feature
+         TotalV=sum(Volm);  %Total Volume for feature
          
-         for Xi=InX
-             for Yi=InY
-                 for Zi=InZ
-                     if isscalar(unique(Features(Fi).x))  %X is zero thickness
-                         ScaledQ=@(t)ThisQ(t)*DeltaCoord.Z(Zi)*DeltaCoord.Y(Yi)/abs(Features(Fi).TotalArea);
-                     elseif isscalar(unique(Features(Fi).y)) %y is zero thickness
-                         ScaledQ=@(t)ThisQ(t)*DeltaCoord.Z(Zi)*DeltaCoord.X(Xi)/abs(Features(Fi).TotalArea);
-                     elseif isscalar(unique(Features(Fi).z)) %z is zero thickness
-                         ScaledQ=@(t)ThisQ(t)*DeltaCoord.X(Xi)*DeltaCoord.Y(Yi)/abs(Features(Fi).TotalArea);
-                     else
-                         ScaledQ=@(t)ThisQ(t)*DeltaCoord.X(Xi)*DeltaCoord.Z(Zi)*DeltaCoord.Y(Yi)/abs(Features(Fi).TotalVolume);
-                     end
-                     Q{Xi,Yi,Zi}=ScaledQ;
-                 end
-             end
+         if TotalV==0  %If this is a zero-thickness feature
+             ScaledQ(Fmask) = imag(VA(Fmask))./TotalA;
+         else
+             ScaledQ(Fmask) = real(VA(Fmask))./TotalV;
+         end
+         
+         %ThisQ(t) contains the function handle from the feature definition
+         %ScaledQ(Ei) contains the scalar factor of El.Area/Tot.Area or El.Vol/Tot.Vol
+         
+         for Ei=find(reshape(Fmask,1,[]))
+             Q{Ei}=@(t)ThisQ(t)*ScaledQ(Ei);
          end
      end
 end
-     
 
+ModelMatrix=ModelMatrix*i;  %Make all feature number imaginary, then replace "imaginary" feature numbers with "real" material numbers.
+for Fi=1:length(Features)
+    MatNum=find(strcmpi(Features(Fi).Matl,MatLib.Material));
+    if isempty(MatNum)
+        MatNum=NaN;
+        fprintf('Feature %2.0f material %s is unknown',Fi,MatNum);
+    end
+    ModelMatrix(ModelMatrix==Fi*i)=MatNum;
+end
+     
 if ischar(PottingMaterial)
-    MatNum=find(strcmpi(PottingMaterial,lower(matlist)));
+    MatNum=find(strcmpi(PottingMaterial,lower(MatLib.Material)));
     if isempty(MatNum)
         MatNum=NaN;
         fprintf('Potting material %s is unknown',PottingMaterial);
@@ -342,3 +353,27 @@ function In=GetInXYZ(FeatureExtent, Coords)
         end
     end
 return
+
+function VA=ComputeVA(DCoord)
+%Compute the volume and area of the model elements.  Volumes are R, areas are i
+
+    %Get length of each coordinate
+    Lx=length(DCoord.X);
+    Ly=length(DCoord.Y);
+    Lz=length(DCoord.Z);
+    
+    %Matrix multiply Nx1(x) * 1xN(y), then reshape and Nx1(xy) * 1xN(z) then reshape into nxmxo
+    VA=reshape(reshape(DCoord.X' * DCoord.Y,[],1) * DCoord.Z,Lx, Ly,[]);
+    
+    %Construct vector that is 0's for all non-zero elements and 1 for all Zeros
+    Xz=(DCoord.X==0);
+    Yz=(DCoord.Y==0);
+    Zz=(DCoord.Z==0);
+
+    %Compute (sequentially) Areas for zero thickness X, then Y, then Z
+    Az=reshape(reshape(DCoord.X' * DCoord.Y,[],1) * Zz,Lx, Ly,[]);
+    Ay=reshape(reshape(DCoord.X' * Yz,[],1) * DCoord.Z,Lx, Ly,[]);
+    Ax=reshape(reshape(Xz' * DCoord.Y,[],1) * DCoord.Z,Lx, Ly,[]);
+
+    %Combine the areas of the zero thickness elements and make them imag.
+    VA=VA + (Ax+Ay+Az)*i;
