@@ -29,9 +29,9 @@ end
 
 time_thermal = tic; %start recording time taken to do bulk of analysis
 
-kond = ModelInput.Matlib.kond; %Thermal conductivity of the solid
-rho = ModelInput.Matlib.rho; %density of the solid state
-spht = ModelInput.Matlib.spht; %solid specific heat
+kond = ModelInput.MatLib.k; %Thermal conductivity of the solid
+rho = ModelInput.MatLib.rho; %density of the solid state
+spht = ModelInput.MatLib.cp; %solid specific heat
 
 K = zeros(size(Mat));
 K = reshape(K,[],1);
@@ -41,7 +41,7 @@ K(Mat ~=0 ) = kond(Mat(Mat~=0));
 CP(Mat ~=0) = spht(Mat(Mat~=0));
 RHO(Mat ~=0) = rho(Mat(Mat~=0));
 
-Qmask=~cellfun('isempty',Q);  %return logical mask with ones where Qs are def
+Qmask=~cellfun('isempty',Q(:));  %return logical mask with ones where Qs are def
 
 %Indicator for static analysis, if steps is empty. Form Q vectors.
 if isempty(GlobalTime)
@@ -57,17 +57,18 @@ if isempty(GlobalTime)
 else
     disp('Transient Analysis');    
     %cell arrays are fun!
-    GT_eval{1}=GlobalTime(1:end-1);
+    GT_eval{1}=GlobalTime;
     GT_eval=repmat(GT_eval,nnz(Qmask),1);  
-    Qval=cell2mat(cellfun(@feval,Q(Qmask),GT_eval,'UniformOutput',false));
+    Qval=cell2mat(cellfun(@arrayfun,Q(Qmask),GT_eval,'UniformOutput',false));
     clear GT_eval
     %evaluate each nonempty cell of Q at all timesteps
-    Qv=spalloc(length(Mat(:)),length(GlobalTime),nnz(Qmask)*(length(GlobalTime)-1));
-    Qv(Qmask,:)=Qval;
+    Qv=spalloc(length(Mat(:)),length(GlobalTime)-1,nnz(Qmask)*(length(GlobalTime)-1));
+    Qv(Qmask,:)=sparse(Qval(:,1:end-1)+Qval(:,2:end))/2;
     %Qv is now a sparse 2D array with rows corresponding to Mat entries and
-    %columns for each timestep but the last.  The Q dissipated during a
-    %timestep is the value at the beginning of the ts -- CONS of ENERGY
-    %ISSUE
+    %columns for each timestep numel(dt).  The Q dissipated during a
+    %timestep is the average of the values at times bookending the step
+    %CONS of ENERGY ISSUE - this is a trapz approx of the variable Q
+    %dissipation.
     
 end
 
@@ -83,6 +84,10 @@ PHres=Tres;
 PH(:,1)=PH_init;
 Lv=(rho+rhol)/2 .* Lw;  %generate volumetric latent heat of vap using average density
 %should we have a PH_init?
+rollcall=unique(Mat);
+rollcall=rollcall(rollcall>0); %cant index zero or negative mat numbers
+meltable=any(strcmp(ModelInput.MatLib.Type(rollcall),'PCM'));
+
 
 
 %% Build Adjacency and Conductance Matrices
@@ -122,14 +127,18 @@ end
 %   delta time is delta_t(it-1).  So, the delta_t leading up to time step
 %   5 [GlobalTime(5)] is delta_t(4)
 
+if meltable
+    meltmask=strcmp(ModelInput.MatLib.Type(Mat(Map)),'PCM');
+end
+
 
 %% Timestepping 
 for it=2:length(GlobalTime)
     
     T(:,it)=(A+Atrans)\(-B*Ta_vec'+Qv(Map,it-1)+C);  %T is temps at the end of the it'th step, C holds info about temps prior to it'th step
 
-    if any(MATTYPE) && not(isnan(GlobalTime(2))) %melting disabled for static analyses
-        [T(:,it),PH(:,it),changing,K,CP,RHO]=vec_Phase_Change(T(:,it),PH(:,it-1),Mat,Map,kond,kondl,spht,sphtl,rho,rhol,Tm,Lv,K,CP,RHO);
+    if meltable && not(isnan(GlobalTime(2))) %melting disabled for static analyses
+        [T(:,it),PH(:,it),changing,K,CP,RHO]=vec_Phase_Change(T(:,it),PH(:,it-1),Mat,Map,meltmask,kond,kondl,spht,sphtl,rho,rhol,Tm,Lv,K,CP,RHO);
     end
 
     if not(isnan(GlobalTime(2))) && it~=length(GlobalTime)  %Do we have timesteps to undertake?
@@ -138,7 +147,7 @@ for it=2:length(GlobalTime)
             touched=find((abs(A)*changing)>0);  %find not only those elements changing, but those touched by changing elements
             
             %update capacitance (only those changing since internal to element)
-            Cap(changing)=mass(dx,dy,dz,RHO,CP,Mat,changing); %units of J/K
+            Cap(changing)=mass(dx,dy,dz,RHO,CP,Mat,Map(changing)); %units of J/K
             
             %Entire Rebuild, for testing
             %[A,B,A_areas,B_areas,A_hLengths,B_hLengths,htcs] = conduct_build(Acon,Bcon,newMap,fullheader,K,hint,h,Mat,dx,dy,dz);

@@ -17,9 +17,9 @@ Mat=ModelInput.Model;
 T_init=ModelInput.Tinit;
 GlobalTime=ModelInput.GlobalTime;
 
-E = ModelInput.Matlib.E;
-cte = ModelInput.Matlib.nu;
-nu = ModelInput.Matlib.rho;
+E = ModelInput.MatLib.e;
+cte = ModelInput.MatLib.nu;
+nu = ModelInput.MatLib.rho;
 
 
 nlsub=1; % # layers that are substrate material
