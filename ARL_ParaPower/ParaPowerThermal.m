@@ -2,13 +2,10 @@
 %given timestep size,geometry, temperature, and material properties, this 
 %program estimates the temperature and thermally induced stresses in the 
 %control geometry for the all timesteps
-
-%WARNING: Coefficients of thermal expansion, thermal stresses, and residual
-%stresses from processing temperatures have not been implemented for all
-%materials
-        
+       
 function [Tres,ModelInput,PHres] = ParaPowerThermal(ModelInput)
 
+%% Initialization
 
 h=ModelInput.h;
 Ta=ModelInput.Ta;
@@ -18,7 +15,6 @@ dz=ModelInput.Z;
 Mat=ModelInput.Model;
 Q=ModelInput.Q;
 T_init=ModelInput.Tinit;
-matprops=ModelInput.matprops;
 GlobalTime=ModelInput.GlobalTime;
 
 hint=[];
@@ -33,12 +29,9 @@ end
 
 time_thermal = tic; %start recording time taken to do bulk of analysis
 
-kond = matprops(:,1)'; %Thermal conductivity of the solid
-cte = matprops(:,2)'; %Coeficient of Thermal Expansion
-E = matprops(:,3)'; %Young's Modulus
-nu = matprops(:,4)'; %poissons ratio
-rho = matprops(:,5)'; %density of the solid state
-spht = matprops(:,6)'; %solid specific heat
+kond = ModelInput.MatLib.k; %Thermal conductivity of the solid
+rho = ModelInput.MatLib.rho; %density of the solid state
+spht = ModelInput.MatLib.cp; %solid specific heat
 
 K = zeros(size(Mat));
 K = reshape(K,[],1);
@@ -48,32 +41,35 @@ K(Mat ~=0 ) = kond(Mat(Mat~=0));
 CP(Mat ~=0) = spht(Mat(Mat~=0));
 RHO(Mat ~=0) = rho(Mat(Mat~=0));
 
+Qmask=~cellfun('isempty',Q(:));  %return logical mask with ones where Qs are def
 
-
-
-% K = kond(reshape(Mat,[],1))'; %Thermal Conductivity vector for nodal thermal conductivities. Updatable with time
-% CP = spht(reshape(Mat,[],1))'; %Specific heat vector for effective nodal specific heats. Updatable with time
-% RHO = rho(reshape(Mat,[],1))'; %effective density vector. Updatable with time
-
-%convert Q from function handle form to value at single time of Qtime
-Qtime=0; %Evaluate Q at time=0
-for i=1:length(Q(:))
-    if isempty(Q{i})
-        Qv(i)=0;
-    else
-        Qv(i)=Q{i}(Qtime);
-    end
-end
-Qv=reshape(Qv,size(Q));
-        
-%Qv=Q(:,:,:,1);
-Qv=reshape(Qv(Mat>0),[],1);  %pull a column vector from the i,j,k format of the first timestep
-
-%Indicator for static analysis, if steps is empty.
+%Indicator for static analysis, if steps is empty. Form Q vectors.
 if isempty(GlobalTime)
     disp('Static Analysis');
+    %convert Q from function handle form to value at single time of Qtime
+    zer_eval=num2cell(zeros(nnz(Qmask),1));  
+    Qval=cellfun(@feval,Q(Qmask),zer_eval);  
+    clear zer_eval
+    %evaluate each nonempty cell of Q at t=0
+    Qv=sparse(find(Qmask),ones(nnz(Qmask)),Qval,length(Mat(:)));  %
+    %Q's for the entire Mat matrix, vector for the single static step
+    
 else
-    disp('Transient Analysis');
+    disp('Transient Analysis');    
+    %cell arrays are fun!
+    GT_eval{1}=GlobalTime;
+    GT_eval=repmat(GT_eval,nnz(Qmask),1);  
+    Qval=cell2mat(cellfun(@arrayfun,Q(Qmask),GT_eval,'UniformOutput',false));
+    clear GT_eval
+    %evaluate each nonempty cell of Q at all timesteps
+    Qv=spalloc(length(Mat(:)),length(GlobalTime)-1,nnz(Qmask)*(length(GlobalTime)-1));
+    Qv(Qmask,:)=sparse(Qval(:,1:end-1)+Qval(:,2:end))/2;
+    %Qv is now a sparse 2D array with rows corresponding to Mat entries and
+    %columns for each timestep numel(dt).  The Q dissipated during a
+    %timestep is the average of the values at times bookending the step
+    %CONS of ENERGY ISSUE - this is a trapz approx of the variable Q
+    %dissipation.
+    
 end
 
 C=zeros(nnz(Mat>0),1); % Nodal capacitance terms for transient effects
@@ -84,24 +80,29 @@ Tres=zeros(numel(Mat),length(GlobalTime)); % Nodal temperature results
 
 PHres=Tres;
 %[isPCM,kondl,rhol,sphtl,Lw,Tm,PH,PH_init] = PCM_init(Mat,matprops,Num_Row,Num_Col,Num_Lay,steps);
-[isPCM,kondl,rhol,sphtl,Lw,Tm,PH,PH_init] = PCM_init(Mat,matprops,length(GlobalTime));
+[kondl,rhol,sphtl,Lw,Tm,PH,PH_init] = PCM_init(ModelInput);
 PH(:,1)=PH_init;
 Lv=(rho+rhol)/2 .* Lw;  %generate volumetric latent heat of vap using average density
 %should we have a PH_init?
+rollcall=unique(Mat);
+rollcall=rollcall(rollcall>0); %cant index zero or negative mat numbers
+meltable=any(strcmp(ModelInput.MatLib.Type(rollcall),'PCM'));
 
 
 
-[Acon,Bcon,Bext,Map]=Connect_Init(Mat,h);
-[Acon,Bcon,newMap,fullheader,Ta_vec]=null_void_init(Mat,h,hint,Acon,Bcon,Map,Ta,Ta_void);
+%% Build Adjacency and Conductance Matrices
+
+[Aadj,Badj,Bext,Map]=Connect_Init(Mat,h);
+[Aadj,Badj,Map,fullheader,Ta_vec]=null_void_init(Mat,h,hint,Aadj,Badj,Map,Ta,Ta_void);
 %fullheader=[header find(h)];  %fullheader is a rowvector of negative matnums and a subset of 1 thru 6
-[A,B,A_areas,B_areas,A_hLengths,B_hLengths,htcs] = conduct_build(Acon,Bcon,newMap,fullheader,K,hint,h,Mat,dx,dy,dz);
+[A,B,A_areas,B_areas,A_hLengths,B_hLengths,htcs] = conduct_build(Aadj,Badj,Map,fullheader,K,hint,h,Mat,dx,dy,dz);
 if isempty(B)
     B=spalloc(size(C,1),size(C,2),0);
     fullheader=1;
     Ta_vec=1;
 end
 
-
+% Diagonal Terms
 if not(isempty(GlobalTime))
     delta_t=GlobalTime(2:end)-GlobalTime(1:end-1);
     % Calculate the capacitance term associated with each node and adjust the 
@@ -111,6 +112,7 @@ if not(isempty(GlobalTime))
     Atrans=-spdiags(Cap,0,size(A,1),size(A,2))./delta_t(1);  %Save Transient term for the diagonal of A matrix, units W/K
     C=-Cap./delta_t(1).*T(:,1); %units of watts
 else
+    %implies static analysis
     delta_t=NaN;
     Atrans=spalloc(size(A,1),size(A,2),0); %allocate Atrans as zero
     GlobalTime=[0 NaN];
@@ -125,12 +127,18 @@ end
 %   delta time is delta_t(it-1).  So, the delta_t leading up to time step
 %   5 [GlobalTime(5)] is delta_t(4)
 
+if meltable
+    meltmask=strcmp(ModelInput.MatLib.Type(Mat(Map)),'PCM');
+end
+
+
+%% Timestepping 
 for it=2:length(GlobalTime)
     
-    T(:,it)=(A+Atrans)\(-B*Ta_vec'+Qv+C);  %T is temps at the end of the it'th step, C holds info about temps prior to it'th step
+    T(:,it)=(A+Atrans)\(-B*Ta_vec'+Qv(Map,it-1)+C);  %T is temps at the end of the it'th step, C holds info about temps prior to it'th step
 
-    if any(isPCM(Mat(Mat~=0))) && not(isnan(GlobalTime(2))) %melting disabled for static analyses
-        [T(:,it),PH(:,it),changing,K,CP,RHO]=vec_Phase_Change(T(:,it),PH(:,it-1),Mat,newMap,kond,kondl,spht,sphtl,rho,rhol,Tm,Lv,K,CP,RHO);
+    if meltable && not(isnan(GlobalTime(2))) %melting disabled for static analyses
+        [T(:,it),PH(:,it),changing,K,CP,RHO]=vec_Phase_Change(T(:,it),PH(:,it-1),Mat,Map,meltmask,kond,kondl,spht,sphtl,rho,rhol,Tm,Lv,K,CP,RHO);
     end
 
     if not(isnan(GlobalTime(2))) && it~=length(GlobalTime)  %Do we have timesteps to undertake?
@@ -139,7 +147,7 @@ for it=2:length(GlobalTime)
             touched=find((abs(A)*changing)>0);  %find not only those elements changing, but those touched by changing elements
             
             %update capacitance (only those changing since internal to element)
-            Cap(changing)=mass(dx,dy,dz,RHO,CP,Mat,changing); %units of J/K
+            Cap(changing)=mass(dx,dy,dz,RHO,CP,Mat,Map(changing)); %units of J/K
             
             %Entire Rebuild, for testing
             %[A,B,A_areas,B_areas,A_hLengths,B_hLengths,htcs] = conduct_build(Acon,Bcon,newMap,fullheader,K,hint,h,Mat,dx,dy,dz);
@@ -168,7 +176,7 @@ ModelInput.A_areas=A_areas;
 ModelInput.B_areas=B_areas;
 ModelInput.A_hLengths=A_hLengths;
 ModelInput.B_hLengths=B_hLengths;
-ModelInput.Map=newMap;  %The rows of A correspond to elements enumerated by Mat(Map)
+ModelInput.Map=Map;  %The rows of A correspond to elements enumerated by Mat(Map)
 
 thermal_elapsed = toc(time_thermal);
 

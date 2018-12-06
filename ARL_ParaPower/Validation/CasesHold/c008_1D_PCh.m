@@ -14,40 +14,49 @@ Desc='Test Case Template';  %Description of the test case
     ExternalConditions.h_Right=0;
     ExternalConditions.h_Front=0;
     ExternalConditions.h_Back=0;
-    ExternalConditions.h_Top=1e12;
-    ExternalConditions.h_Bottom=0;
+    ExternalConditions.h_Top=10000;
+    ExternalConditions.h_Bottom=10000;
 
     ExternalConditions.Ta_Left=20;
     ExternalConditions.Ta_Right=20;
     ExternalConditions.Ta_Front=20;
     ExternalConditions.Ta_Back=20;
-    ExternalConditions.Ta_Top=20;
-    ExternalConditions.Ta_Bottom=20;
+    ExternalConditions.Ta_Top=50;
+    ExternalConditions.Ta_Bottom=40;
 
     ExternalConditions.Tproc=280;
 
-    EndTime          = 30; 
-    Params.Tinit     = 20;
-    Params.DeltaT    = 2e-3;
-    Params.Tsteps    = EndTime/Params.DeltaT;
+    Params.Tinit     = 50;
+    Params.DeltaT    = .2e-2;
+    Params.Tsteps    = 90000;
 
     PottingMaterial  = 0;
     
-    Features(1).x    = [0 .001];
-    Features(1).y    = [0 .001];
-    Features(1).z    = [0 .01];
+    BarLen=.02;
+    BarWid=0.001;
+    BarDiv=60;
+    BarBas=1e-3;
+    
+    Features(1).x    = [0 BarWid];
+    Features(1).y    = [0 BarWid];
+    Features(1).z    = [BarBas BarLen];
     Features(1).dx   = 1;
     Features(1).dy   = 1;
-    Features(1).dz   = 10;
+    Features(1).dz   = BarDiv;
     Features(1).Matl = 'Fields Metal';
     Features(1).Q    = 0;
 
     Features(2)=Features(1);
-    Features(2).z    = [0 0];
-    Features(2).dz   = 1;
-    Features(2).Matl = 'Cu';
-    Features(2).Q    = 10/(Features(1).dy*Features(1).dx);
+    Features(end).x    = [0 BarBas];
+    Features(end).y    = [0 BarBas];
+    Features(end).z    = [BarBas BarBas];
+    Features(end).dx   = 1;
+    Features(end).dy   = 1;
+    Features(end).dz   = 1;
+    Features(end).Matl = 'Cu';
+    Features(end).Q    = '0.3*sin(0.25*t)+0.3';
 
+   
     %{
     Features(3)=Features(2);
     Features(3).z    = [.01 .01];

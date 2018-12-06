@@ -21,14 +21,14 @@
     ExternalConditions.Tproc=280;
 
     Params.Tinit     = 20;
-    Params.DeltaT    = 1e-3;
-    Params.Tsteps    = 100;
+    Params.DeltaT    = .2e-2;
+    Params.Tsteps    = 5000;
 
     PottingMaterial  = 0;
     
     BarLen=.01;
     BarWid=0.001;
-    BarDiv=10;
+    BarDiv=30;
     BarBas=1e-3;
     
     Features(1).x    = [0 BarWid];
@@ -66,7 +66,7 @@
     Features(end).dy   = 1;
     Features(end).dz   = 1;
     Features(end).Matl = 'Cu';
-    Features(end).Q    = 1000;
+    Features(end).Q    = '3*sin(3*t)';
 
     Features(5)=Features(1);
     Features(end).x    = [0 BarBas];
@@ -76,7 +76,7 @@
     Features(end).dy   = 1;
     Features(end).dz   = 1;
     Features(end).Matl = 'Cu';
-    Features(end).Q    = 1000;
+    Features(end).Q    = Features(end-1).Q;
 
     Features(6)=Features(1);
     Features(end).x    = [BarBas BarBas];
@@ -86,7 +86,7 @@
     Features(end).dy   = 1;
     Features(end).dz   = 1;
     Features(end).Matl = 'Cu';
-    Features(end).Q    = 1000;
+    Features(end).Q    = Features(end-1).Q;
 
     TestCaseModel.ExternalConditions=ExternalConditions;
     TestCaseModel.Features=Features;

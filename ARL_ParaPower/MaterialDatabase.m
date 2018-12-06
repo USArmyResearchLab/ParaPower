@@ -256,7 +256,7 @@ function MatLib=PopulateMatLib(MatTableHandle)
                 case 'k_s'
                     MatLib.k=cell2mat(MatDbase(:,7));
                 case 'dens_s'
-                    MatLib.e=cell2mat(MatDbase(:,8));
+                    MatLib.rho=cell2mat(MatDbase(:,8));
                 case 'cp_s'
                     MatLib.cp=cell2mat(MatDbase(:,9));
                 case 'k_l'

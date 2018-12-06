@@ -9,18 +9,17 @@
         
 function [Stress] = ParaPowerStress(ModelInput,Tres)
 
-
-h=ModelInput.h;
-Ta=ModelInput.Ta;
 dx=ModelInput.X;
 dy=ModelInput.Y;
 dz=ModelInput.Z;
 Tproc=ModelInput.Tproc;
 Mat=ModelInput.Model;
-Q=ModelInput.Q;
 T_init=ModelInput.Tinit;
-matprops=ModelInput.matprops;
 GlobalTime=ModelInput.GlobalTime;
+
+E = ModelInput.MatLib.e;
+cte = ModelInput.MatLib.nu;
+nu = ModelInput.MatLib.rho;
 
 
 nlsub=1; % # layers that are substrate material

@@ -66,7 +66,7 @@
     Features(end).dy   = 1;
     Features(end).dz   = 1;
     Features(end).Matl = 'Cu';
-    Features(end).Q    = 1000;
+    Features(end).Q    = '10*sin(15*t)';
 
     Features(5)=Features(1);
     Features(end).x    = [0 BarBas];
@@ -76,7 +76,7 @@
     Features(end).dy   = 1;
     Features(end).dz   = 1;
     Features(end).Matl = 'Cu';
-    Features(end).Q    = 1000;
+    Features(end).Q    = Features(end-1).Q;
 
     Features(6)=Features(1);
     Features(end).x    = [BarBas BarBas];
@@ -86,7 +86,7 @@
     Features(end).dy   = 1;
     Features(end).dz   = 1;
     Features(end).Matl = 'Cu';
-    Features(end).Q    = 1000;
+    Features(end).Q    = Features(end-1).Q;
 
     TestCaseModel.ExternalConditions=ExternalConditions;
     TestCaseModel.Features=Features;
