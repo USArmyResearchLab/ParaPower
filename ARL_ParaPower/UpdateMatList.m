@@ -21,7 +21,7 @@ function UpdateMatList(TableHandle, Ci, CloseImmediately)
     end
     
     M=getappdata(F,'Materials');
-    NewMatList=M.AllMatsList;
+    NewMatList=reshape(M.Material,[],length(M.Material));
 
     ColFormat=get(TableHandle,'columnformat');
     OldMatList=ColFormat{Ci};
