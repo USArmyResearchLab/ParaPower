@@ -72,6 +72,7 @@ Z0=[]; %Z coordinates with zero thickness
 %Go through features list and determine if it's a zero thickness in any
 %direction. Build up X, Y, Z list of coordinates and X0, Y0, Z0 which is
 %the special list that covers zero thickness features.
+
 for i=1:length(Features)
     Fd=Features(i).x;
     if isscalar(Fd)
@@ -182,7 +183,8 @@ for Fi=1:length(Features)
     end
 end
 
-%Apply materials for non-zero thickness elements
+
+%Apply Feature number for non-zero thickness elements
 for Fii=1:length(NonZeroThickness) 
     Fi=NonZeroThickness(Fii);
     InX=GetInXYZ(Features(Fi).x, X);
@@ -190,13 +192,15 @@ for Fii=1:length(NonZeroThickness)
     InZ=GetInXYZ(Features(Fi).z, Z);
     
     AllNaN=all(isnan(reshape(ModelMatrix(InX,InY,InZ),1,[])));
-    if not(AllNaN)
-        warning(['Some solid features overlap.  Behavior for this condition is undefined and may result in incorrect results. (Feature #' num2str(Fi) ')'])
-    end
+%     if not(AllNaN)
+%         warning(['Some solid features overlap.  Behavior for this condition is undefined and may result in incorrect results. (Feature #' num2str(Fi) ')'])
+%     end
     ModelMatrix(InX, InY, InZ)=Fi;
 end
 
-%Apply materials for zero-thickness elements
+
+
+%Apply Featur enumber for zero-thickness elements
 for Fii=1:length(ZeroThickness) 
     Fi=ZeroThickness(Fii);
     InX=GetInXYZ(Features(Fi).x, X);
@@ -204,9 +208,9 @@ for Fii=1:length(ZeroThickness)
     InZ=GetInXYZ(Features(Fi).z, Z);
     
     AllNaN=all(isnan(reshape(ModelMatrix(InX,InY,InZ),1,[])));
-    if not(AllNaN)
-        warning(['Some zero-thickness features overlap.  Behavior for this condition is undefined and may result in incorrect results. (Feature #' num2str(Fi) ')'])
-    end
+%     if not(AllNaN)
+%         warning(['Some zero-thickness features overlap.  Behavior for this condition is undefined and may result in incorrect results. (Feature #' num2str(Fi) ')'])
+%     end
     %Ensure that zero-thickness layer elements that are undefined as set to
     %the same mateiral as what is adjacent to eliminate discontinuities.
     %Change this predefine only for NaN elements.

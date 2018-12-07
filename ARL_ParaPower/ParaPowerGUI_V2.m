@@ -93,7 +93,7 @@ ClearGUI_Callback(handles.ClearGUI, eventdata, handles)
 %set(handles.ExtCondTable,'celleditcallback',DispNotice);
 
 
-%LogoAxes_CreateFcn(hObject, eventdata, handles)
+% %LogoAxes_CreateFcn(hObject, eventdata, handles)
 
 
 
@@ -108,19 +108,21 @@ function varargout = ParaPowerGUI_V2_OutputFcn(hObject, eventdata, handles)
 % Get default command line output from handles structure
 varargout{1} = handles.output;
 
+% 
+% % --- Executes on button press in visualize.
+% % function visualize_Callback(hObject, eventdata, handles)
+% % % hObject    handle to visualize (see GCBO)
+% % % eventdata  reserved - to be defined in a future version of MATLAB
+% % % handles    structure with handles and user data (see GUIDATA)
+% % 
+% % MI=getappdata(handles.figure1,'MI');
+% % 
+% % figure(2)
+% % 
+% % cla;Visualize ('', MI, 'modelgeom','ShowQ','ShowExtent')
+% % VisUpdateStatus(false)
 
-% --- Executes on button press in visualize.
-function visualize_Callback(hObject, eventdata, handles)
-% hObject    handle to visualize (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
 
-MI=getappdata(handles.figure1,'MI');
-
-figure(2)
-
-cla;Visualize ('', MI, 'modelgeom','ShowQ')
-VisUpdateStatus(false)
 %Removed as this seems to have been replaced by below without the capital "A"
 % % --- Executes on button press in AddFeature.
 % function AddFeature_Callback(hObject, eventdata, handles)
@@ -350,13 +352,13 @@ function loadbutton_Callback(hObject, eventdata, handles)
                tabledata(count,8)  = cellstr(Features(count).Matl);
                if ischar(Features(count).Q)
                     tabledata(count,9)  = {'Function(t)'};
-                    tabledata(count,10) = mat2cell(Features(count).Q,1,1);
+                    tabledata{count,10} = Features(count).Q;
                elseif isscalar(Features(count).Q)
                     tabledata(count,9)  = {'Scalar'};
-                    tabledata(count,10) = mat2cell(Features(count).Q,1,1);
+                    tabledata{count,10} = num2str(Features(count).Q);
                elseif isnumeric(Features(count).Q) && length(Features(count).Q(1,:))==2
                     tabledata(count,9)  = {'Table'};
-                    tabledata(count,10) = {TableShowDataText};
+                    tabledata{count,10} = TableShowDataText;
                     QData{count}=Features(count).Q;
                end
                tabledata(count,11) = mat2cell(Features(count).dx,1,1);
@@ -637,7 +639,10 @@ else
         end
         switch Qtype
             case 'scala'
-                QValue=str2double(QValue);
+                if ischar(QValue)
+                    QValue=str2double(QValue);
+                end
+                    
                 if QValue==0
                     Features(count).Q = 0;
                 else
@@ -708,7 +713,9 @@ else
     if KillInit
         AddStatusLine('Unable to execute model due to errors.')
     else
+        AddStatusLine('forming...',true)
         MI=FormModel(TestCaseModel);
+        AddStatusLine('storing...',true)
 
     %    axes(handles.GeometryVisualization);
     %    Visualize ('Model Input', MI, 'modelgeom','ShowQ')
@@ -722,7 +729,7 @@ else
 
         if Visual
             AddStatusLine('drawing...',true)
-            Visualize ('', MI, 'modelgeom','ShowQ')
+            Visualize ('', MI, 'modelgeom','ShowQ','ShowExtent')
             VisUpdateStatus(handles,false);
             AddStatusLine('Done',true)
             drawnow
@@ -1041,6 +1048,7 @@ function AddStatusLine(textline,AddToLastLine)
             set(Hstat,'value',length(NewText(:,1)))
         end
     end
+    drawnow
     
 function VisUpdateStatus(handles, NeedsUpdate)
     %handles=guidata(gcf);
