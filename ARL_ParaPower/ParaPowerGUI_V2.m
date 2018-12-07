@@ -26,7 +26,7 @@ function varargout = ParaPowerGUI_V2(varargin)
 
 % Edit the above text to modify the response to help ParaPowerGUI_V2
 
-% Last Modified by GUIDE v2.5 29-Nov-2018 11:34:19
+% Last Modified by GUIDE v2.5 07-Dec-2018 14:35:47
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -71,7 +71,7 @@ guidata(hObject, handles);
 TimeStep_Callback(hObject, eventdata, handles)
 TableHandle=handles.features;
 
-UpdateMatList(TableHandle, MatListCol, 'Do Not Open Mat Dialog Box')
+UpdateMatList(TableHandle,FTC('mat'), 'Do Not Open Mat Dialog Box')
 % UIWAIT makes ParaPowerGUI_V2 wait for user response (see UIRESUME)
 % uiwait(handles.figure1);
 AddStatusLine('ClearStatus')
@@ -141,22 +141,30 @@ function addfeature_Callback(hObject, eventdata, handles)
 % hObject    handle to addfeature (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-    x = get(handles.features,'Data');
-    EmptyRow=EmptyFeatureRow;
-    if isempty(x)
-        x=EmptyRow;
-    else
-        x(end+1,:)=EmptyRow;
-    end
+    TableData = get(handles.features,'Data');
     QData=getappdata(gcf,TableDataName);
-    QData{length(x(:,1))}=[];
+    EmptyRow=EmptyFeatureRow;
+    if isempty(TableData)
+        TableData=EmptyRow;
+    else
+        InsertRows=find(cell2mat(TableData(:,FTC('check')))==true);
+        if isempty(InsertRows)
+            TableData(end+1,:)=EmptyRow;
+            QData{length(TableData(:,1))}=[];
+        else
+            for Irow=InsertRows(end:-1:1)
+                TableData(Irow+1:end+1,:)=TableData(Irow:end,:);
+                TableData(Irow,:)=EmptyFeatureRow;
+                QData(Irow+1:end+1)=QData(Irow:end);
+            end
+        end
+    end
     
-    set(handles.features,'Data',x)
+    set(handles.features,'Data',TableData)
     setappdata(gcf,TableDataName,QData);
 
     VisUpdateStatus(handles,true);
-
-
+    
 % --- Executes during object creation, after setting all properties.
 function Tinit_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to Tinit (see GCBO)
@@ -170,9 +178,9 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 
 function E=EmptyFeatureRow
-    E{1,12}=[];
-    E{QValueCol}='0';
-    E{QTypeCol}='Scalar';
+    E{1,FTC('NumCols')}=[];
+    E{FTC('QVal')}='0';
+    E{FTC('QType')}='Scalar';
 
 
 % --- Executes during object creation, after setting all properties.
@@ -342,27 +350,28 @@ function loadbutton_Callback(hObject, eventdata, handles)
 
            for count = 1: n 
                 %FEATURESTABLE
-               tabledata(count,1)  = {false};
-               tabledata(count,2)  = mat2cell(Features(count).x(1),1,1);
-               tabledata(count,3)  = mat2cell(Features(count).y(1),1,1);
-               tabledata(count,4)  = mat2cell(Features(count).z(1),1,1);
-               tabledata(count,5)  = mat2cell(Features(count).x(2),1,1);
-               tabledata(count,6)  = mat2cell(Features(count).y(2),1,1);
-               tabledata(count,7)  = mat2cell(Features(count).z(2),1,1);
-               tabledata(count,8)  = cellstr(Features(count).Matl);
+               tabledata(count,FTC('check'))  = {false};
+               tabledata(count,FTC('x1'))  = mat2cell(Features(count).x(1),1,1);
+               tabledata(count,FTC('y1'))  = mat2cell(Features(count).y(1),1,1);
+               tabledata(count,FTC('z1'))  = mat2cell(Features(count).z(1),1,1);
+               tabledata(count,FTC('x2'))  = mat2cell(Features(count).x(2),1,1);
+               tabledata(count,FTC('y2'))  = mat2cell(Features(count).y(2),1,1);
+               tabledata(count,FTC('z2'))  = mat2cell(Features(count).z(2),1,1);
+               tabledata(count,FTC('mat'))  = cellstr(Features(count).Matl);
                if ischar(Features(count).Q)
-                    tabledata(count,9)  = {'Function(t)'};
-                    tabledata{count,10} = Features(count).Q;
+                    tabledata(count,FTC('qtype'))  = {'Function(t)'};
+                    tabledata{count,FTC('qval')} = Features(count).Q;
                elseif isscalar(Features(count).Q)
-                    tabledata(count,9)  = {'Scalar'};
-                    tabledata{count,10} = num2str(Features(count).Q);
+                    tabledata(count,FTC('qtype'))  = {'Scalar'};
+                    tabledata{count,FTC('qval')} = num2str(Features(count).Q);
                elseif isnumeric(Features(count).Q) && length(Features(count).Q(1,:))==2
-                    tabledata(count,9)  = {'Table'};
-                    tabledata{count,10} = TableShowDataText;
+                    tabledata(count,FTC('qtype'))  = {'Table'};
+                    tabledata{count,FTC('qval')} = TableShowDataText;
                     QData{count}=Features(count).Q;
                end
-               tabledata(count,11) = mat2cell(Features(count).dx,1,1);
-               tabledata(count,12) = mat2cell(Features(count).dz,1,1);
+               tabledata(count,FTC('divx')) = mat2cell(Features(count).dx,1,1);
+               tabledata(count,FTC('divy')) = mat2cell(Features(count).dy,1,1);
+               tabledata(count,FTC('divz')) = mat2cell(Features(count).dz,1,1);
            end 
 
            set(handles.features,'Data',tabledata)
@@ -502,7 +511,7 @@ function AddMaterial_Callback(hObject, eventdata, handles)
 
 TableHandle=handles.features;
 
-UpdateMatList(TableHandle, MatListCol)
+UpdateMatList(TableHandle,FTC('mat'))
 
 
 % --- Executes on button press in Initialize.
@@ -533,7 +542,7 @@ x=2;
 
 
 FeaturesMatrix = get(handles.features,'Data');
-FeaturesMatrix = FeaturesMatrix(:,2:end);
+%FeaturesMatrix = FeaturesMatrix(:,2:end);  %Changed to abstracting column numbers
 ExtBoundMatrix = get(handles.ExtCondTable,'Data');
 for K=1:length(ExtBoundMatrix(:))
     if isempty(ExtBoundMatrix{K})
@@ -615,23 +624,23 @@ else
         %to ensure a heat source at a certain layer or a certain discretization.
         %FEATURESTABLE
  
-        Features(count).x  =  [FeaturesMatrix{count, 1} FeaturesMatrix{count, 4}];  % X Coordinates of edges of elements
-        Features(count).y =   [FeaturesMatrix{count, 2} FeaturesMatrix{count, 5}];  % y Coordinates of edges of elements
-        Features(count).z =   [FeaturesMatrix{count, 3} FeaturesMatrix{count, 6}]; % Height in z directions
+        Features(count).x  =  [FeaturesMatrix{count, FTC('x1')} FeaturesMatrix{count, FTC('x2')}];  % X Coordinates of edges of elements
+        Features(count).y =   [FeaturesMatrix{count, FTC('y1')} FeaturesMatrix{count, FTC('y2')}];  % y Coordinates of edges of elements
+        Features(count).z =   [FeaturesMatrix{count, FTC('z1')} FeaturesMatrix{count, FTC('z2')}]; % Height in z directions
 
         %These define the number of elements in each features.  While these can be 
         %values from 2 to infinity, only odd values ensure that there is an element
         %at the center of each features
 
-        Features(count).dx =  FeaturesMatrix{count, 10}; %Number of divisions/feature in X
-        Features(count).dy =  FeaturesMatrix{count, 10}; %Number of divisions/feature in Y
-        Features(count).dz =  FeaturesMatrix{count, 11}; %Number of divisions/feature in Z (layers)
+        Features(count).dx =  FeaturesMatrix{count, FTC('divx')}; %Number of divisions/feature in X
+        Features(count).dy =  FeaturesMatrix{count, FTC('divy')}; %Number of divisions/feature in Y
+        Features(count).dz =  FeaturesMatrix{count, FTC('divz')}; %Number of divisions/feature in Z (layers)
 
 
         
-        Features(count).Matl = FeaturesMatrix{count, 7}; %Material text as defined in matlibfun
-        QValue=FeaturesMatrix{count, QValueCol-1};
-        Qtype=FeaturesMatrix{count, QTypeCol-1};
+        Features(count).Matl = FeaturesMatrix{count, FTC('mat')}; %Material text as defined in matlibfun
+        QValue=FeaturesMatrix{count, FTC('qval')};
+        Qtype=FeaturesMatrix{count, FTC('qtype')};
         Qtype=lower(Qtype(1:5));
         FindEps=0;
         for I=1:length(QData)
@@ -689,7 +698,7 @@ else
                     Features(count).Q = QValue;
                 end
             otherwise
-                AddStatusLine(['Unknown Q type "' FeaturesMatrix{count, QTypeCol} '"' ] )
+                AddStatusLine(['Unknown Q type "' FeaturesMatrix{count, FTC('qtype')} '"' ] )
                 KillInit=1;
         end
                     
@@ -751,7 +760,7 @@ if length(QData)<length(data(:,1))
 	QData{length(data(:,1))}=[];
 end
 for I=length(data(:,1)):-1:1
-    if data{I,1}
+    if data{I,FTC('checked')}
         data =[data(1:I-1,:); data(I+1:end,:)];
         QData=[QData(1:I-1)  QData(I+1:end)];
     end
@@ -1165,6 +1174,14 @@ function TableOpenClose(Action,SourceTableHandle, Index)
         for I=1:length(ChildHandles)
             set(ChildHandles(I),'vis',ChildStates{I});
         end
+    elseif strcmpi(Action,'cancel')
+        Index=get(FrameHandle,'userdata');
+        C_States=getappdata(gcf,'ChildVisState');
+        ChildHandles=C_States{1};
+        ChildStates=C_States{2};
+        for I=1:length(ChildHandles)
+            set(ChildHandles(I),'vis',ChildStates{I});
+        end
     end
     
 % --- Executes on button press in TableAddRow.
@@ -1242,13 +1259,6 @@ function TableTable_CellEditCallback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 TableGraph(hObject)
 
-function v=QValueCol
-    v=10;
-function v=QTypeCol
-    v=9;
-function v=MatListCol
-    v=8;
-
 % --- Executes when selected cell(s) is changed in features.
 function features_CellSelectionCallback(hObject, eventdata, handles)
 % hObject    handle to features (see GCBO)
@@ -1259,7 +1269,7 @@ function features_CellSelectionCallback(hObject, eventdata, handles)
     Row=eventdata.Indices(1);
     Col=eventdata.Indices(2);
     Table=get(hObject, 'Data');
-    if Col==QValueCol && strcmpi(Table{Row,QValueCol},TableShowDataText)
+    if Col==FTC('QVal') && strcmpi(Table{Row,FTC('QVal')},TableShowDataText)
         TempData=get(hObject,'data');
         set(hObject,'data',[])        % Clear selected cell hack by deleting 
         set(hObject,'data',TempData)  % data and then reinstating data.
@@ -1282,21 +1292,21 @@ VisUpdateStatus(handles, true)
 Row=eventdata.Indices(1);
 Col=eventdata.Indices(2);
 %CellTableData=get(hObject,'userdata');
-if Col==QTypeCol
+if Col==FTC('QType')
     %disp('changing Q Type')
     Table=get(hObject,'data');
     if strcmpi(eventdata.NewData,'Table')
-        Table{Row,QValueCol}=TableShowDataText;
+        Table{Row,FTC('QVal')}=TableShowDataText;
 %        CellTableData{Row}=[0 0];
     else
-        Table{Row,QValueCol}=[];
+        Table{Row,FTC('QVal')}=[];
 %        CellTableData{Row}=[];
     end
     set(hObject,'Data',Table);
  %   set(hObject,'userdata',CellTableData);
-elseif Col==QValueCol
+elseif Col==FTC('QType')
     if strcmpi(eventdata.PreviousData,TableShowDataText)
-        Table{Row,QValueCol}=TableShowDataText;
+        Table{Row,FTC('QVal')}=TableShowDataText;
         set(hObject,'Data',Table);
     end
 end
@@ -1343,11 +1353,11 @@ function AnalysisType_SelectionChangedFcn(hObject, eventdata, handles)
 % Initialize_Callback, DeleteFeature_Callback.                  %
 %                                                               %
 % The tables are coded with widgets that begin with "Table" in  %
-% their tags.  The functions function QValueCol, QTypeCol, and  %
-% MatListCol identify the column numbers in the host table that %
-% the Q value data tables interact with and MUST be updated if  %
-% host table (features) changes structure. A handle to the      %
-% source table is stored in getappdata(gcf,'SourceTableHandle').%
+% their tags.  The function FTC('') is used to ID colums in the %
+% host table that the Q value data tables interact with and     %
+% MUST be updated if host table (features) changes structure. A %
+% handle to the source table is stored in                       % 
+% getappdata(gcf,'SourceTableHandle').                          %
 % This handle is stored dynamically and does not need to be     %
 % managed by the programmer.                                    %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1374,3 +1384,118 @@ function StatusWindow_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
+
+function NumCol=FTC(ColDescr)
+    switch lower(ColDescr)
+        case 'check'
+            NumCol=1;
+        case 'x1'
+            NumCol=2;
+        case 'x2'
+            NumCol=3;
+        case 'y1'
+            NumCol=4;
+        case 'y2'
+            NumCol=5;
+        case 'z1'
+            NumCol=6;
+        case 'z2'
+            NumCol=7;
+        case 'mat'
+            NumCol=8;
+        case 'qtype'
+            NumCol=9;
+        case 'qval'
+            NumCol=10;
+        case 'divx'
+            NumCol=11;
+        case 'divy'
+            NumCol=11;
+        case 'divz'
+            NumCol=12;
+        case 'desc'
+            NumCol=13;
+        case 'numcols'
+            NumCol=13;  %This is the maximum number of columns
+        otherwise
+            NumCol=nan;
+    end
+            
+% --- Executes on button press in MoveUp.
+function MoveUp_Callback(hObject, eventdata, handles)
+% hObject    handle to MoveUp (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+    TableData = get(handles.features,'Data');
+    NumRows=length(TableData(:,1));
+    QData=getappdata(gcf,TableDataName);
+    if length(QData)<NumRows
+        QData{NumRows}=[];
+    end
+    MoveRows=find(cell2mat(TableData(:,FTC('check')))==true);
+    if not(isempty(TableData)) && not(isempty(MoveRows))
+        if min(MoveRows)==1
+            AddStatusLine('Can''t move first row up')
+        else
+            NewTable=TableData;
+            NewQData=QData;
+            for Irow=MoveRows
+                NewTable(Irow-1,:)=TableData(Irow,   :);
+                NewTable(Irow  ,:)=TableData(Irow-1, :);
+                TableData=NewTable;
+                NewQData(Irow-1)=QData(Irow);
+                NewQData(Irow)  =QData(Irow-1);
+                QData=NewQData;
+            end
+        end
+    end
+    set(handles.features,'Data',TableData)
+    setappdata(gcf,TableDataName,QData);
+
+    VisUpdateStatus(handles,true);
+
+% --- Executes on button press in MoveDown.
+function MoveDown_Callback(hObject, eventdata, handles)
+% hObject    handle to MoveDown (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+    TableData = get(handles.features,'Data');
+    NumRows=length(TableData(:,1));
+    QData=getappdata(gcf,TableDataName);
+    if length(QData)<NumRows
+        QData{NumRows}=[];
+    end
+    MoveRows=find(cell2mat(TableData(:,FTC('check')))==true);
+    if not(isempty(TableData)) && not(isempty(MoveRows))
+        if min(MoveRows)==length(TableData(:,1))
+            AddStatusLine('Can''t move last row down')
+        else
+            NewTable=TableData;
+            NewQData=QData;
+            for Irow=MoveRows
+                NewTable(Irow+1,:)=TableData(Irow,   :);
+                NewTable(Irow  ,:)=TableData(Irow+1, :);
+                TableData=NewTable;
+                NewQData(Irow+1)=QData(Irow);
+                NewQData(Irow)  =QData(Irow+1);
+                QData=NewQData;
+            end
+        end
+    end
+    set(handles.features,'Data',TableData)
+    setappdata(gcf,TableDataName,QData);
+
+    VisUpdateStatus(handles,true);
+
+
+% --- Executes on button press in TableCancel.
+% --- Executes on button press in TableClose.
+function TableCancel_Callback(hObject, eventdata, handles)
+% hObject    handle to TableClose (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+TableOpenClose('cancel')
+set(get(hObject,'parent'),'visible','off')
+% hObject    handle to TableCancel (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
