@@ -1,4 +1,4 @@
-function [kondl,rhol,sphtl,Lw,Tm,PH,PH_init] = PCM_init(ModelInput)
+function [kondl,rhol,sphtl,Lw,Tm,PH,PH_init] = PCM_init(ModelInput,Mat)
 %function [isPCM,kondl,rhol,sphtl,Lw,Tm,PH,PH_init] = PCM_init(Mat,matprops,Num_Row,Num_Col,Num_Lay,steps)
 %Initializes property pointers and dof vectors that are relevant for phase
 %change
@@ -10,6 +10,6 @@ sphtl = ModelInput.MatLib.cp_l; %solid volumetric heat (volumetric form of speci
 Lw = ModelInput.MatLib.lf; %Latent heat of fusion
 Tm = ModelInput.MatLib.tmelt; %Melting point of material, in degrees C
 
-PH = zeros(nnz(ModelInput.Model>0),length(ModelInput.GlobalTime)); %percent melted of a given node
-PH_init=zeros(nnz(ModelInput.Model>0),1);
+PH = zeros(nnz(Mat>0),length(ModelInput.GlobalTime)); %percent melted of a given node
+PH_init=zeros(nnz(Mat>0),1);
 end
