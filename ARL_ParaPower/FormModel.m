@@ -141,6 +141,8 @@ DeltaCoord.X=X(2:end)-X(1:end-1);
 DeltaCoord.Y=Y(2:end)-Y(1:end-1);
 DeltaCoord.Z=Z(2:end)-Z(1:end-1);
 
+OriginPoint=[min(X) min(Y) min(Z)]; %Record minimum absolute coords of X Y and Z
+
 Params.Tsteps=floor(Params.Tsteps);
 
 %Create model matrix that will hold material/feature number for each delta coord
@@ -200,7 +202,7 @@ end
 
 
 
-%Apply Featur enumber for zero-thickness elements
+%Apply Feature number for zero-thickness elements
 for Fii=1:length(ZeroThickness) 
     Fi=ZeroThickness(Fii);
     InX=GetInXYZ(Features(Fi).x, X);
@@ -319,6 +321,7 @@ ModelMatrix(isnan(ModelMatrix))=MatNum;
 %[NR, NC, NL]=size(ModelMatrix);
 GlobalTime = uniquetol(GlobalTime, 10*eps(max(GlobalTime)));
 
+ModelInput.OriginPoint=OriginPoint; %Minimum absolute coordinates for X, Y and Z
 ModelInput.h=h;
 ModelInput.Ta=Ta;
 ModelInput.X=DeltaCoord.X;

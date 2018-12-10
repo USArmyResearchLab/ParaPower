@@ -69,7 +69,7 @@ function Visualize (PlotTitle, MI, varargin)
     PlotParms.PlotAxes=true;
     PlotParms.TwoD={};
     PlotParms.ShowExtent=false;
-    MinCoord=[0 0 0];
+    MinCoord=MI.OriginPoint;
     ColorTitle='';
     PlotState=[];
     Q=[];

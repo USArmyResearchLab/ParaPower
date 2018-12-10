@@ -179,6 +179,7 @@ end
 
 function E=EmptyFeatureRow
     E{1,FTC('NumCols')}=[];
+    E{FTC('Check')}=false;
     E{FTC('QVal')}='0';
     E{FTC('QType')}='Scalar';
 
@@ -659,6 +660,9 @@ else
                 end
             case 'table'
                 Table=QData{count};
+                if isempty(Table)
+                    Table=[0 0];
+                end
                 MakeUnique=eps(FindEps)*2; %Use a value of 3 * epsilon to add to the time steps
                 DeltaT=Table(2:end,1)-Table(1:end-1,1);
                 if min(DeltaT(DeltaT~=0)) < eps(FindEps)*9
@@ -760,7 +764,7 @@ if length(QData)<length(data(:,1))
 	QData{length(data(:,1))}=[];
 end
 for I=length(data(:,1)):-1:1
-    if data{I,FTC('checked')}
+    if data{I,FTC('check')}
         data =[data(1:I-1,:); data(I+1:end,:)];
         QData=[QData(1:I-1)  QData(I+1:end)];
     end
