@@ -4,6 +4,7 @@
 %control geometry for the all timesteps
        
 function [Tres,ModelInput,PHres] = ParaPowerThermal(ModelInput)
+time_thermal = tic; %start recording time taken to do bulk of analysis
 
 %% Initialization
 
@@ -17,8 +18,11 @@ Q=ModelInput.Q;
 T_init=ModelInput.Tinit;
 GlobalTime=ModelInput.GlobalTime;
 
-hint=[];
-Ta_void=[];
+rollcall=unique(Mat);
+rollcall=rollcall(rollcall>0); %cant index zero or negative mat numbers
+
+
+        
 
 % This program uses the resistance network concept to solve for the
 % temperatures and stresses due to CTE mismatch in an electronic component
@@ -27,7 +31,7 @@ if not(strcmpi(ModelInput.Version,'V2.0'))
     error(['Incorrect ModelInput version.  V2.0 required, this data is ' ModelInput.Version]);
 end
 
-time_thermal = tic; %start recording time taken to do bulk of analysis
+
 
 kond = ModelInput.MatLib.k; %Thermal conductivity of the solid
 rho = ModelInput.MatLib.rho; %density of the solid state
@@ -41,6 +45,22 @@ K(Mat ~=0 ) = kond(Mat(Mat~=0));
 CP(Mat ~=0) = spht(Mat(Mat~=0));
 RHO(Mat ~=0) = rho(Mat(Mat~=0));
 
+
+
+%% Voids Setup Hook
+vmatnum=rollcall(strcmp(ModelInput.MatLib.Type(rollcall),'IBC'));
+hint=zeros(1,length(vmatnum));
+Ta_void=hint;
+
+for vn=1:length(vmatnum)
+    %set Mat entries corresponding to voids to negative numbers per legacy
+    %definition.  Initialize parameters
+    hint(vn)=ModelInput.MatLib.h_ibc(vmatnum(vn));
+    Ta_void(vn)=ModelInput.MatLib.T_ibc(vmatnum(vn));
+    Mat(Mat==vmatnum(vn))=-vn;
+end
+
+%% Variable Q and State Initialization
 Qmask=~cellfun('isempty',Q(:));  %return logical mask with ones where Qs are def
 
 %Indicator for static analysis, if steps is empty. Form Q vectors.
@@ -77,17 +97,14 @@ T=zeros(nnz(Mat>0),length(GlobalTime)); % Temperature DOF vector
 T(:,1)=T_init;
 Tres=zeros(numel(Mat),length(GlobalTime)); % Nodal temperature results
 
-
+%% Phase Change Setup Hook
 PHres=Tres;
 %[isPCM,kondl,rhol,sphtl,Lw,Tm,PH,PH_init] = PCM_init(Mat,matprops,Num_Row,Num_Col,Num_Lay,steps);
-[kondl,rhol,sphtl,Lw,Tm,PH,PH_init] = PCM_init(ModelInput);
+[kondl,rhol,sphtl,Lw,Tm,PH,PH_init] = PCM_init(ModelInput,Mat);
 PH(:,1)=PH_init;
 Lv=(rho+rhol)/2 .* Lw;  %generate volumetric latent heat of vap using average density
 %should we have a PH_init?
-rollcall=unique(Mat);
-rollcall=rollcall(rollcall>0); %cant index zero or negative mat numbers
 meltable=any(strcmp(ModelInput.MatLib.Type(rollcall),'PCM'));
-
 
 
 %% Build Adjacency and Conductance Matrices

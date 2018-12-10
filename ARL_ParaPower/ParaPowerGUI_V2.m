@@ -903,11 +903,8 @@ TimeStepOutput = get(handles.slider1,'Value'); %value between 0 and 1 from the s
 
 
 NumStep =str2num(get(handles.NumTimeSteps,'String')); %total number of time steps
-StateN=round(NumStep*TimeStepOutput,0); %time step of interest 
+StateN=1+round(NumStep*TimeStepOutput,0); %time step of interest 
 
-if TimeStepOutput==0
-    StateN=1;
-end
 if get(handles.VisualTemp,'Value')==1
     if isempty(Tprnt)
         AddStatusLine('No temperature solution exists.')
@@ -915,7 +912,7 @@ if get(handles.VisualTemp,'Value')==1
        numplots = numplots+1;
        figure(numplots)
        pause(.001)
-       Visualize(sprintf('t=%1.2f ms, State: %i of %i',StateN*MI.DeltaT*1000, StateN,length(Tprnt(1,1,1,:))),MI ...
+       Visualize(sprintf('t=%1.2f ms, State: %i of %i',MI.GlobalTime(StateN)*1000, StateN,length(Tprnt(1,1,1,:))),MI ...
        ,'state', Tprnt(:,:,:,StateN), 'RemoveMaterial',[0] ...
        ,'scaletitle', 'Temperature' ...
        )                      
@@ -929,7 +926,7 @@ if get(handles.VisualStress,'Value')==1
        numplots =numplots+1;
        figure(numplots)
        pause(.001)
-       Visualize(sprintf('t=%1.2f ms, State: %i of %i',StateN*MI.DeltaT*1000, StateN,length(Stress(1,1,1,:))),MI ...
+       Visualize(sprintf('t=%1.2f ms, State: %i of %i',MI.GlobalTime(StateN)*1000, StateN,length(Stress(1,1,1,:))),MI ...
        ,'state', Stress(:,:,:,StateN) ...
        ,'scaletitle', 'Stress' ...
        )                      
@@ -942,7 +939,7 @@ if get(handles.VisualMelt,'Value')==1
     else
        figure(numplots+1)
        pause(.001)
-       Visualize(sprintf('t=%1.2f ms, State: %i of %i',StateN*MI.DeltaT*1000, StateN,length(MeltFrac(1,1,1,:))),MI ...
+       Visualize(sprintf('t=%1.2f ms, State: %i of %i',MI.GlobalTime(StateN)*1000, StateN,length(MeltFrac(1,1,1,:))),MI ...
        ,'state', MeltFrac(:,:,:,StateN) ...
        ,'scaletitle', 'Melt Fraction' ...
        )                      
