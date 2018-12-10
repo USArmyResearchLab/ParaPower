@@ -19,6 +19,8 @@ function Visualize (PlotTitle, MI, varargin)
 %   TransMaterial=[] - List of materials to make transparent, value is array of mat numbers that should be transparent
 %   MinCoord=[0 0 0] - Set of model origin (minimum of X, Y & Z), value is a 3 element vecotr that identifies minimum (X,Y,Z) of model
 %   NoAxis - Do not plot the axes (they help maintain aspect ration in the plot), no value, this is a flag to remove the axes
+%   RemoveMaterial=[0] - Materials to remove entirely from display
+%   ShowExtent=false - Show extent of the model by a box
 %
 %To Do Features:
 %  X cross section
@@ -56,16 +58,20 @@ function Visualize (PlotTitle, MI, varargin)
     Ta=MI.Ta;
     matlist=MI.MatLib.Material;
 
+    
+    %Note that any PlotParms field ending in 'Matl' will have negative
+    %materials swapped for their positive counterparts
     PlotParms.RemoveMatl=[0];
+    PlotParms.EdgeOnlyMatl=[];
     PlotParms.TransMatl=[];
     PlotParms.Transparency=0.5;
     PlotParms.EdgeColor=[];
-    PlotParms.EdgeOnlyMat=[];
     PlotParms.PlotAxes=true;
     PlotParms.TwoD={};
+    PlotParms.ShowExtent=false;
     MinCoord=[0 0 0];
     ColorTitle='';
-    PlotState=ModelMatrix;
+    PlotState=[];
     Q=[];
     Qt=0; %Time at which Q will be evaluated
 
@@ -98,10 +104,10 @@ function Visualize (PlotTitle, MI, varargin)
                 PlotState=Value;
             case strleft('removematerial',Pl)
                 [Value, PropValPairs]=Pop(PropValPairs); 
-                PlotParms.RemoveMatl=[PlotParms.RemoveMatl Value];
+                PlotParms.RemoveMatl=Value;
             case strleft('edgeonlymaterial',Pl)
                 [Value, PropValPairs]=Pop(PropValPairs); 
-                PlotParms.EdgeOnlyMat=Value;
+                PlotParms.EdgeOnlyMatl=Value;
             case strleft('transmaterial',Pl)
                 [Value, PropValPairs]=Pop(PropValPairs); 
                 PlotParms.TransMatl=Value;
@@ -115,9 +121,11 @@ function Visualize (PlotTitle, MI, varargin)
                     Qt=Value;
                 end
                 Q=MI.Q;
+            case strleft('showextent',Pl)
+                PlotParms.ShowExtent=true;
             case strleft('noaxes',Pl)
                 PlotParms.PlotAxes=false;
-            case strleft('edgeColor',Pl)
+            case strleft('edgecolor',Pl)
                 [Value, PropValPairs]=Pop(PropValPairs); 
                 PlotParms.EdgeColor=Value;
             case strleft('mincoord',Pl)
@@ -135,11 +143,43 @@ function Visualize (PlotTitle, MI, varargin)
     end
     
     Direx=FormModel('GetDirex');
-    
-    if ~all(size(PlotState)==size(ModelMatrix))
-        error('The dimensions of the plotstate provided do not match the dimensions of the model.')
+
+
+    %Check for negative mat numbers and if present map into new matnumber
+    %iwth high number and inform of deprecation
+    if min(ModelMatrix(:))<=0
+        if min(ModelMatrix(:))<0
+            disp('Negative material numbers are present that represent voids.')
+            disp('While currently permitted, this functionality is deprecated')
+            disp('and will be removed in a future release.  Voids are now handled')
+            disp('using a material of type ''IBC.''')
+        end
+        VoidMaterials=unique(ModelMatrix(:));
+        MaxMaterial=max(VoidMaterials(:));
+        VoidMaterials=VoidMaterials(VoidMaterials<=0); %Extract all materials less than zero.
+        for Vmat=reshape(VoidMaterials,1,[]);
+            MaxMaterial=MaxMaterial+1;
+            ModelMatrix(ModelMatrix==Vmat)=MaxMaterial;
+            if Vmat==0
+                matlist{MaxMaterial}='Empty';
+            else
+                matlist{MaxMaterial}=sprintf('Void %1.0f',Vmat);
+            end
+            if Vmat < 0
+                fprintf('  Mapping void material %1.0f to %1.0f.\n',Vmat,MaxMaterial);
+            end
+            Fields=fieldnames(PlotParms);
+            for Fi=1:length(Fields)
+                ThisField=Fields{Fi};
+                L=findstr(lower(ThisField),lower('Matl'));
+                if not(isempty(L)) && ((length(ThisField)-L)==3)
+                    Value=getfield(PlotParms,ThisField);
+                    Value(Value==Vmat)=MaxMaterial;
+                    PlotParms=setfield(PlotParms,ThisField,Value);
+                end
+            end
+        end
     end
-        
 
     %Visualization of defined model
 
@@ -147,9 +187,19 @@ function Visualize (PlotTitle, MI, varargin)
     Y=[MinCoord(2) MinCoord(2) + cumsum(DeltaCoord{2})];
     Z=[MinCoord(3) MinCoord(3) + cumsum(DeltaCoord{3})];
 
+    if isempty(PlotState)
+        PlotState=ModelMatrix;
+    end
+        
+    if ~all(size(PlotState)==size(ModelMatrix))
+        error('The dimensions of the plotstate provided do not match the dimensions of the model.')
+    end
+        
     if PlotGeom
         ColorList=unique(PlotState(:));  
-        ColorList=ColorList(ColorList~=0);
+        for Ci=1:length(PlotParms.RemoveMatl)
+            ColorList=ColorList(ColorList~=PlotParms.RemoveMatl(Ci));
+        end
         CM=colormap(parula(length(ColorList)));
         ValMin=1;
         ValRange=length(ColorList);
@@ -228,7 +278,7 @@ function Visualize (PlotTitle, MI, varargin)
                                 F=[F patch('faces',[1 2 3 4],'vertices',P,'facecolor',CM(ThisColor,:),'FaceAlpha',FaceAlpha)];
                             end
                         end
-                        if ~isempty(find(ModelMatrix(Xi,Yi,Zi) == PlotParms.EdgeOnlyMat, 1))
+                        if ~isempty(find(ModelMatrix(Xi,Yi,Zi) == PlotParms.EdgeOnlyMatl, 1))
                             set(F,'EdgeColor',get(F(1),'facecolor'));
                             set(F,'facecolor','none');
                         end
@@ -324,16 +374,38 @@ function Visualize (PlotTitle, MI, varargin)
     set(gca,'visi','on')
     %Display axes in green.
     if PlotParms.PlotAxes
-        Xmax=max(max([X Y Z]))*1.1;
+        Xmax=max(max([X Y Z])-min([X Y Z]))*1.1;
         Ymax=Xmax;
         Zmax=Xmax; %max(Z)*1.1;
-        L(1)=line([0 Xmax],[0 0],[0 0]);
-        L(2)=line([0 0],[0 Ymax],[0 0]);
-        L(3)=line([0 0],[0 0],[0 Zmax]);
+        L(1)=line([min(X) Xmax], [1 1]*min(Y) , [1 1]*min(Z));
+        L(2)=line([1 1]*min(X) , [min(Y) Ymax], [1 1]*min(Z));
+        L(3)=line([1 1]*min(X) , [1 1]*min(Y) , [min(Z) Zmax]);
         set(L,'color',[0 1 0], 'linewidth',2)
         text(Xmax,0,0,'X');
         text(0,Ymax,0,'Y');
         text(0,0,Zmax,'Z');
+    end
+    
+    if PlotParms.ShowExtent
+        Delta=(max([X(:); Y(:); Z(:)])-min([X(:); Y(:); Z(:)]))*10^(-4);
+        Nx=min(X)-Delta;
+        Mx=max(X)+Delta;
+        Ny=min(Y)-Delta;
+        My=max(Y)+Delta;
+        Nz=min(Z)-Delta;
+        Mz=max(Z)+Delta;
+        Ptch(1)=patch([Nx Nx Mx Mx], [Ny My My Ny], [1 1 1 1]*Nz,1);
+        Ptch(2)=patch([Nx Nx Mx Mx], [Ny My My Ny], [1 1 1 1]*Mz,1);
+        Ptch(3)=patch([1 1 1 1]*Nx,  [Ny My My Ny], [Nz Nz Mz Mz],1);
+        Ptch(4)=patch([1 1 1 1]*Mx,  [Ny My My Ny], [Nz Nz Mz Mz],1);
+        Ptch(5)=patch([Nx Nx Mx Mx], [1 1 1 1]*Ny,  [Nz Mz Mz Nz],1);
+        Ptch(6)=patch([Nx Nx Mx Mx], [1 1 1 1]*My,  [Nz Mz Mz Nz],1);
+        if not(isempty(PlotParms.EdgeColor))
+            set(Ptch,'edgecolor',PlotParms.EdgeColor)
+        end
+        set(Ptch,'facecolor',[0 0 0]);
+        set(Ptch,'facealpha',.05);
+        
     end
 
     hold off
@@ -359,7 +431,10 @@ function Visualize (PlotTitle, MI, varargin)
         Scale=linspace(0,1,11);
         set(CB,'ticks',Scale);
         set(CB,'ticklabels',linspace(ValMin,ValMin+ValRange,length(Scale)));
+        caxis([0 1])
     else
+        %ColorListOrig=ColorList;
+        %ColorList=ColorList(ColorList~=0);
         NumColors=length(ColorList);
         if NumColors>1
             Offset=zeros(1,NumColors);
@@ -374,6 +449,7 @@ function Visualize (PlotTitle, MI, varargin)
             matlist{Mi}=sprintf('%s (%i)',matlist{Mi},Mi);
         end
         set(CB,'ticklabels',matlist(ColorList));
+        %ColorList=ColorListOrig;
     end
 %    Pos=get(CB,'position');
     %set(CB,'position',[1-Pos(3) Pos(2) Pos(3)*.5 Pos(4)]);

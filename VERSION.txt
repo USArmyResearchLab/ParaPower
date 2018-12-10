@@ -22,8 +22,10 @@ V3.0.0 - Complete GUI rewrite
 Features to Add
 1. Enable voids in solution
 2. In 'visualize' click different materials 'on' and 'off'
-3. Change text on "init" button to "Draw Model" or "Visualize" or something like that.
 4. Re-enable stress analysis
 5. Enable 'stop' button on GUI
-6. Enable time variant heating
-7. Enable Static solution
+6. Show full hexahedral domain in green outline or equiv
+7. Address the defined Q for features that are overwritten
+8. In feature table add buttons to insert/move up/move down
+9. Ensure potting material in testmodelcase structure is 0
+
