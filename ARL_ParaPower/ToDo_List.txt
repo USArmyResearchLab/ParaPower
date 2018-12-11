@@ -1,0 +1,24 @@
+Features to Add
+-------------------
+In 'visualize' click different materials 'on' and 'off'
+Re-enable stress analysis - there's now a stress function to be called.
+Enable 'stop' button on GUI
+Add 'Cancel' button to mat database
+Prettify results plots
+Error trap if Q is not increasing.
+Split X and Y divisions into separate columns
+
+
+Items Completed.
+------------------
+Q is NaN
+Visualization, materials sometimes only cover 1/2 the colorbar
+Address the defined Q for features that are overwritten
+Show full hexahedral domain in green outline or equiv
+Enable voids in solution
+Add 'Cancel' button to table view for Q
+In feature table add buttons to insert/move up/move down
+Visualization, space starts at 0
+Change sense of Q in visualize to match model
+Add feature descriptor
+Ensure Q as a table with repeated times works correctly.

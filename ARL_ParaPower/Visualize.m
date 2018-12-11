@@ -13,7 +13,9 @@ function Visualize (PlotTitle, MI, varargin)
 %   PlotParms.RemoveMaterial=[] - Which materials to remove from the plot, value is array of mat numbers
 %   EdgeOnlyMaterial=[] - Show only the edges of this material, value is array of mat numbers
 %   Transparency=0.5 - FaceAlpha value, 0-clear, 1-opaque, value is a scalar between 0 & 1
-%   ShowQ, time - Display Q on each face, no value, this is a flag and value.  If no value, then 0 is assumed
+%   ShowQ, time - Display Q on each face, no value, this is a flag and
+%   value.  If no value, then 0 is assumed.  Note that positive Q indicates
+%   a heat source.
 %   EdgeColor=[0 0 0] - Color of the edges ('none' or [R,G,B] value), value is color as 3x1 RGB array
 %   ModelGeometry - plot model geometry, no value, this is a flag to just plot model geometry
 %   TransMaterial=[] - List of materials to make transparent, value is array of mat numbers that should be transparent
@@ -21,6 +23,7 @@ function Visualize (PlotTitle, MI, varargin)
 %   NoAxis - Do not plot the axes (they help maintain aspect ration in the plot), no value, this is a flag to remove the axes
 %   RemoveMaterial=[0] - Materials to remove entirely from display
 %   ShowExtent=false - Show extent of the model by a box
+%   HideBC - Do not show H/Temp boundary conditions on plot
 %
 %To Do Features:
 %  X cross section
@@ -69,7 +72,8 @@ function Visualize (PlotTitle, MI, varargin)
     PlotParms.PlotAxes=true;
     PlotParms.TwoD={};
     PlotParms.ShowExtent=false;
-    MinCoord=MI.OriginPoint;
+    PlotParms.HideBC=false;
+    PlotParms.MinCoord=MI.OriginPoint;
     ColorTitle='';
     PlotState=[];
     Q=[];
@@ -130,7 +134,9 @@ function Visualize (PlotTitle, MI, varargin)
                 PlotParms.EdgeColor=Value;
             case strleft('mincoord',Pl)
                 [Value, PropValPairs]=Pop(PropValPairs); 
-                MinCoord=Value;
+                PlotParms.MinCoord=Value;
+            case strleft('hidebc',Pl)
+                PlotParms.HideBC=true;
             case strleft('modelgeometry',Pl)
                 h=MI.h;
                 Ta=MI.Ta;
@@ -183,9 +189,9 @@ function Visualize (PlotTitle, MI, varargin)
 
     %Visualization of defined model
 
-    X=[MinCoord(1) MinCoord(1) + cumsum(DeltaCoord{1})];
-    Y=[MinCoord(2) MinCoord(2) + cumsum(DeltaCoord{2})];
-    Z=[MinCoord(3) MinCoord(3) + cumsum(DeltaCoord{3})];
+    X=[PlotParms.MinCoord(1) PlotParms.MinCoord(1) + cumsum(DeltaCoord{1})];
+    Y=[PlotParms.MinCoord(2) PlotParms.MinCoord(2) + cumsum(DeltaCoord{2})];
+    Z=[PlotParms.MinCoord(3) PlotParms.MinCoord(3) + cumsum(DeltaCoord{3})];
 
     if isempty(PlotState)
         PlotState=ModelMatrix;
@@ -361,14 +367,16 @@ function Visualize (PlotTitle, MI, varargin)
         set(gca,'ycolor','none');
         set(gca,'zcolor','none');
     end
-    T=[];
-    T=[T text(min(X)-Hoffset*Xrange,Ymid,Zmid,sprintf('Lft %s',LftT)) ];
-    T=[T text(max(X)+Hoffset*Xrange,Ymid,Zmid,sprintf('Rgt %s', RgtT)) ];
-    T=[T text(Xmid, min(Y)-Hoffset*Yrange,Zmid,sprintf('Bck %s', BckT)) ];
-    T=[T text(Xmid, max(Y)+Hoffset*Yrange,Zmid,sprintf('Frt %s', FrtT)) ];
-    T=[T text(Xmid, Ymid, max(Z)+Hoffset*Zrange,sprintf('Top %s', TopT)) ];
-    T=[T text(Xmid, Ymid, min(Z)-Hoffset*Zrange,sprintf('Btm %s', BtmT)) ];
-    set(T,'edge',[0 0 0]);
+    if not(PlotParms.HideBC)
+        T=[];
+        T=[T text(min(X)-Hoffset*Xrange,Ymid,Zmid,sprintf('Lft %s',LftT)) ];
+        T=[T text(max(X)+Hoffset*Xrange,Ymid,Zmid,sprintf('Rgt %s', RgtT)) ];
+        T=[T text(Xmid, min(Y)-Hoffset*Yrange,Zmid,sprintf('Bck %s', BckT)) ];
+        T=[T text(Xmid, max(Y)+Hoffset*Yrange,Zmid,sprintf('Frt %s', FrtT)) ];
+        T=[T text(Xmid, Ymid, max(Z)+Hoffset*Zrange,sprintf('Top %s', TopT)) ];
+        T=[T text(Xmid, Ymid, min(Z)-Hoffset*Zrange,sprintf('Btm %s', BtmT)) ];
+        set(T,'edge',[0 0 0]);
+    end
 
     title(PlotTitle)
     set(gca,'visi','on')
@@ -431,8 +439,8 @@ function Visualize (PlotTitle, MI, varargin)
         Scale=linspace(0,1,11);
         set(CB,'ticks',Scale);
         set(CB,'ticklabels',linspace(ValMin,ValMin+ValRange,length(Scale)));
-        caxis([0 1])
     else
+        caxis([0 1])
         %ColorListOrig=ColorList;
         %ColorList=ColorList(ColorList~=0);
         NumColors=length(ColorList);
@@ -474,11 +482,11 @@ function Visualize (PlotTitle, MI, varargin)
         for Ki=1:length(KeyList)
             set(QList(KeyList{Ki}),'EdgeColor',QColor(Ki,:),'linewidth',3);
             rectangle('position',[0,(Ki-1)/length(KeyList),1,1/length(KeyList)],'facecolor',QColor(Ki,:),'userdata','REMOVE');
-            BarText=sprintf('%4.2g',str2num(KeyList{Ki}));
+            BarText=sprintf('%4.2g',-1*str2num(KeyList{Ki}));
             TT=text(1,(Ki-1)/length(KeyList)+.5/length(KeyList),BarText,'horizontalalig','right','rotation',90,'verticalalign','top','userdata','REMOVE');
         end
         set(QCB,'vis','off')
-        text(0,0,'Q (w)','vertical','top')
+        text(0,0,'Q (W)','vertical','top')
         
         %axes(CurA); %Takes lots of time
     end

@@ -85,7 +85,7 @@ imshow('ARLlogoParaPower.png')
 text(0,0,['Version ' ARLParaPowerVersion],'vertical','bott')
 setappdata(gcf,'Version',ARLParaPowerVersion)
 set(handles.GeometryVisualization,'visi','off');
-ClearGUI_Callback(handles.ClearGUI, eventdata, handles)
+ClearGUI_Callback(handles.ClearGUI, eventdata, handles, false)
 
 %Setup callbacks to ensure that geometry update notification is displayed
 %DispNotice=@(hobject,eventdata) ParaPowerGUI_V2('VisUpdateStatus',guidata(hobject),true);
@@ -182,6 +182,7 @@ function E=EmptyFeatureRow
     E{FTC('Check')}=false;
     E{FTC('QVal')}='0';
     E{FTC('QType')}='Scalar';
+    E{FTC('Desc')}='';
 
 
 % --- Executes during object creation, after setting all properties.
@@ -229,7 +230,7 @@ function savebutton_Callback(hObject, eventdata, handles)
         oldpathname='';
     end
     if isempty(TestCaseModel)
-        AddStatusLine('Error.',true)
+        AddStatusLine('Error.',true,'error')
         AddStatusLine('Complete model cannot be saved due to errors. GUI state saved instead.')
         [fname,pathname] = uiputfile ([oldpathname '*.guistate']);
         hgsave(gcf,[pathname fname])
@@ -313,7 +314,7 @@ function loadbutton_Callback(hObject, eventdata, handles)
             end
 
             if OldVersion
-                AddStatusLine('Attempting to load data from previous version, profile may be corrupted.')
+                AddStatusLine('Attempting to load data from previous version, profile may be corrupted.','warning')
             end
 
             setappdata(gcf,'TestCaseModel',TestCaseModel)
@@ -407,7 +408,7 @@ function RunAnalysis_Callback(hObject, eventdata, handles)
         AddStatusLine('Analysis running...');
         MI = getappdata(gcf,'MI');
         if isempty(MI)
-            AddStatusLine('Model not yet fully defined.')
+            AddStatusLine('Model not yet fully defined.','error')
             return
         end
 
@@ -547,7 +548,7 @@ FeaturesMatrix = get(handles.features,'Data');
 ExtBoundMatrix = get(handles.ExtCondTable,'Data');
 for K=1:length(ExtBoundMatrix(:))
     if isempty(ExtBoundMatrix{K})
-        AddStatusLine('Error.',true);
+        AddStatusLine('Error.',true,'error');
         AddStatusLine('Env. parameters must be fully populated');
         return
     end
@@ -580,7 +581,7 @@ end
         Params.Tsteps=str2num(get(handles.NumTimeSteps,'String')); %Number of time steps
         FindEps = Params.Tsteps * Params.DeltaT;
         if FindEps==0
-            AddStatusLine('Error.',true);
+            AddStatusLine('Error.',true,'error');
             AddStatusLine('End time is 0.  Redefine time step or run as a static analysis.');
             return
         end
@@ -602,12 +603,12 @@ end
 
 [rows,cols]=size(FeaturesMatrix);
 if rows==0
-    AddStatusLine('No features to initialize.')
+    AddStatusLine('No features to initialize.','warning')
 else
     CheckMatrix=FeaturesMatrix(:,[1:7 10:11]);  %FEATURESMATRIX
     for K=1:length(CheckMatrix(:))
         if isempty(CheckMatrix{K})
-            AddStatusLine('Error.',true);
+            AddStatusLine('Error.',true,'error');
             AddStatusLine('Features table is not fully defined.')
             return
         end
@@ -666,23 +667,26 @@ else
                 MakeUnique=eps(FindEps)*2; %Use a value of 3 * epsilon to add to the time steps
                 DeltaT=Table(2:end,1)-Table(1:end-1,1);
                 if min(DeltaT(DeltaT~=0)) < eps(FindEps)*9
-                    AddStatusLine(['Smallest Delta T must be greater than 3*epsilon (machine precision for MaxTime) for feature ' num2str(count)]);
+                    AddStatusLine(['Smallest Delta T must be greater than 3*epsilon (machine precision for MaxTime) for feature ' num2str(count)],'warning');
                     KillInit=1;
                 else
                     DupTime=(Table(2:end,1)-Table(1:end-1,1)==0)*eps(FindEps)*10;
                     DupTime=[0; DupTime];
                     Table(:,1)=Table(:,1)+DupTime;
                     if min(Table(2:end,1)-Table(1:end-1,1)) <= 0
-                        AddStatusLine(['Time must be increasing.  It is not for feature ' num2str(count)]);
+                        AddStatusLine(['Time must be increasing.  It is not for feature ' num2str(count)],'warning');
+                        AddStatusLine('...')
                         KillInit=1;
                     end
                     if max(Table(:,1))<MaxTime
                         Table(end+1,:)=[MaxTime Table(end,2)];
-                        AddStatusLine(['Feature ' num2str(count) ' time extended to ' num2str(MaxTime) 's with a flat line from last value.'])
+                        AddStatusLine(['Feature ' num2str(count) ' time extended to ' num2str(MaxTime) 's with a flat line from last value.'],'warning')
+                        AddStatusLine('...')
                     end
                     if min(Table(:,1))>0
                         Table=[0 0; Table(1,1)-2*eps(MaxTime) 0; Table];
-                        AddStatusLine(['Feature ' num2str(count) ' time adjusted to begin at t=0, value of 0'])
+                        AddStatusLine(['Feature ' num2str(count) ' time adjusted to begin at t=0, value of 0'],'warning')
+                        AddStatusLine('...')
                     end
                     %Features(count).Q = @(t)interp1(Table(:,1), Table(:,2), t);
                     Features(count).Q = Table;
@@ -696,13 +700,13 @@ else
                         TestQ(0);
                     catch ErrTrap
                         AddStatusLine('Error.', true);
-                        AddStatusLine(['For feature ' num2str(count) ' "' QValue '" is not a valid function for Q.'])
+                        AddStatusLine(['For feature ' num2str(count) ' "' QValue '" is not a valid function for Q.'],'error')
                         return
                     end
                     Features(count).Q = QValue;
                 end
             otherwise
-                AddStatusLine(['Unknown Q type "' FeaturesMatrix{count, FTC('qtype')} '"' ] )
+                AddStatusLine(['Unknown Q type "' FeaturesMatrix{count, FTC('qtype')} '"' ],'error' )
                 KillInit=1;
         end
                     
@@ -724,7 +728,7 @@ else
     TestCaseModel.Version='V2.0';
 
     if KillInit
-        AddStatusLine('Unable to execute model due to errors.')
+        AddStatusLine('Unable to execute model due to errors.','error')
     else
         AddStatusLine('forming...',true)
         MI=FormModel(TestCaseModel);
@@ -777,12 +781,26 @@ set(handles.features, 'Data', data);
 VisUpdateStatus(handles,true);
 
 % --- Executes on button press in ClearGUI.
-function ClearGUI_Callback(hObject, eventdata, handles)
+function ClearGUI_Callback(hObject, eventdata, handles, Confirm)
 % hObject    handle to ClearGUI (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
+if not(exist('Confirm','var'))
+    Confirm=true;
+end
 %Clear figure in GUI
+if Confirm
+    P=questdlg('Are you sure you want to erase all current model data?','Confirmation','Yes','No','No');
+else
+    P='Yes';
+end
+
+if strcmpi(P,'No')
+    AddStatusLine('GUI clear canceled.')
+    return
+end
+
 AddStatusLine('CLEARSTATUS');
 AddStatusLine('Clearing GUI...')
 axes(handles.GeometryVisualization)
@@ -907,7 +925,7 @@ StateN=1+round(NumStep*TimeStepOutput,0); %time step of interest
 
 if get(handles.VisualTemp,'Value')==1
     if isempty(Tprnt)
-        AddStatusLine('No temperature solution exists.')
+        AddStatusLine('No temperature solution exists.','warning')
     else
        numplots = numplots+1;
        figure(numplots)
@@ -921,7 +939,7 @@ end
 
 if get(handles.VisualStress,'Value')==1
     if isempty(Stress)
-        AddStatusLine('No stress solution exists.')
+        AddStatusLine('No stress solution exists.','warning')
     else
        numplots =numplots+1;
        figure(numplots)
@@ -935,7 +953,7 @@ end
 
 if get(handles.VisualMelt,'Value')==1
     if isempty(MeltFrac)
-        AddStatusLine('No melt-fraction solution exists.')
+        AddStatusLine('No melt-fraction solution exists.','warning')
     else
        figure(numplots+1)
        pause(.001)
@@ -1001,9 +1019,27 @@ function LogoAxes_CreateFcn(hObject, eventdata, handles)
 % Hint: place code in OpeningFcn to populate LogoAxes
 
 
-function AddStatusLine(textline,AddToLastLine)
+function AddStatusLine(textline,AddToLastLine,Flag)
     if not(exist('AddToLastLine','var'))
         AddToLastLine=false;
+    end
+    if ischar(AddToLastLine)
+        Flag=AddToLastLine;
+        AddToLastLine=false;
+    end
+    if exist('Flag','var')
+        Flag=[Flag '   '];
+        d=0.1;
+        wf=sin([0:1/8192:d]*3500).*(1-cos([0:1/8192:d]*2*pi/d));
+        switch lower(Flag(1:3))
+            case 'war'
+                sound([wf wf],8192)
+            case 'err'
+                sound([wf wf wf wf],8192)
+            case 'inf'
+            otherwise
+                disp(['Unrecognized flag value in AddStatusLine: ' Flag])
+        end
     end
     handles=guidata(gcf);
     Hstat=handles.StatusWindow;
@@ -1246,7 +1282,14 @@ AxesH=TableEditHandles('axes');
 Table=get(TableH,'data');
 NTable=cell2mat(Table(:,2:3));
 plot(AxesH,NTable(:,1),NTable(:,2))
-
+YLim=get(AxesH,'ylim')
+if min(NTable(:,2))==YLim(1)
+    YLim(1)=YLim(1)-(YLim(2)-YLim(1))*.05;
+end
+if max(NTable(:,2))==YLim(2)
+    YLim(2)=YLim(2)+(YLim(2)-YLim(1))*.05;
+end
+set(AxesH,'ylim',YLim)
 
 % --- Executes when entered data in editable cell(s) in TableTable.
 function TableTable_CellEditCallback(hObject, eventdata, handles)
@@ -1274,6 +1317,7 @@ function features_CellSelectionCallback(hObject, eventdata, handles)
         TempData=get(hObject,'data');
         set(hObject,'data',[])        % Clear selected cell hack by deleting 
         set(hObject,'data',TempData)  % data and then reinstating data.
+        VisUpdateStatus(handles,true);
         TableOpenClose('open',hObject,Row)
     end
   end
@@ -1297,6 +1341,7 @@ if Col==FTC('QType')
     %disp('changing Q Type')
     Table=get(hObject,'data');
     if strcmpi(eventdata.NewData,'Table')
+
         Table{Row,FTC('QVal')}=TableShowDataText;
 %        CellTableData{Row}=[0 0];
     else
@@ -1390,34 +1435,34 @@ function NumCol=FTC(ColDescr)
     switch lower(ColDescr)
         case 'check'
             NumCol=1;
-        case 'x1'
+        case 'desc'
             NumCol=2;
-        case 'x2'
+        case 'x1'
             NumCol=3;
+        case 'x2'
+            NumCol=6;
         case 'y1'
             NumCol=4;
         case 'y2'
-            NumCol=5;
-        case 'z1'
-            NumCol=6;
-        case 'z2'
             NumCol=7;
-        case 'mat'
+        case 'z1'
+            NumCol=5;
+        case 'z2'
             NumCol=8;
-        case 'qtype'
+        case 'mat'
             NumCol=9;
-        case 'qval'
+        case 'qtype'
             NumCol=10;
+        case 'qval'
+            NumCol=11;
         case 'divx'
-            NumCol=11;
-        case 'divy'
-            NumCol=11;
-        case 'divz'
             NumCol=12;
-        case 'desc'
+        case 'divy'
             NumCol=13;
+        case 'divz'
+            NumCol=14;
         case 'numcols'
-            NumCol=13;  %This is the maximum number of columns
+            NumCol=14;  %This is the maximum number of columns
         otherwise
             NumCol=nan;
     end
@@ -1436,7 +1481,7 @@ function MoveUp_Callback(hObject, eventdata, handles)
     MoveRows=find(cell2mat(TableData(:,FTC('check')))==true);
     if not(isempty(TableData)) && not(isempty(MoveRows))
         if min(MoveRows)==1
-            AddStatusLine('Can''t move first row up')
+            AddStatusLine('Can''t move first row up','warning')
         else
             NewTable=TableData;
             NewQData=QData;
@@ -1468,12 +1513,12 @@ function MoveDown_Callback(hObject, eventdata, handles)
     end
     MoveRows=find(cell2mat(TableData(:,FTC('check')))==true);
     if not(isempty(TableData)) && not(isempty(MoveRows))
-        if min(MoveRows)==length(TableData(:,1))
-            AddStatusLine('Can''t move last row down')
+        if max(MoveRows)==length(TableData(:,1))
+            AddStatusLine('Can''t move last row down','warning')
         else
             NewTable=TableData;
             NewQData=QData;
-            for Irow=MoveRows
+            for Irow=reshape(MoveRows,1,[])
                 NewTable(Irow+1,:)=TableData(Irow,   :);
                 NewTable(Irow  ,:)=TableData(Irow+1, :);
                 TableData=NewTable;
