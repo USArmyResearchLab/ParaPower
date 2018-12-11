@@ -26,7 +26,7 @@ function varargout = ParaPowerGUI_V2(varargin)
 
 % Edit the above text to modify the response to help ParaPowerGUI_V2
 
-% Last Modified by GUIDE v2.5 07-Dec-2018 14:35:47
+% Last Modified by GUIDE v2.5 11-Dec-2018 14:07:28
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -76,7 +76,7 @@ UpdateMatList(TableHandle,FTC('mat'), 'Do Not Open Mat Dialog Box')
 % uiwait(handles.figure1);
 AddStatusLine('ClearStatus')
 disp('Visual stress checkbox is currently disabled because stress functionality is not implemented in this GUI yet.')
-set(handles.VisualStress,'enable','off');
+set(handles.VisualStress,'enable','on');
 disp('stop button functionality is not implemented in this GUI yet.')
 set(handles.pushbutton18,'enable','off')
 
@@ -85,6 +85,22 @@ imshow('ARLlogoParaPower.png')
 text(0,0,['Version ' ARLParaPowerVersion],'vertical','bott')
 setappdata(gcf,'Version',ARLParaPowerVersion)
 set(handles.GeometryVisualization,'visi','off');
+
+%Set Stress Model Directory
+set(handles.StressModel,'userdata','Stress_Models')
+
+%Populate Stress Models.  They exist in the directory and match "Stress_*.m"
+StressDir=get(handles.StressModel,'user');
+StressModels=dir([StressDir '/Stress*.m']);
+for Fi=1:length(StressModels)
+    StressModelFunctions{Fi}=StressModels.name;
+    StressModelFunctions{Fi}=strrep(StressModelFunctions{Fi},'.m','');
+    StressModelFunctions{Fi}=strrep(StressModelFunctions{Fi},'Stress_','');
+end
+StressModelFunctions{end+1}='None';
+set(handles.StressModel,'string',StressModelFunctions);
+
+
 ClearGUI_Callback(handles.ClearGUI, eventdata, handles, false)
 
 %Setup callbacks to ensure that geometry update notification is displayed
@@ -407,6 +423,11 @@ function RunAnalysis_Callback(hObject, eventdata, handles)
             Initialize_Callback(handles.Initialize, eventdata, handles, false)
         end
         numplots = 1;
+        
+        StressModelV=get(handles.StressModel,'value');
+        StressModel=get(handles.StressModel,'string');
+        StressModel=StressModel{StressModelV};
+        
         AddStatusLine('Analysis running...');
         MI = getappdata(gcf,'MI');
         if isempty(MI)
@@ -415,14 +436,29 @@ function RunAnalysis_Callback(hObject, eventdata, handles)
         end
 
         drawnow
-        fprintf('Analysis executing...')
+        AddStatusLine('Thermal...',true)
         
         TimeStepOutput = get(handles.slider1,'Value');
 
         GlobalTime=MI.GlobalTime;  %Since there is global time vector, construct one here.
-        [Tprnt, Stress, MeltFrac]=ParaPowerThermal(MI);
+        [Tprnt, MI, MeltFrac]=ParaPowerThermal(MI);
+        
+        AddStatusLine(['Stress (' StressModel ')...'],true);
+        switch lower(StressModel)
+            case 'miner v1'
+                OldPath=path;
+                addpath(get(handles.StressModel,'user'));
+                Stress=ParaPowerStress(MI,Tprnt);
+                path(OldPath)
+            case 'none'
+                Stress=[];  %0*Tprnt;  %Undecided if no analysis should be empty or 0's
+            otherwise
+                AddStatusLine('Error.','Error')
+                AddStatusLine(['Unknown stress model: ' StressModel ]);
+                AddStatusLine('');
+        end
                                        
-       fprintf('Complete.\n')
+        AddStatusLine('Complete.',true)
        
 
        
@@ -447,9 +483,11 @@ function RunAnalysis_Callback(hObject, eventdata, handles)
        plot (Dout(:,1), Dout(:,2))
        figure(handles.figure1)
        
-       setappdata(handles.figure1, 'Tprint', Tprnt);
-       setappdata( handles.figure1, 'Stress', Stress);
-       setappdata (handles.figure1, 'MeltFrac', MeltFrac);
+       Results.Tprint=Tprnt;
+       Results.Stress=Stress;
+       Results.MeltFrac=MeltFrac;
+       Results.Model=MI;
+       setappdata(handles.figure1, 'Results', Results);
 
        AddStatusLine('Done.', true);
 
@@ -628,9 +666,9 @@ else
         %to ensure a heat source at a certain layer or a certain discretization.
         %FEATURESTABLE
  
-        Features(count).x  =  [FeaturesMatrix{count, FTC('x1')} FeaturesMatrix{count, FTC('x2')}];  % X Coordinates of edges of elements
-        Features(count).y =   [FeaturesMatrix{count, FTC('y1')} FeaturesMatrix{count, FTC('y2')}];  % y Coordinates of edges of elements
-        Features(count).z =   [FeaturesMatrix{count, FTC('z1')} FeaturesMatrix{count, FTC('z2')}]; % Height in z directions
+        Features(count).x  =  .001*[FeaturesMatrix{count, FTC('x1')} FeaturesMatrix{count, FTC('x2')}];  % X Coordinates of edges of elements
+        Features(count).y =   .001*[FeaturesMatrix{count, FTC('y1')} FeaturesMatrix{count, FTC('y2')}];  % y Coordinates of edges of elements
+        Features(count).z =   .001*[FeaturesMatrix{count, FTC('z1')} FeaturesMatrix{count, FTC('z2')}]; % Height in z directions
 
         %These define the number of elements in each features.  While these can be 
         %values from 2 to infinity, only odd values ensure that there is an element
@@ -912,11 +950,11 @@ function View_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-MI = getappdata(handles.figure1,'MI');
-
-       Tprnt = getappdata(handles.figure1, 'Tprint');
-       Stress = getappdata( handles.figure1, 'Stress');
-       MeltFrac = getappdata (handles.figure1, 'MeltFrac');
+Results=getappdata(handles.figure1,'Results');
+MI = Results.Model;
+Tprnt = Results.Tprint;
+Stress = Results.Stress;
+MeltFrac = Results.MeltFrac;
 
 numplots = 3; 
 TimeStepOutput = get(handles.slider1,'Value'); %value between 0 and 1 from the slider
@@ -1558,3 +1596,26 @@ end
 % hObject    handle to TableCancel (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+
+
+% --- Executes on selection change in StressModel.
+function StressModel_Callback(hObject, eventdata, handles)
+% hObject    handle to StressModel (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: contents = cellstr(get(hObject,'String')) returns StressModel contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from StressModel
+
+
+% --- Executes during object creation, after setting all properties.
+function StressModel_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to StressModel (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end

@@ -7,7 +7,7 @@
 %stresses from processing temperatures have not been implemented for all
 %materials
         
-function [Stress] = ParaPowerStress(ModelInput,Tres)
+function [Stress] = Stress_V1(ModelInput,Tres)
 
 dx=ModelInput.X;
 dy=ModelInput.Y;
@@ -21,6 +21,8 @@ E = ModelInput.MatLib.e;
 cte = ModelInput.MatLib.nu;
 nu = ModelInput.MatLib.rho;
 
+[Num_Row, Num_Col, Num_Lay]=size(Mat);
+NL=Num_Lay;
 
 nlsub=1; % # layers that are substrate material
 
@@ -51,6 +53,5 @@ for it=1:length(GlobalTime)
         end
     end
 end
-
 
 end

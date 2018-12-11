@@ -1,14 +1,16 @@
 Features to Add
 -------------------
 In 'visualize' click different materials 'on' and 'off'
-Re-enable stress analysis - there's now a stress function to be called.
 Enable 'stop' button on GUI
 Prettify results plots
+Add total mass output 
 
 
 Items Completed.
 ------------------
 Q is NaN
+Change to mm
+Make line and point elements material type 0
 Visualization, materials sometimes only cover 1/2 the colorbar
 Address the defined Q for features that are overwritten
 Show full hexahedral domain in green outline or equiv
@@ -22,3 +24,4 @@ Ensure Q as a table with repeated times works correctly.
 Error trap if time in Q table is not increasing.
 Split X and Y divisions into separate columns
 Add 'Cancel' button to mat database
+Re-enable stress analysis - there's now a stress function to be called.

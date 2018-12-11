@@ -200,8 +200,6 @@ for Fii=1:length(NonZeroThickness)
     ModelMatrix(InX, InY, InZ)=Fi;
 end
 
-
-
 %Apply Feature number for zero-thickness elements
 for Fii=1:length(ZeroThickness) 
     Fi=ZeroThickness(Fii);
@@ -244,6 +242,9 @@ end
 %Compute volume (real) and area (imaginary) of model
 VA=ComputeVA(DeltaCoord);
 ScaledQ=zeros(size(ModelMatrix));
+
+%Set elements with neither area nor volume to material type 0
+ModelMatrix(VA==0)=0;
 
 %Apply Q's (Note that Q's are now defined as function handles)
 for Fi=1:length(Features)
