@@ -22,7 +22,7 @@ function varargout = MaterialDatabase(varargin)
 
 % Edit the above text to modify the response to help MaterialDatabase
 
-% Last Modified by GUIDE v2.5 30-Nov-2018 12:40:29
+% Last Modified by GUIDE v2.5 11-Dec-2018 11:53:38
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -493,3 +493,17 @@ function MatTable_CellEditCallback(hObject, eventdata, handles)
         ShowError('Parameter is not used in this material type.')
     end
             
+
+
+% --- Executes on button press in cancelbutton.
+function cancelbutton_Callback(hObject, eventdata, handles)
+% hObject    handle to cancelbutton (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+P=questdlg('Are you sure you want to discard changes to material data?','Confirmation','Yes','No','No');
+
+if strcmpi(P,'Yes')
+    set(handles.MatDbaseFigure,'visible','off')
+    %set(handles.MatDbaseFigure,'windowstyle','normal');
+    uiresume    
+end

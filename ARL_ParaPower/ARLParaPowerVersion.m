@@ -1,2 +1,2 @@
 function OutText=ARLParaPowerVersion
-    OutText='3.0.0';
+    OutText='3.0.1';

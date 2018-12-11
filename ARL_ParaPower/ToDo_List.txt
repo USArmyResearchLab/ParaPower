@@ -3,10 +3,7 @@ Features to Add
 In 'visualize' click different materials 'on' and 'off'
 Re-enable stress analysis - there's now a stress function to be called.
 Enable 'stop' button on GUI
-Add 'Cancel' button to mat database
 Prettify results plots
-Error trap if Q is not increasing.
-Split X and Y divisions into separate columns
 
 
 Items Completed.
@@ -22,3 +19,6 @@ Visualization, space starts at 0
 Change sense of Q in visualize to match model
 Add feature descriptor
 Ensure Q as a table with repeated times works correctly.
+Error trap if time in Q table is not increasing.
+Split X and Y divisions into separate columns
+Add 'Cancel' button to mat database

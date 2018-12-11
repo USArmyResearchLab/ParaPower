@@ -278,7 +278,9 @@ function loadbutton_Callback(hObject, eventdata, handles)
             Fnew=hgload([pathname filename]);
             NewVersion=getappdata(Fnew,'Version');
             if not(strcmpi(OldVersion,NewVersion))
-                AddStatusLine(['GUISTATE from "' pathname filename '" is version ' NewVersion '.']);
+                figure(F_Old)
+                AddStatusLine(['GUISTATE from "' pathname filename '" '])
+                AddStatusLine(['is version ' NewVersion '.']);
                 AddStatusLine(['Current GUI is version ' OldVersion ' thus file not loaded.' ]);
                 delete(Fnew)
             else
@@ -287,7 +289,7 @@ function loadbutton_Callback(hObject, eventdata, handles)
                 AddStatusLine(['Loading GUISTATE from "' pathname filename '".']);
                 set(gcf,'name',CurTitle);
             end
-        catch
+        catch ME
             load ([pathname filename]);
 %        end
 %        if not(strncmpi('etatsiug.',filename(end:-1:1),8)) %If filename is not .guistate, then load model into the GUI
@@ -605,7 +607,7 @@ end
 if rows==0
     AddStatusLine('No features to initialize.','warning')
 else
-    CheckMatrix=FeaturesMatrix(:,[1:7 10:11]);  %FEATURESMATRIX
+    CheckMatrix=FeaturesMatrix(:,[FTC('x1') FTC('x2') FTC('y1') FTC('y2') FTC('z1') FTC('y2') FTC('mat') FTC('divx') FTC('divy') FTC('divz') ]);  %FEATURESMATRIX
     for K=1:length(CheckMatrix(:))
         if isempty(CheckMatrix{K})
             AddStatusLine('Error.',true,'error');
@@ -1264,8 +1266,14 @@ function TableClose_Callback(hObject, eventdata, handles)
 % hObject    handle to TableClose (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-TableOpenClose('close')
-set(get(hObject,'parent'),'visible','off')
+T=get(TableEditHandles('table'),'data');
+TimeValue=cell2mat(T(:,2));
+if min(TimeValue(2:end)-TimeValue(1:end-1))<0
+    msgbox('The time values must be monotonically increasing.','Information','modal')
+else
+    TableOpenClose('close')
+    set(get(hObject,'parent'),'visible','off')
+end
 
 %function GraphTable (hObject)
 %    TableH=TableEditHandles('table');
@@ -1282,7 +1290,7 @@ AxesH=TableEditHandles('axes');
 Table=get(TableH,'data');
 NTable=cell2mat(Table(:,2:3));
 plot(AxesH,NTable(:,1),NTable(:,2))
-YLim=get(AxesH,'ylim')
+YLim=get(AxesH,'ylim');
 if min(NTable(:,2))==YLim(1)
     YLim(1)=YLim(1)-(YLim(2)-YLim(1))*.05;
 end
@@ -1540,8 +1548,13 @@ function TableCancel_Callback(hObject, eventdata, handles)
 % hObject    handle to TableClose (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-TableOpenClose('cancel')
-set(get(hObject,'parent'),'visible','off')
+P=questdlg('Are you sure you want to discard changes to table data?','Confirmation','Yes','No','No');
+
+if strcmpi(P,'Yes')
+    TableOpenClose('cancel')
+    set(get(hObject,'parent'),'visible','off')
+end
+
 % hObject    handle to TableCancel (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
