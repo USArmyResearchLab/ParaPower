@@ -26,7 +26,7 @@ function varargout = ParaPowerGUI_V2(varargin)
 
 % Edit the above text to modify the response to help ParaPowerGUI_V2
 
-% Last Modified by GUIDE v2.5 11-Dec-2018 14:07:28
+% Last Modified by GUIDE v2.5 12-Dec-2018 10:53:33
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -96,6 +96,7 @@ for Fi=1:length(StressModels)
     StressModelFunctions{Fi}=StressModels.name;
     StressModelFunctions{Fi}=strrep(StressModelFunctions{Fi},'.m','');
     StressModelFunctions{Fi}=strrep(StressModelFunctions{Fi},'Stress_','');
+    AddStatusLine(['Adding stress model ' StressModelFunctions{Fi} '.'])
 end
 StressModelFunctions{end+1}='None';
 set(handles.StressModel,'string',StressModelFunctions);
@@ -1619,3 +1620,43 @@ function StressModel_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
+
+
+% --- Executes on button press in HelpButton.
+function HelpButton_Callback(hObject, eventdata, handles)
+% hObject    handle to HelpButton (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+    Hf=dialog('WindowStyle','Normal','name','Help','units','normal');
+    CloseCB=@(A,B,C)delete(Hf);
+    U=uicontrol(Hf,'style','pushbutton','string','Close','Callback',CloseCB,'units','normal');
+    E=get(U,'extent'); P=get(U,'posit');P(1)=0.5-E(3)/2;set(U,'posit',P);
+    T=uicontrol(Hf,'style','edit','max',5,'unit','normal','posit',[0.05 P(2)+P(4)*2 0.90 1-0.05-(P(2)+P(4)*2)],...
+                   'horiz','left','fontsize',10,'enable','inactive');
+               
+    
+    HelpText={};
+    HelpText{end+1}=['ARL ParaPower ' ARLParaPowerVersion ];
+    HelpText{end+1}='';
+    HelpText{end+1}='Build a model:';
+    HelpText{end+1}='    Step 1';
+    HelpText{end+1}='    Step 2';
+    HelpText{end+1}='';
+    HelpText{end+1}='Developer/Programmer Information';
+    HelpText{end+1}='   Material Database';
+    HelpText{end+1}='   Feature Table Structure';
+    HelpText{end+1}='   Time Variant Q';
+    HelpText{end+1}='   Stress Models';
+    HelpText{end+1}='';
+    HelpText{end+1}='This software is considered "Government Furnished Software" and may only be distributed under the terms of an existing collaborative or contractual agreeement.';
+    HelpText{end+1}='';
+    HelpText{end+1}='Contributors:';
+    HelpText{end+1}='   Dr. Lauren Boteler (ARL)';
+    HelpText{end+1}='   Dr. Michael Fish (ORAU)';
+    HelpText{end+1}='   Mr. Morris Berman (ARL)';
+    HelpText{end+1}='   Mr. Michael Rego (Drexel)';
+    HelpText{end+1}='   Mr. Michael Deckard (Texas A&M)';
+    HelpText{end+1}='';  
+    HelpText{end+1}='For additional informatoin contact Dr. Lauren Boteler (lauren.m.boteler.civ@mail.mil)';
+    set(T,'string',HelpText)
+
