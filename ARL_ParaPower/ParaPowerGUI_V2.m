@@ -89,6 +89,11 @@ set(handles.GeometryVisualization,'visi','off');
 %Set Stress Model Directory
 set(handles.StressModel,'userdata','Stress_Models')
 
+T=uicontrol(gcf,'style','text','units','normal','posit',[0.01 0 .3 .02],'string','DISTRIBUTION C: See Help for details','horiz','left');
+E=get(T,'extent');
+P=get(T,'posit');
+set(T,'posit',[P(1) P(2) E(3) E(4)]);
+
 %Populate Stress Models.  They exist in the directory and match "Stress_*.m"
 StressDir=get(handles.StressModel,'user');
 StressModels=dir([StressDir '/Stress*.m']);
@@ -1648,8 +1653,6 @@ function HelpButton_Callback(hObject, eventdata, handles)
     HelpText{end+1}='   Time Variant Q';
     HelpText{end+1}='   Stress Models';
     HelpText{end+1}='';
-    HelpText{end+1}='This software is considered "Government Furnished Software" and may only be distributed under the terms of an existing collaborative or contractual agreeement.';
-    HelpText{end+1}='';
     HelpText{end+1}='Contributors:';
     HelpText{end+1}='   Dr. Lauren Boteler (ARL)';
     HelpText{end+1}='   Dr. Michael Fish (ORAU)';
@@ -1658,5 +1661,10 @@ function HelpButton_Callback(hObject, eventdata, handles)
     HelpText{end+1}='   Mr. Michael Deckard (Texas A&M)';
     HelpText{end+1}='';  
     HelpText{end+1}='For additional informatoin contact Dr. Lauren Boteler (lauren.m.boteler.civ@mail.mil)';
+    HelpText{end+1}='';
+    HelpText{end+1}='DISTRIBUTION C';
+    HelpText{end+1}=['Distribution authorized to U.S. Government agencies (premature dissemination) 12/12/2018. Other requests ' ...
+                    'for this document shall be referred to US Army Research Laboratory, Power Conditioning Branch (RDRL-SED-P). ']
+    HelpText{end+1}='';
     set(T,'string',HelpText)
 
