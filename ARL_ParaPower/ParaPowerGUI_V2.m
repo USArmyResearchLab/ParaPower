@@ -71,7 +71,7 @@ guidata(hObject, handles);
 TimeStep_Callback(hObject, eventdata, handles)
 TableHandle=handles.features;
 
-UpdateMatList(TableHandle,FTC('mat'), 'Do Not Open Mat Dialog Box')
+UpdateMatList('Initialize',TableHandle,FTC('mat'))
 % UIWAIT makes ParaPowerGUI_V2 wait for user response (see UIRESUME)
 % uiwait(handles.figure1);
 AddStatusLine('ClearStatus')
@@ -377,12 +377,12 @@ function loadbutton_Callback(hObject, eventdata, handles)
            for count = 1: n 
                 %FEATURESTABLE
                tabledata(count,FTC('check'))  = {false};
-               tabledata(count,FTC('x1'))  = mat2cell(Features(count).x(1),1,1);
-               tabledata(count,FTC('y1'))  = mat2cell(Features(count).y(1),1,1);
-               tabledata(count,FTC('z1'))  = mat2cell(Features(count).z(1),1,1);
-               tabledata(count,FTC('x2'))  = mat2cell(Features(count).x(2),1,1);
-               tabledata(count,FTC('y2'))  = mat2cell(Features(count).y(2),1,1);
-               tabledata(count,FTC('z2'))  = mat2cell(Features(count).z(2),1,1);
+               tabledata(count,FTC('x1'))  = mat2cell(1000*Features(count).x(1),1,1);
+               tabledata(count,FTC('y1'))  = mat2cell(1000*Features(count).y(1),1,1);
+               tabledata(count,FTC('z1'))  = mat2cell(1000*Features(count).z(1),1,1);
+               tabledata(count,FTC('x2'))  = mat2cell(1000*Features(count).x(2),1,1);
+               tabledata(count,FTC('y2'))  = mat2cell(1000*Features(count).y(2),1,1);
+               tabledata(count,FTC('z2'))  = mat2cell(1000*Features(count).z(2),1,1);
                tabledata(count,FTC('mat'))  = cellstr(Features(count).Matl);
                if ischar(Features(count).Q)
                     tabledata(count,FTC('qtype'))  = {'Function(t)'};
@@ -405,6 +405,10 @@ function loadbutton_Callback(hObject, eventdata, handles)
                QData{n}=[];
            end
            setappdata(gcf,TableDataName, QData)
+           
+           %Update Materials
+           UpdateMatList('LoadMatLib',handles.features, FTC('mat'), TestCaseModel.MatLib)
+           
 
            %%%Set Parameters
            set(handles.Tinit,'String', Params.Tinit)
@@ -450,18 +454,19 @@ function RunAnalysis_Callback(hObject, eventdata, handles)
         [Tprnt, MI, MeltFrac]=ParaPowerThermal(MI);
         
         AddStatusLine(['Stress (' StressModel ')...'],true);
-        switch lower(StressModel)
-            case 'miner v1'
-                OldPath=path;
-                addpath(get(handles.StressModel,'user'));
-                Stress=ParaPowerStress(MI,Tprnt);
-                path(OldPath)
-            case 'none'
-                Stress=[];  %0*Tprnt;  %Undecided if no analysis should be empty or 0's
-            otherwise
-                AddStatusLine('Error.','Error')
-                AddStatusLine(['Unknown stress model: ' StressModel ]);
-                AddStatusLine('');
+        if strcmpi(StressModel,'none')
+            Stress=[];
+        else
+            OldPath=path;
+            addpath(get(handles.StressModel,'user'));
+            eval(['Stress=Stress_' StressModel '(MI,Tprnt);']);
+            path(OldPath)
+        end
+        if not(exist('Stress','var'))
+            AddStatusLine('Error.','Error')
+            AddStatusLine(['Unknown stress model: ' StressModel ]);
+            AddStatusLine('');
+            Stress=[];
         end
                                        
         AddStatusLine('Complete.',true)
@@ -559,7 +564,7 @@ function AddMaterial_Callback(hObject, eventdata, handles)
 
 TableHandle=handles.features;
 
-UpdateMatList(TableHandle,FTC('mat'))
+UpdateMatList('EditMats',TableHandle,FTC('mat'))
 
 
 % --- Executes on button press in Initialize.
@@ -573,7 +578,7 @@ if not(exist('Visual'))
     Visual=true;
 end
 KillInit=0;
-AddStatusLine('Initializing...')
+AddStatusLine('Initializing...',handles.figure1)
 clear Features ExternalConditions Params PottingMaterial Descr
 
 setappdata(gcf,'TestCaseModel',[]);
@@ -762,6 +767,7 @@ else
     %Get Materials Database
     MatHandle=get(handles.features,'userdata');
     MatLib=getappdata(MatHandle,'Materials');
+    figure(handles.figure1)
 
     %Assemble the above definitions into a single variablel that will be used
     %to run the analysis.  This is the only variable that is used from this M-file.
@@ -907,9 +913,13 @@ handles.InitComplete = 0;
 set(handles.transient,'value',1)
 AnalysisType_SelectionChangedFcn(handles.transient, eventdata, handles)
 
+%Clear Materials database
+MatHandle=get(handles.features,'userdata');
+delete(MatHandle);
+UpdateMatList('Initialize',handles.features, FTC('mat'))
 
 guidata(hObject, handles);
-AddStatusLine('Done.', true)
+AddStatusLine('Done.', true,handles.figure1)
 
 % --- Executes on button press in pushbutton18.
 function pushbutton18_Callback(hObject, eventdata, handles)
@@ -1065,30 +1075,49 @@ function LogoAxes_CreateFcn(hObject, eventdata, handles)
 % Hint: place code in OpeningFcn to populate LogoAxes
 
 
-function AddStatusLine(textline,AddToLastLine,Flag)
-    if not(exist('AddToLastLine','var'))
-        AddToLastLine=false;
-    end
-    if ischar(AddToLastLine)
-        Flag=AddToLastLine;
-        AddToLastLine=false;
-    end
-    if exist('Flag','var')
-        Flag=[Flag '   '];
-        d=0.1;
-        wf=sin([0:1/8192:d]*3500).*(1-cos([0:1/8192:d]*2*pi/d));
-        switch lower(Flag(1:3))
-            case 'war'
-                sound([wf wf],8192)
-            case 'err'
-                sound([wf wf wf wf],8192)
-            case 'inf'
-            otherwise
-                disp(['Unrecognized flag value in AddStatusLine: ' Flag])
+function AddStatusLine(textline,varargin);% Optional args are AddToLastLine,Flag, ThisFig)
+
+    AddToLastLine=false;
+    Flag='';
+    ThisFig=gcf;
+    
+    if nargin==2
+        if ishandle(varargin{1})
+            ThisFig=varargin{1};
+        else
+            AddToLastLine=varargin{1};
         end
+    elseif nargin==3
+        AddToLastLine=varargin{1};
+        if ishandle(varargin{2})
+            ThisFig=varargin{2};
+        end
+    elseif nargin==4
+        AddToLastLine=varargin{1};
+        Flag=varargin{2};
+        ThisFig=varargin{3};
     end
-    handles=guidata(gcf);
+    
+    Flag=[Flag '   '];
+    d=0.1;
+    wf=sin([0:1/8192:d]*3500).*(1-cos([0:1/8192:d]*2*pi/d));
+    switch lower(Flag(1:3))
+        case 'war'
+            sound([wf wf],8192)
+        case 'err'
+            sound([wf wf wf wf],8192)
+        case 'inf'
+        case '   '
+        otherwise
+            disp(['Unrecognized flag value in AddStatusLine: ' Flag])
+    end
+    
+    if not(exist('ThisFig','var'))
+        ThisFig=gcf;
+    end
+    handles=guihandles(ThisFig);
     Hstat=handles.StatusWindow;
+    
     if strcmpi(class(textline),'boolean') && textline
         set(Hstat,'text',{})
     else
@@ -1649,6 +1678,7 @@ function HelpButton_Callback(hObject, eventdata, handles)
     HelpText{end+1}='';
     HelpText{end+1}='Developer/Programmer Information';
     HelpText{end+1}='   Material Database';
+    HelpText{end+1}='      The handle to the Materials Database figure is stored in userdata of the features table';
     HelpText{end+1}='   Feature Table Structure';
     HelpText{end+1}='   Time Variant Q';
     HelpText{end+1}='   Stress Models';
@@ -1656,6 +1686,7 @@ function HelpButton_Callback(hObject, eventdata, handles)
     HelpText{end+1}='Contributors:';
     HelpText{end+1}='   Dr. Lauren Boteler (ARL)';
     HelpText{end+1}='   Dr. Michael Fish (ORAU)';
+    HelpText{end+1}='   Dr. Steven Miner (USNA)';
     HelpText{end+1}='   Mr. Morris Berman (ARL)';
     HelpText{end+1}='   Mr. Michael Rego (Drexel)';
     HelpText{end+1}='   Mr. Michael Deckard (Texas A&M)';

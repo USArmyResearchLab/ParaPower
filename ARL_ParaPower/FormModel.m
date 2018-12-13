@@ -320,7 +320,9 @@ end
 ModelMatrix(isnan(ModelMatrix))=MatNum;
 
 %[NR, NC, NL]=size(ModelMatrix);
-GlobalTime = uniquetol(GlobalTime, 10*eps(max(GlobalTime)));
+if not(isempty(GlobalTime))
+    GlobalTime = uniquetol(GlobalTime, 10*eps(max(GlobalTime)));
+end
 
 ModelInput.OriginPoint=OriginPoint; %Minimum absolute coordinates for X, Y and Z
 ModelInput.h=h;

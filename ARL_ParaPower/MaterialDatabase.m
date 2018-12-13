@@ -221,6 +221,118 @@ function MatDbaseFigure_CloseRequestFcn(hObject, eventdata, handles)
 MatClose_Callback(hObject, eventdata, handles)
 set(hObject,'visible','off');
 
+function Output=GetMatCol(ColName,ReturnField)
+    if not(exist('ReturnField','var'))
+        ReturnField=false;
+    end
+    switch lower(ColName)
+        case 'material'
+            C=2;
+            field='Material';
+        case 'type'
+            C=3;
+            field='Type';
+        case 'cte'
+            C=4;
+            field='cte';
+        case 'e'
+            C=5;
+            field='e';
+        case 'nu'
+            C=6;
+            field='nu';
+        case 'k'
+            C=7;
+            field='k';
+        case 'k_s'
+            C=7;
+            field='k';
+        case 'rho'
+            C=8;
+            field='rho';
+        case 'dens_s'
+            field='rho';
+            C=8;
+        case 'cp'
+            C=9;
+            field='cp';
+        case 'cp_s'
+            C=9;
+            field='cp';
+        case 'k_l'
+            C=10;
+            field='k_l';
+        case 'rho_l'
+            C=11;
+            field='rho_l';
+        case 'dens_l'
+            C=11;
+            field='rho_l';
+        case 'cp_l'
+            C=12;
+            field='cp_l';
+        case 'lf'
+            C=13;
+            field='lf';
+        case 'lw'
+            C=13;
+            field='lf';
+        case 'tmelt'
+            C=14;
+            field='tmelt';
+        case 'h_ibc'
+            C=15;
+            field='h_ibc';
+        case 't_ibc'
+            C=16;
+            field='T_ibc';
+        case 'del'
+            C=0;
+            field='';
+        otherwise
+            warning(['Unknown column label "' ColName '"' ]); 
+            C='';
+    end
+    if ReturnField
+        Output=field;
+    else
+        Output=C;
+    end
+    
+function MatDbaseHandle=ExtractMatLib(MatDbaseHandle, MatLib)
+    FieldNames=fieldnames(MatLib);
+    handles=guihandles(MatDbaseHandle);
+    Table=get(handles.MatTable,'data');
+    Table=Table(1,:);
+    NumMats=[];
+    for Fi=1:length(FieldNames)
+        %fprintf('Setting %s...',FieldNames{Fi});
+        if strcmp('TypeList',FieldNames(Fi))
+            TypeList=get(handles.MatTable,'columnformat');
+            TypeList{GetMatCol('type')}=reshape(MatLib.TypeList,1,[]);
+            set(handles.MatTable,'columnformat',TypeList);
+        elseif isempty(GetMatCol(FieldNames{Fi}))
+            warning(['Unknown field name "' FieldNames(Fi) '" in MatLib.']);
+        else
+            NumMatsThisParm=length(getfield(MatLib,FieldNames{Fi}));
+            MatDbaseCol=GetMatCol(FieldNames{Fi});
+            if isempty(NumMats)
+                NumMats=NumMatsThisParm;
+            elseif NumMats ~= NumMatsThisParm
+                warning(['All material parameters must exist for all materials.  Parameter "' FieldNames(Fi) '" only has ' num2str(NumMatsThisParm) ' parameters.']);
+            end
+            if isnumeric(Table{1,MatDbaseCol})
+                Table(1:NumMats,MatDbaseCol)=num2cell(MatLib.(FieldNames{Fi}));
+            else
+                Table(1:NumMats,MatDbaseCol)=MatLib.(FieldNames{Fi});
+            end
+            %fprintf('column %2.0d\n',GetMatCol(FieldNames{Fi}))
+        end
+    end
+    Table(:,1)={false};
+    set(handles.MatTable,'data',Table);
+    setappdata(MatDbaseHandle,'Materials',MatLib)
+
 function MatLib=PopulateMatLib(MatTableHandle)
 
     if not(exist('MatTableHandle','var'))
@@ -235,6 +347,7 @@ function MatLib=PopulateMatLib(MatTableHandle)
         TypCol=find(strcmpi(GUIColNames,'Type'));
         AvailMats=find(not(strcmpi('',MatDbase(:,MatCol)))); %List of populated materials
         MatDbase=MatDbase(AvailMats,:);
+        MatLib=[];
 
         for Col=1:length(GUIColNames)
             ColName=lower(strtrim(GUIColNames{Col}));
@@ -242,44 +355,19 @@ function MatLib=PopulateMatLib(MatTableHandle)
             if ~isempty(FindSpace)
                 ColName=ColName(1:FindSpace-1);
             end
-            switch ColName
-                case 'material'
-                    MatLib.Material=MatDbase(:,2);
-                case 'type'
-                    MatLib.Type=MatDbase(:,3);
-                case 'cte'
-                    MatLib.cte=cell2mat(MatDbase(:,4));
-                case 'e'
-                    MatLib.e=cell2mat(MatDbase(:,5));
-                case 'nu'
-                    MatLib.nu=cell2mat(MatDbase(:,6));
-                case 'k_s'
-                    MatLib.k=cell2mat(MatDbase(:,7));
-                case 'dens_s'
-                    MatLib.rho=cell2mat(MatDbase(:,8));
-                case 'cp_s'
-                    MatLib.cp=cell2mat(MatDbase(:,9));
-                case 'k_l'
-                    MatLib.k_l=cell2mat(MatDbase(:,10));
-                case 'dens_l'
-                    MatLib.rho_l=cell2mat(MatDbase(:,11));
-                case 'cp_l'
-                    MatLib.cp_l=cell2mat(MatDbase(:,12));
-                case 'lw'
-                    MatLib.lf=cell2mat(MatDbase(:,13));
-                case 'tmelt'
-                    MatLib.tmelt=cell2mat(MatDbase(:,14));
-                case 'h_ibc'
-                    MatLib.h_ibc=cell2mat(MatDbase(:,15));
-                case 't_ibc'
-                    MatLib.T_ibc=cell2mat(MatDbase(:,16));
-                case 'del'
-                otherwise
-                    warning(['Unknown column label "' strtrim(GUIColNames{Col}) '"' ]); 
+            ColNum=GetMatCol(ColName);
+            if ColNum>0
+                if ischar(MatDbase{1,ColNum})
+                    MatLib=setfield(MatLib,GetMatCol(ColName,true),MatDbase(:,ColNum));
+                elseif isnumeric(MatDbase{1,ColNum})
+                    MatLib=setfield(MatLib,GetMatCol(ColName,true),cell2mat(MatDbase(:,ColNum)));
+                else
+                    warning('Unknown field type.')
+                end
             end
         end
         TypeList=get(MatTableHandle,'columnformat');
-        TypeList=TypeList{3};
+        TypeList=TypeList{GetMatCol('type')};
         MatLib.TypeList=TypeList';
         setappdata(gcf,'Materials',MatLib);
     end

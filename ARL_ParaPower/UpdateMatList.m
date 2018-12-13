@@ -1,43 +1,69 @@
-function UpdateMatList(TableHandle, Ci, CloseImmediately)
+function UpdateMatList(Action,FeatureTableHandle, MatListCol, varargin)
 %Update a material list in a table with a new materials database
-%TableHandle is a handle to the table of inerest
+%TableHandle is a handle to the table of interest
 %Ci is the column number of that table that has materials listed
+%If 3rd argument is a MatLib, then load that MatLib into the materials
+%database.
 
-    F=get(TableHandle,'userdata');
+    NoEdit=false;
+    MatLib=[];
+    CurrentMatDbaseH=get(FeatureTableHandle,'userdata');
     
-    if isempty(F) || not(isvalid(F))
-        F=MaterialDatabase;  %Instantiate the materials database window
-        set(TableHandle,'userdata',F);
+    CurrentFig=gcf;
+
+    switch lower(Action)
+        case 'editmats'
+        case 'loadmatlib'
+            NoEdit=true;
+            MatLib=varargin{1};
+        case 'initialize'
+            NoEdit=true;
+            CurrentMatDbaseH=[];
+        otherwise 
+            error(['Unknown action for UpdateMatList "' Action '"']);
+    end
+
+   
+    if isempty(CurrentMatDbaseH) || not(isvalid(CurrentMatDbaseH))
+        CurrentMatDbaseH=MaterialDatabase;  %Instantiate the materials database window
+        set(FeatureTableHandle,'userdata',CurrentMatDbaseH);
         drawnow  %Seems to be needed to ensure that GUI can render properly
     end
-    
-    if exist('CloseImmediately','var')
-        set(F,'visible','off')
+
+    %Allow the user to edit the mat dbase if not closed immediately
+    if NoEdit
+        set(CurrentMatDbaseH,'visible','off')
     else
-        set(F,'windowstyle','modal')
-        set(F,'visible','on')
-        uiwait(F)
-        set(F,'windowstyle','normal')
+        set(CurrentMatDbaseH,'windowstyle','modal')
+        set(CurrentMatDbaseH,'visible','on')
+        uiwait(CurrentMatDbaseH)
+        set(CurrentMatDbaseH,'windowstyle','normal')
     end
     
-    M=getappdata(F,'Materials');
-    NewMatList=reshape(M.Material,[],length(M.Material));
+    if not(isempty(MatLib))
+       MaterialDatabase('ExtractMatLib',CurrentMatDbaseH, MatLib);
+       set(CurrentMatDbaseH,'visible','off')
+    else
+       MatLib=getappdata(CurrentMatDbaseH,'Materials');
+    end
+    
+    NewMatList=reshape(MatLib.Material,[],length(MatLib.Material));
 
-    ColFormat=get(TableHandle,'columnformat');
-    OldMatList=ColFormat{Ci};
-    Data=get(TableHandle,'data');
+    ColFormat=get(FeatureTableHandle,'columnformat');
+    OldMatList=ColFormat{MatListCol};
+    Data=get(FeatureTableHandle,'data');
     if not(isempty(Data))
         for I=1:length(Data(:,1))
-            MatIndex=find(strcmpi(Data(I,Ci),NewMatList));
+            MatIndex=find(strcmpi(Data(I,MatListCol),NewMatList));
             if isempty(MatIndex)
                 ThisMat='';
             else
                 ThisMat=NewMatList{MatIndex};
             end
-            Data{I,Ci}=ThisMat;
+            Data{I,MatListCol}=ThisMat;
         end
     end
-    ColFormat{Ci}=NewMatList;
-    set(TableHandle,'columnformat',ColFormat);
-    set(TableHandle,'data',Data);
-end
+    ColFormat{MatListCol}=NewMatList;
+    set(FeatureTableHandle,'columnformat',ColFormat);
+    set(FeatureTableHandle,'data',Data);
+    figure(CurrentFig)

@@ -4,11 +4,11 @@ In 'visualize' click different materials 'on' and 'off'
 Enable 'stop' button on GUI
 Prettify results plots
 Add total mass output 
-Ensure that Load/Save Profile includes proper material information
-
+Static Analysis is broken
 
 Items Completed.
 ------------------
+Ensure that Load/Save Profile includes proper material information
 Q is NaN
 Change to mm
 Make line and point elements material type 0
