@@ -71,7 +71,7 @@ if isempty(GlobalTime)
     Qval=cellfun(@feval,Q(Qmask),zer_eval);  
     clear zer_eval
     %evaluate each nonempty cell of Q at t=0
-    Qv=sparse(find(Qmask),ones(nnz(Qmask)),Qval,length(Mat(:)));  %
+    Qv=sparse(find(Qmask),1,Qval,length(Mat(:)),1);  %
     %Q's for the entire Mat matrix, vector for the single static step
     
 else
@@ -93,9 +93,9 @@ else
 end
 
 C=zeros(nnz(Mat>0),1); % Nodal capacitance terms for transient effects
-T=zeros(nnz(Mat>0),length(GlobalTime)); % Temperature DOF vector
+T=zeros(nnz(Mat>0),max([2 length(GlobalTime)])); % Temperature DOF vector, must hold at least initial cond and static/single result
 T(:,1)=T_init;
-Tres=zeros(numel(Mat),length(GlobalTime)); % Nodal temperature results
+Tres=zeros(numel(Mat),size(T,2)); % Nodal temperature results
 
 %% Phase Change Setup Hook
 PHres=Tres;

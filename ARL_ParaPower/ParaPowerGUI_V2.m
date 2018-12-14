@@ -31,11 +31,11 @@ function varargout = ParaPowerGUI_V2(varargin)
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
 gui_State = struct('gui_Name',       mfilename, ...
-                   'gui_Singleton',  gui_Singleton, ...
-                   'gui_OpeningFcn', @ParaPowerGUI_V2_OpeningFcn, ...
-                   'gui_OutputFcn',  @ParaPowerGUI_V2_OutputFcn, ...
-                   'gui_LayoutFcn',  [] , ...
-                   'gui_Callback',   []);
+    'gui_Singleton',  gui_Singleton, ...
+    'gui_OpeningFcn', @ParaPowerGUI_V2_OpeningFcn, ...
+    'gui_OutputFcn',  @ParaPowerGUI_V2_OutputFcn, ...
+    'gui_LayoutFcn',  [] , ...
+    'gui_Callback',   []);
 if nargin && ischar(varargin{1})
     gui_State.gui_Callback = str2func(varargin{1});
 end
@@ -45,8 +45,8 @@ if nargout
 else
     gui_mainfcn(gui_State, varargin{:});
 end
+end
 % End initialization code - DO NOT EDIT
-
 
 % --- Executes just before ParaPowerGUI_V2 is made visible.
 function ParaPowerGUI_V2_OpeningFcn(hObject, eventdata, handles, varargin)
@@ -114,11 +114,9 @@ ClearGUI_Callback(handles.ClearGUI, eventdata, handles, false)
 %set(handles.features,'celleditcallback',DispNotice);
 %set(handles.ExtCondTable,'celleditcallback',DispNotice);
 
+end
 
 % %LogoAxes_CreateFcn(hObject, eventdata, handles)
-
-
-
 
 % --- Outputs from this function are returned to the command line.
 function varargout = ParaPowerGUI_V2_OutputFcn(hObject, eventdata, handles) 
@@ -129,7 +127,9 @@ function varargout = ParaPowerGUI_V2_OutputFcn(hObject, eventdata, handles)
 
 % Get default command line output from handles structure
 varargout{1} = handles.output;
+end
 
+%{
 % 
 % % --- Executes on button press in visualize.
 % % function visualize_Callback(hObject, eventdata, handles)
@@ -154,9 +154,7 @@ varargout{1} = handles.output;
 % data = get(handles.features,'Data');
 % data(end+1,:)=0;
 % set(handles.features,'Data',data)
-
-
-
+%}
 
 % --- Executes on button press in addfeature.
 function addfeature_Callback(hObject, eventdata, handles)
@@ -186,7 +184,8 @@ function addfeature_Callback(hObject, eventdata, handles)
     setappdata(gcf,TableDataName,QData);
 
     VisUpdateStatus(handles,true);
-    
+end
+
 % --- Executes during object creation, after setting all properties.
 function Tinit_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to Tinit (see GCBO)
@@ -198,6 +197,7 @@ function Tinit_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
+end
 
 function E=EmptyFeatureRow
     E{1,FTC('NumCols')}=[];
@@ -205,7 +205,7 @@ function E=EmptyFeatureRow
     E{FTC('QVal')}='0';
     E{FTC('QType')}='Scalar';
     E{FTC('Desc')}='';
-
+end
 
 % --- Executes during object creation, after setting all properties.
 function Tprocess_CreateFcn(hObject, eventdata, handles)
@@ -218,9 +218,7 @@ function Tprocess_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-
-
-
+end
 
 % --- Executes during object creation, after setting all properties.
 function NumTimeSteps_CreateFcn(hObject, eventdata, handles)
@@ -233,11 +231,7 @@ function NumTimeSteps_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-
-
-
-
-
+end
 
 % --- Executes on button press in savebutton.
 function savebutton_Callback(hObject, eventdata, handles)
@@ -245,8 +239,9 @@ function savebutton_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-    Initialize_Callback(hObject, eventdata, handles)
+    Initialize_Callback(hObject, eventdata, handles, false)
     TestCaseModel = getappdata(gcf,'TestCaseModel');
+    Results=getappdata(gcf,'Results');
     oldpathname=get(handles.loadbutton,'userdata');
     if isnumeric(oldpathname)
         oldpathname='';
@@ -259,7 +254,7 @@ function savebutton_Callback(hObject, eventdata, handles)
     else
         [fname,pathname] = uiputfile ([oldpathname '*.mat']);
         AddStatusLine(['Saving "' pathname fname '".']);
-        save([pathname fname],'TestCaseModel')  
+        save([pathname fname],'TestCaseModel','Results')  
     end
     if fname ~= 0
         set(handles.loadbutton,'userdata',pathname);
@@ -271,7 +266,7 @@ function savebutton_Callback(hObject, eventdata, handles)
         CurTitle=[CurTitle ': ' fname];
         set(handles.figure1,'name',CurTitle);
     end
-
+end
 
 % --- Executes on button press in loadbutton.
 function loadbutton_Callback(hObject, eventdata, handles)
@@ -405,7 +400,9 @@ function loadbutton_Callback(hObject, eventdata, handles)
                QData{n}=[];
            end
            setappdata(gcf,TableDataName, QData)
-           
+           if exist(Results,'var')
+            setappdata(gcf,'Results',Results)
+           end
            %Update Materials
            UpdateMatList('LoadMatLib',handles.features, FTC('mat'), TestCaseModel.MatLib)
            
@@ -418,9 +415,8 @@ function loadbutton_Callback(hObject, eventdata, handles)
            Initialize_Callback(hObject, eventdata, handles, true)
         end
     end
+end    
     
-    
-
 % --- Executes on button press in RunAnalysis.
 function RunAnalysis_Callback(hObject, eventdata, handles)
 % hObject    handle to RunAnalysis (see GCBO)
@@ -448,7 +444,7 @@ function RunAnalysis_Callback(hObject, eventdata, handles)
         drawnow
         AddStatusLine('Thermal...',true)
         
-        TimeStepOutput = get(handles.slider1,'Value');
+        %not used TimeStepOutput = get(handles.slider1,'Value');
 
         GlobalTime=MI.GlobalTime;  %Since there is global time vector, construct one here.
         [Tprnt, MI, MeltFrac]=ParaPowerThermal(MI);
@@ -473,26 +469,29 @@ function RunAnalysis_Callback(hObject, eventdata, handles)
        
 
        
-       StateN=round(length(GlobalTime)*TimeStepOutput,0);
+       %not used StateN=round(length(GlobalTime)*TimeStepOutput,0);
        
-       %%%%Plot time dependent plots for temp, stress and melt fraction 
-        Dout(:,1)=GlobalTime;
-        Dout(:,2)=zeros(size(GlobalTime));
-        Dout(:,3)=zeros(size(GlobalTime));
-        Dout(:,4)=zeros(size(GlobalTime));
-        
-    
-       
-       for I=1:length(GlobalTime)
-            Dout(I,2)=max(max(max(Tprnt(:,:,:,I))));
-            %Dout(I,3)=max(max(max(Stress(:,:,:,I))));
-            Dout(I,4)=max(max(max(MeltFrac(:,:,:,I))));
+       if get(handles.transient,'value')==1
+           %%%%Plot time dependent plots for temp, stress and melt fraction
+           Dout(:,1)=GlobalTime;
+           Dout(:,2)=zeros(size(GlobalTime));
+           Dout(:,3)=zeros(size(GlobalTime));
+           Dout(:,4)=zeros(size(GlobalTime));
+           
+           
+           
+           for I=1:length(GlobalTime)
+               Dout(I,2)=max(max(max(Tprnt(:,:,:,I))));
+               %Dout(I,3)=max(max(max(Stress(:,:,:,I))));
+               Dout(I,4)=max(max(max(MeltFrac(:,:,:,I))));
+           end
+           
+           numplots = 1;
+           figure(numplots)
+           plot (Dout(:,1), Dout(:,2))
+           figure(handles.figure1)
        end
        
-       numplots = 1; 
-       figure(numplots)
-       plot (Dout(:,1), Dout(:,2))
-       figure(handles.figure1)
        
        Results.Tprint=Tprnt;
        Results.Stress=Stress;
@@ -501,7 +500,8 @@ function RunAnalysis_Callback(hObject, eventdata, handles)
        setappdata(handles.figure1, 'Results', Results);
 
        AddStatusLine('Done.', true);
-
+end
+       
 % --- Executes on button press in VisualStress.
 function VisualStress_Callback(hObject, eventdata, handles)
 % hObject    handle to VisualStress (see GCBO)
@@ -509,6 +509,7 @@ function VisualStress_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of VisualStress
+end
 
 % --- Executes during object creation, after setting all properties.
 function listbox2_CreateFcn(hObject, eventdata, handles)
@@ -520,6 +521,7 @@ function listbox2_CreateFcn(hObject, eventdata, handles)
 %       See ISPC and COMPUTER.
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
+end
 end
 
 % --- Executes on slider movement.
@@ -533,16 +535,35 @@ function slider1_Callback(hObject, eventdata, handles)
 
 TimeStepOutput = get(handles.slider1,'Value'); %value between 0 and 1 from the slider
 
-NumStep =str2num(get(handles.NumTimeSteps,'String')); %total number of time steps
-StateN=round(NumStep*TimeStepOutput,0); %time step of interest 
-TimeStepString = strcat('Time Step Output = ',int2str(StateN)); %create output string
-set(handles.TextTimeStep,'String',TimeStepString)   %output string to GUI
-
-
-TimeStep = str2num(get(handles.TimeStep,'String'));  %individual time step in seconds 
-timeofinterest = TimeStep*NumStep*TimeStepOutput;
-TimeString = strcat('Time of Interest = ',num2str(timeofinterest),' sec');
-set(handles.InterestTime,'String',TimeString)
+Results=getappdata(handles.figure1,'Results');
+if isempty(Results)
+    TimeStepString = []; %create output string
+    set(handles.TextTimeStep,'String',TimeStepString)   %output string to GUI
+    TimeString = 'No Model Results';
+    set(handles.InterestTime,'String',TimeString)
+else
+    GlobalTime=Results.Model.GlobalTime;
+    
+    if isempty(GlobalTime)      %Results represent Static Analysis
+        StateN=round(TimeStepOutput)+1;
+        TimeStepString = {'Initial Conditions';'Static Solution'}; %create output string
+        set(handles.TextTimeStep,'String',TimeStepString{StateN})   %output string to GUI
+        TimeString = [];
+        set(handles.InterestTime,'String',TimeString)
+        setappdata(handles.figure1,'step',StateN);
+    else  %Transient analysis results found, use GlobalTime to dictate slider values
+        NumStep =length(GlobalTime); %total number of time values found  (will be Steps+1)
+        StateN=min([floor(NumStep*TimeStepOutput)+1 NumStep]); %time step of interest, with judo to ensure within index
+        TimeStepString = strcat('Time Step Output = ',int2str(StateN-1)); %create output string
+        set(handles.TextTimeStep,'String',TimeStepString)   %output string to GUI
+        
+        TimeStep = GlobalTime(StateN);  %individual time value in seconds
+        TimeString = strcat('Time of Interest = ',num2str(TimeStep),' sec');
+        set(handles.InterestTime,'String',TimeString)
+        setappdata(handles.figure1,'step',StateN);
+    end
+end
+end
 
 % --- Executes during object creation, after setting all properties.
 function slider1_CreateFcn(hObject, eventdata, handles)
@@ -554,7 +575,7 @@ function slider1_CreateFcn(hObject, eventdata, handles)
 if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor',[.9 .9 .9]);
 end
-
+end
 
 % --- Executes on button press in AddMaterial.
 function AddMaterial_Callback(hObject, eventdata, handles)
@@ -565,7 +586,7 @@ function AddMaterial_Callback(hObject, eventdata, handles)
 TableHandle=handles.features;
 
 UpdateMatList('EditMats',TableHandle,FTC('mat'))
-
+end
 
 % --- Executes on button press in Initialize.
 function Initialize_Callback(hObject, eventdata, handles, Visual)
@@ -805,6 +826,7 @@ else
         end
     end
 end
+end
 
 % --- Executes on button press in DeleteFeature.
 function DeleteFeature_Callback(hObject, eventdata, handles)
@@ -831,6 +853,7 @@ if length(data(:,1))==0
 end
 set(handles.features, 'Data', data);
 VisUpdateStatus(handles,true);
+end
 
 % --- Executes on button press in ClearGUI.
 function ClearGUI_Callback(hObject, eventdata, handles, Confirm)
@@ -862,7 +885,7 @@ cla reset;
 %Figures = findobj( 'Type', 'Figure' , '-not' , 'Tag' , get(ParaPowerGUI_V2, 'Tag' ) );
 Figures = findobj( 'Type', 'Figure' );
 NFigures = length( Figures );
-for nFigures = 1 : NFigures;
+for nFigures = 1 : NFigures
     if isempty(get(Figures(nFigures),'filename'))
         close( Figures( nFigures ) );
     end
@@ -891,7 +914,7 @@ set(handles.GeometryVisualization,'visi','off')
 
 EmptyRow=EmptyFeatureRow;
 set(handles.features, 'Data',EmptyRow); 
-if isappdata(gcf,TableDataName);
+if isappdata(gcf,TableDataName)
     rmappdata(gcf,TableDataName)
 end
 
@@ -920,13 +943,14 @@ UpdateMatList('Initialize',handles.features, FTC('mat'))
 
 guidata(hObject, handles);
 AddStatusLine('Done.', true,handles.figure1)
+end
 
 % --- Executes on button press in pushbutton18.
 function pushbutton18_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton18 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-
+end
 
 % --- Executes on button press in MeshConverg.
 function MeshConverg_Callback(hObject, eventdata, handles)
@@ -946,38 +970,57 @@ function MeshConverg_Callback(hObject, eventdata, handles)
 %     
 %     
 % end
-
-    
-    
-
-
-
+end
 
 % --- Executes during object creation, after setting all properties.
 function TextTimeStep_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to TextTimeStep (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
-
+end
 
 % --- Executes on button press in View.
 function View_Callback(hObject, eventdata, handles)
 % hObject    handle to View (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+    slider1_Callback(hObject, eventdata, handles)  %call the move slider1 to ensure up-to-date info
 
+TimeString=get(handles.InterestTime,'String'); %this is empty if static analysis results found
+TimeStepString=get(handles.InterestTime,'String'); %this is empty if no results
+
+numplots = 3; 
+
+if isempty(TimeStepString)  %no model results
+    AddStatusLine('No Results Exist. Displaying Detailed Geometry','warning')
+    numplots=numplots+1;
+    figure(numplots)
+    pause(.001)
+    MI=getappdata(handles.figure1,'MI');
+    Visualize ('', MI, 'modelgeom','ShowQ','ShowExtent')
+    return
+end
+    
 Results=getappdata(handles.figure1,'Results');
 MI = Results.Model;
 Tprnt = Results.Tprint;
 Stress = Results.Stress;
 MeltFrac = Results.MeltFrac;
+GlobalTime=MI.GlobalTime;
 
-numplots = 3; 
-TimeStepOutput = get(handles.slider1,'Value'); %value between 0 and 1 from the slider
+StateN=getappdata(handles.figure1,'step');
 
+trans_model=~isempty(TimeString);
 
-NumStep =str2num(get(handles.NumTimeSteps,'String')); %total number of time steps
-StateN=1+round(NumStep*TimeStepOutput,0); %time step of interest 
+if ~trans_model
+    if StateN==1
+        state_str='Initial State';
+    elseif StateN==2
+        state_str='Static Solution';
+    else
+        state_str=[];
+    end
+end
 
 if get(handles.VisualTemp,'Value')==1
     if isempty(Tprnt)
@@ -986,10 +1029,17 @@ if get(handles.VisualTemp,'Value')==1
        numplots = numplots+1;
        figure(numplots)
        pause(.001)
-       Visualize(sprintf('t=%1.2f ms, State: %i of %i',MI.GlobalTime(StateN)*1000, StateN,length(Tprnt(1,1,1,:))),MI ...
-       ,'state', Tprnt(:,:,:,StateN), 'RemoveMaterial',[0] ...
-       ,'scaletitle', 'Temperature' ...
-       )                      
+       if trans_model
+           Visualize(sprintf('t=%1.2f ms, State: %i of %i',MI.GlobalTime(StateN)*1000, StateN,length(Tprnt(1,1,1,:)))...
+               ,MI,'state', Tprnt(:,:,:,StateN), 'RemoveMaterial',[0] ...
+               ,'scaletitle', 'Temperature' ...
+               )
+       else
+           Visualize(sprintf(state_str)...
+               ,MI,'state', Tprnt(:,:,:,StateN), 'RemoveMaterial',[0] ...
+               ,'scaletitle', 'Temperature' ...
+               )
+       end
     end
 end
 
@@ -1000,10 +1050,17 @@ if get(handles.VisualStress,'Value')==1
        numplots =numplots+1;
        figure(numplots)
        pause(.001)
-       Visualize(sprintf('t=%1.2f ms, State: %i of %i',MI.GlobalTime(StateN)*1000, StateN,length(Stress(1,1,1,:))),MI ...
-       ,'state', Stress(:,:,:,StateN) ...
-       ,'scaletitle', 'Stress' ...
-       )                      
+       if trans_model
+           Visualize(sprintf('t=%1.2f ms, State: %i of %i',MI.GlobalTime(StateN)*1000, StateN,length(Stress(1,1,1,:)))...
+               ,MI,'state', Stress(:,:,:,StateN), 'RemoveMaterial',[0] ...
+               ,'scaletitle', 'Stress' ...
+               )
+       else
+           Visualize(sprintf(state_str)...
+               ,MI,'state', Stress(:,:,:,StateN), 'RemoveMaterial',[0] ...
+               ,'scaletitle', 'Stress' ...
+               )
+       end                   
     end
 end
 
@@ -1013,11 +1070,19 @@ if get(handles.VisualMelt,'Value')==1
     else
        figure(numplots+1)
        pause(.001)
-       Visualize(sprintf('t=%1.2f ms, State: %i of %i',MI.GlobalTime(StateN)*1000, StateN,length(MeltFrac(1,1,1,:))),MI ...
-       ,'state', MeltFrac(:,:,:,StateN) ...
-       ,'scaletitle', 'Melt Fraction' ...
-       )                      
+       if trans_model
+           Visualize(sprintf('t=%1.2f ms, State: %i of %i',MI.GlobalTime(StateN)*1000, StateN,length(MeltFrac(1,1,1,:)))...
+               ,MI,'state', MeltFrac(:,:,:,StateN), 'RemoveMaterial',[0] ...
+               ,'scaletitle', 'Melt Fraction' ...
+               )
+       else
+           Visualize(sprintf(state_str)...
+               ,MI,'state', MeltFrac(:,:,:,StateN), 'RemoveMaterial',[0] ...
+               ,'scaletitle', 'Melt Fraction' ...
+               )
+       end                           
     end
+end
 end
 
 % --- Executes during object creation, after setting all properties.
@@ -1025,6 +1090,7 @@ function VisualTemp_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to VisualTemp (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
+end
 
 function TimeStep_Callback(hObject, eventdata, handles)
 % hObject    handle to TimeStep (see GCBO)
@@ -1041,6 +1107,7 @@ TotalTime = TimeStepOutput*NumStepOutput;
 
 TimeStepString = strcat('Total Time = ',num2str(TotalTime), ' sec'); %create output string
 set(handles.totaltime,'String',TimeStepString);   %output string to GUI
+end
 
 function NumTimeSteps_Callback(hObject, eventdata, handles)
 % hObject    handle to NumTimeSteps (see GCBO)
@@ -1051,6 +1118,7 @@ function NumTimeSteps_Callback(hObject, eventdata, handles)
 %        str2double(get(hObject,'String')) returns contents of NumTimeSteps as a double
 
 TimeStep_Callback(hObject, eventdata, handles);
+end
 
 % --- Executes when user attempts to close figure1.
 function figure1_CloseRequestFcn(hObject, eventdata, handles)
@@ -1064,7 +1132,7 @@ if not(isempty(F))
     delete(F)
 end
 delete(hObject);
-
+end
 
 % --- Executes during object creation, after setting all properties.
 function LogoAxes_CreateFcn(hObject, eventdata, handles)
@@ -1073,9 +1141,9 @@ function LogoAxes_CreateFcn(hObject, eventdata, handles)
 % handles    empty - handles not created until after all CreateFcns called
 
 % Hint: place code in OpeningFcn to populate LogoAxes
+end
 
-
-function AddStatusLine(textline,varargin);% Optional args are AddToLastLine,Flag, ThisFig)
+function AddStatusLine(textline,varargin)% Optional args are AddToLastLine,Flag, ThisFig)
 
     AddToLastLine=false;
     Flag='';
@@ -1170,6 +1238,7 @@ function AddStatusLine(textline,varargin);% Optional args are AddToLastLine,Flag
         end
     end
     drawnow
+end
     
 function VisUpdateStatus(handles, NeedsUpdate)
     %handles=guidata(gcf);
@@ -1190,13 +1259,14 @@ function VisUpdateStatus(handles, NeedsUpdate)
     else
         set(handles.VisualUpdateText,'vis','off');
     end
-
+end
+    
 % --- Executes during object creation, after setting all properties.
 function GeometryVisualization_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to GeometryVisualization (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
-
+end
 % Hint: place code in OpeningFcn to populate GeometryVisualization
 
 function T=TableShowDataText
@@ -1211,6 +1281,7 @@ function T=TableShowDataText
 %TableDataName is used with getappdata to extract the table data
 %TableShowDataText is called in the selection callbback to show text that
 %is used.
+end
 
 function H=TableEditHandles(Description)
     C=get(gcf,'children');
@@ -1233,12 +1304,12 @@ function H=TableEditHandles(Description)
             warning([Description 'Unknown handle requested.'])
                 
     end
-            
-                
-                
+end        
+                               
 function T=TableDataName
     T='Qtables';
-    
+end
+
 function TableOpenClose(Action,SourceTableHandle, Index)
     Data=getappdata(gcf,TableDataName);
     if exist('SourceTableHandle','var')
@@ -1259,14 +1330,14 @@ function TableOpenClose(Action,SourceTableHandle, Index)
         if Index > length(Data)
             Data=[0 0];
         else
-            if isempty(Data{Index});
+            if isempty(Data{Index})
                 Data=[ 0 0 ];
             else
                 Data=Data{Index};
             end
         end
         TableData(:,2:3)=num2cell(Data);
-        for I=1:length(TableData(:,1));
+        for I=1:length(TableData(:,1))
             TableData{I,1}=false;
         end
         set(TableH,'data',TableData);  
@@ -1295,7 +1366,8 @@ function TableOpenClose(Action,SourceTableHandle, Index)
             set(ChildHandles(I),'vis',ChildStates{I});
         end
     end
-    
+end
+
 % --- Executes on button press in TableAddRow.
 function TableAddRow_Callback(hObject, eventdata, handles)
 % hObject    handle to TableAddRow (see GCBO)
@@ -1317,6 +1389,7 @@ if AddEndRow
 end    
 set(TableH,'data',Table)
 TableGraph(hObject)
+end
 
 % --- Executes on button press in TableDelRow.
 function TableDelRow_Callback(hObject, eventdata, handles)
@@ -1333,6 +1406,7 @@ for I=length(Table(:,1)):-1:1
 end
 set(TableH,'data',Table)  
 TableGraph(hObject)
+end
 
 % --- Executes on button press in TableClose.
 function TableClose_Callback(hObject, eventdata, handles)
@@ -1347,11 +1421,11 @@ else
     TableOpenClose('close')
     set(get(hObject,'parent'),'visible','off')
 end
+end
 
 %function GraphTable (hObject)
 %    TableH=TableEditHandles('table');
 %    AxesH=TableEditHandles('axes');
-    
 
 % --- Executes on button press in TableGraph.
 function TableGraph(hObject, eventdata, handles)
@@ -1371,6 +1445,7 @@ if max(NTable(:,2))==YLim(2)
     YLim(2)=YLim(2)+(YLim(2)-YLim(1))*.05;
 end
 set(AxesH,'ylim',YLim)
+end
 
 % --- Executes when entered data in editable cell(s) in TableTable.
 function TableTable_CellEditCallback(hObject, eventdata, handles)
@@ -1383,6 +1458,7 @@ function TableTable_CellEditCallback(hObject, eventdata, handles)
 %	Error: error string when failed to convert EditData to appropriate value for Data
 % handles    structure with handles and user data (see GUIDATA)
 TableGraph(hObject)
+end
 
 % --- Executes when selected cell(s) is changed in features.
 function features_CellSelectionCallback(hObject, eventdata, handles)
@@ -1402,7 +1478,7 @@ function features_CellSelectionCallback(hObject, eventdata, handles)
         TableOpenClose('open',hObject,Row)
     end
   end
-
+end
 
 function features_CellEditCallback(hObject, eventdata, handles)
 % hObject    handle to features (see GCBO)
@@ -1437,7 +1513,7 @@ elseif Col==FTC('QType')
         set(hObject,'Data',Table);
     end
 end
-
+end
 
 % --- Executes when entered data in editable cell(s) in ExtCondTable.
 function ExtCondTable_CellEditCallback(hObject, eventdata, handles)
@@ -1450,7 +1526,7 @@ function ExtCondTable_CellEditCallback(hObject, eventdata, handles)
 %	Error: error string when failed to convert EditData to appropriate value for Data
 % handles    structure with handles and user data (see GUIDATA)
     VisUpdateStatus(handles,true)
-
+end
 
 % --- Executes when selected object is changed in AnalysisType.
 function AnalysisType_SelectionChangedFcn(hObject, eventdata, handles)
@@ -1464,7 +1540,7 @@ function AnalysisType_SelectionChangedFcn(hObject, eventdata, handles)
     elseif strncmpi(Chooser,'transient',8)
         set([handles.text5 handles.text4 handles.TimeStep handles.NumTimeSteps handles.totaltime],'enable','on');
     end
-
+end
     
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %                      FEATURES TABLE SPECIAL HANDLING          %
@@ -1498,7 +1574,7 @@ function StatusWindow_Callback(hObject, eventdata, handles)
 
 % Hints: contents = cellstr(get(hObject,'String')) returns StatusWindow contents as cell array
 %        contents{get(hObject,'Value')} returns selected item from StatusWindow
-
+end
 
 % --- Executes during object creation, after setting all properties.
 function StatusWindow_CreateFcn(hObject, eventdata, handles)
@@ -1511,6 +1587,8 @@ function StatusWindow_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
+end
+
 
 function NumCol=FTC(ColDescr)
     switch lower(ColDescr)
@@ -1547,7 +1625,8 @@ function NumCol=FTC(ColDescr)
         otherwise
             NumCol=nan;
     end
-            
+end
+
 % --- Executes on button press in MoveUp.
 function MoveUp_Callback(hObject, eventdata, handles)
 % hObject    handle to MoveUp (see GCBO)
@@ -1580,6 +1659,7 @@ function MoveUp_Callback(hObject, eventdata, handles)
     setappdata(gcf,TableDataName,QData);
 
     VisUpdateStatus(handles,true);
+end
 
 % --- Executes on button press in MoveDown.
 function MoveDown_Callback(hObject, eventdata, handles)
@@ -1613,7 +1693,7 @@ function MoveDown_Callback(hObject, eventdata, handles)
     setappdata(gcf,TableDataName,QData);
 
     VisUpdateStatus(handles,true);
-
+end
 
 % --- Executes on button press in TableCancel.
 % --- Executes on button press in TableClose.
@@ -1631,7 +1711,7 @@ end
 % hObject    handle to TableCancel (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-
+end
 
 % --- Executes on selection change in StressModel.
 function StressModel_Callback(hObject, eventdata, handles)
@@ -1641,7 +1721,7 @@ function StressModel_Callback(hObject, eventdata, handles)
 
 % Hints: contents = cellstr(get(hObject,'String')) returns StressModel contents as cell array
 %        contents{get(hObject,'Value')} returns selected item from StressModel
-
+end
 
 % --- Executes during object creation, after setting all properties.
 function StressModel_CreateFcn(hObject, eventdata, handles)
@@ -1654,7 +1734,7 @@ function StressModel_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-
+end
 
 % --- Executes on button press in HelpButton.
 function HelpButton_Callback(hObject, eventdata, handles)
@@ -1698,4 +1778,4 @@ function HelpButton_Callback(hObject, eventdata, handles)
                     'for this document shall be referred to US Army Research Laboratory, Power Conditioning Branch (RDRL-SED-P). '];
     HelpText{end+1}='';
     set(T,'string',HelpText)
-
+end
