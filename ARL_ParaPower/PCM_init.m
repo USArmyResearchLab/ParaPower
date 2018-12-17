@@ -10,6 +10,6 @@ sphtl = ModelInput.MatLib.cp_l; %solid volumetric heat (volumetric form of speci
 Lw = ModelInput.MatLib.lf; %Latent heat of fusion
 Tm = ModelInput.MatLib.tmelt; %Melting point of material, in degrees C
 
-PH = zeros(nnz(Mat>0),length(ModelInput.GlobalTime)); %percent melted of a given node
+PH = zeros(nnz(Mat>0),max([2 length(ModelInput.GlobalTime)])); %percent melted of a given node
 PH_init=zeros(nnz(Mat>0),1);
 end
