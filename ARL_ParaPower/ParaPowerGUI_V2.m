@@ -372,6 +372,11 @@ function loadbutton_Callback(hObject, eventdata, handles)
            for count = 1: n 
                 %FEATURESTABLE
                tabledata(count,FTC('check'))  = {false};
+               if isfield(Features(count),'Desc')
+                   tabledata(count,FTC('desc')) = Features(count).Desc;
+               else
+                   tabledata(count,FTC('desc')) = '';
+               end
                tabledata(count,FTC('x1'))  = mat2cell(1000*Features(count).x(1),1,1);
                tabledata(count,FTC('y1'))  = mat2cell(1000*Features(count).y(1),1,1);
                tabledata(count,FTC('z1'))  = mat2cell(1000*Features(count).z(1),1,1);
@@ -589,14 +594,14 @@ UpdateMatList('EditMats',TableHandle,FTC('mat'))
 end
 
 % --- Executes on button press in Initialize.
-function Initialize_Callback(hObject, eventdata, handles, Visual)
+function Initialize_Callback(hObject, eventdata, handles, DrawModel)
 % hObject    handle to Initialize (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
 %Clear the main variables that are passed out from it.
 if not(exist('Visual'))
-    Visual=true;
+    DrawModel=true;
 end
 KillInit=0;
 AddStatusLine('Initializing...',handles.figure1)
@@ -691,6 +696,8 @@ else
     end
     for count = 1:rows
 
+        Features(count).Desc = FeaturesMatrix{count, FTC('desc')};
+        
         %.x, .y & .z are the two element vectors that define the corners
         %of each features.  X=[X1 X2], Y=[Y1 Yz], Z=[Z1 Z2] is interpreted
         %that corner of the features are at points (X1, Y1, Z1) and (X2, Y2, Z2).
@@ -817,7 +824,7 @@ else
         axes(handles.GeometryVisualization)
         %figure(2)
 
-        if Visual
+        if DrawModel
             AddStatusLine('drawing...',true)
             Visualize ('', MI, 'modelgeom','ShowQ','ShowExtent')
             VisUpdateStatus(handles,false);
