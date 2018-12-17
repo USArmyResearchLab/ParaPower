@@ -400,7 +400,7 @@ function loadbutton_Callback(hObject, eventdata, handles)
                QData{n}=[];
            end
            setappdata(gcf,TableDataName, QData)
-           if exist(Results,'var')
+           if exist('Results','var')
             setappdata(gcf,'Results',Results)
            end
            %Update Materials
@@ -992,12 +992,16 @@ TimeStepString=get(handles.InterestTime,'String'); %this is empty if no results
 numplots = 3; 
 
 if isempty(TimeStepString)  %no model results
-    AddStatusLine('No Results Exist. Displaying Detailed Geometry','warning')
-    numplots=numplots+1;
-    figure(numplots)
-    pause(.001)
     MI=getappdata(handles.figure1,'MI');
-    Visualize ('', MI, 'modelgeom','ShowQ','ShowExtent')
+    if ~isempty('MI')
+        AddStatusLine('No Results Exist. Displaying Detailed Geometry','warning')
+        numplots=numplots+1;
+        figure(numplots)
+        pause(.001)      
+        Visualize ('', MI, 'modelgeom','ShowQ','ShowExtent')
+    else
+        AddStatusLine('No Existing Results or Model Info.','warning')
+    end
     return
 end
     
