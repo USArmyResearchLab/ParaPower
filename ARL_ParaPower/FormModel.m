@@ -352,12 +352,13 @@ function UseLayer=GetZeroLayer(Coords, FeatureCoords)
 return
 
 function In=GetInXYZ(FeatureExtent, Coords)
+    E=eps(max(abs(Coords)));
     %eps tolerancing implemented to combat precision issues.
     if FeatureExtent(1)==FeatureExtent(2)
         In=find(abs(FeatureExtent(1)-Coords)<eps);
         In=In(1:end-1);
     else
-        In=find(FeatureExtent(1) <= Coords+eps & FeatureExtent(2) > Coords+eps);
+        In=find(FeatureExtent(1)-E <= Coords & FeatureExtent(2)-E > Coords);
         if length(Coords(In))~=length(unique(Coords(In)))
             In=In(2:end);
         end

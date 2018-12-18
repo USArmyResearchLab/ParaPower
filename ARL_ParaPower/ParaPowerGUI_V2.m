@@ -373,9 +373,9 @@ function loadbutton_Callback(hObject, eventdata, handles)
                 %FEATURESTABLE
                tabledata(count,FTC('check'))  = {false};
                if isfield(Features(count),'Desc')
-                   tabledata(count,FTC('desc')) = Features(count).Desc;
+                   tabledata{count,FTC('desc')} = Features(count).Desc;
                else
-                   tabledata(count,FTC('desc')) = '';
+                   tabledata{count,FTC('desc')} = '';
                end
                tabledata(count,FTC('x1'))  = mat2cell(1000*Features(count).x(1),1,1);
                tabledata(count,FTC('y1'))  = mat2cell(1000*Features(count).y(1),1,1);
