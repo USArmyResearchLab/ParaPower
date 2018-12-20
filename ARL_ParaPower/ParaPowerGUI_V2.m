@@ -123,6 +123,10 @@ function InitializeGUI(handles)
         StressModelFunctions{Fi}=strrep(StressModelFunctions{Fi},'Stress_','');
         AddStatusLine(['Adding stress model ' StressModelFunctions{Fi} '.'])
     end
+    ExtCondTable=get(handles.ExtCondTable,'data');
+    set(handles.ExtCondTable,'data',ExtCondTable(1:2,:));
+    RowName=get(handles.ExtCondTable,'rowname');
+    set(handles.ExtCondTable,'rowname',RowName(1:2));
     StressModelFunctions{end+1}='None';
     set(handles.StressModel,'string',StressModelFunctions);
     setappdata(handles.figure1,'Initialized',true);
@@ -636,7 +640,7 @@ function Initialize_Callback(hObject, eventdata, handles, DrawModel)
 % handles    structure with handles and user data (see GUIDATA)
 
 %Clear the main variables that are passed out from it.
-if not(exist('Visual'))
+if not(exist('DrawModel'))
     DrawModel=true;
 end
 KillInit=0;
@@ -1809,9 +1813,14 @@ function HelpButton_Callback(hObject, eventdata, handles)
     HelpText{end+1}='    Step 1';
     HelpText{end+1}='    Step 2';
     HelpText{end+1}='';
+    HelpText{end+1}='While the model and results are saved with ".ppmodel" extension, they are generic MATLAB data files.';
+    HelpText{end+1}='';
     HelpText{end+1}='Developer/Programmer Information';
     HelpText{end+1}='   Material Database';
     HelpText{end+1}='      The handle to the Materials Database figure is stored in userdata of the features table';
+    HelpText{end+1}='';
+    HelpText{end+1}='   Data can be extracted with D=ParaPowerGUI_V2(''GetResults'');';
+    HelpText{end+1}='';
     HelpText{end+1}='   APPDATA Stored in Main Figure';
     HelpText{end+1}='      Qtables (derefernced by TableDataName()): Tabular data containing time variant Q values.';
     HelpText{end+1}='      Version: Version number of the GUI and code';
