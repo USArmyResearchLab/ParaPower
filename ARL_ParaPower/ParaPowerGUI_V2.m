@@ -58,61 +58,74 @@ function ParaPowerGUI_V2_OpeningFcn(hObject, eventdata, handles, varargin)
 
 % Choose default command line output for ParaPowerGUI_V2
 handles.output = hObject;
-handles.InitComplete=0;
 
 
-clear Features ExternalConditions Params PottingMaterial Descr
-Features.x=[]; Features.y=[]; Features.z=[]; Features.Matl=[]; Features.Q=[]; Features.Matl=''; 
-Features.dz=0; Features.dy=0; Features.dz=0;
+% clear Features ExternalConditions Params PottingMaterial Descr
+% Features.x=[]; Features.y=[]; Features.z=[]; Features.Matl=[]; Features.Q=[]; Features.Matl=''; 
+% Features.dz=0; Features.dy=0; Features.dz=0;
 
-% Update handles structure
-guidata(hObject, handles);
 
-TimeStep_Callback(hObject, eventdata, handles)
-TableHandle=handles.features;
 
-UpdateMatList('Initialize',TableHandle,FTC('mat'))
-% UIWAIT makes ParaPowerGUI_V2 wait for user response (see UIRESUME)
-% uiwait(handles.figure1);
-AddStatusLine('ClearStatus')
-disp('Visual stress checkbox is currently disabled because stress functionality is not implemented in this GUI yet.')
-set(handles.VisualStress,'enable','on');
-disp('stop button functionality is not implemented in this GUI yet.')
-set(handles.pushbutton18,'enable','off')
 
-axes(handles.PPLogo)
-imshow('ARLlogoParaPower.png')
-text(0,0,['Version ' ARLParaPowerVersion],'vertical','bott')
-setappdata(gcf,'Version',ARLParaPowerVersion)
-set(handles.GeometryVisualization,'visi','off');
-
-%Set Stress Model Directory
-set(handles.StressModel,'userdata','Stress_Models')
-
-T=uicontrol(gcf,'style','text','units','normal','posit',[0.01 0 .3 .02],'string','DISTRIBUTION C: See Help for details','horiz','left');
-E=get(T,'extent');
-P=get(T,'posit');
-set(T,'posit',[P(1) P(2) E(3) E(4)]);
-
-%Populate Stress Models.  They exist in the directory and match "Stress_*.m"
-StressDir=get(handles.StressModel,'user');
-StressModels=dir([StressDir '/Stress*.m']);
-for Fi=1:length(StressModels)
-    StressModelFunctions{Fi}=StressModels.name;
-    StressModelFunctions{Fi}=strrep(StressModelFunctions{Fi},'.m','');
-    StressModelFunctions{Fi}=strrep(StressModelFunctions{Fi},'Stress_','');
-    AddStatusLine(['Adding stress model ' StressModelFunctions{Fi} '.'])
+if not(isappdata(hObject,'Initialized'))
+    InitializeGUI(handles);
 end
-StressModelFunctions{end+1}='None';
-set(handles.StressModel,'string',StressModelFunctions);
 
 
-ClearGUI_Callback(handles.ClearGUI, eventdata, handles, false)
+
+%ClearGUI_Callback(handles.ClearGUI, eventdata, handles, false)
 
 %Setup callbacks to ensure that geometry update notification is displayed
 %DispNotice=@(hobject,eventdata) ParaPowerGUI_V2('VisUpdateStatus',guidata(hobject),true);
 %set(handles.features,'celleditcallback',DispNotice);
 %set(handles.ExtCondTable,'celleditcallback',DispNotice);
+
+end
+
+function InitializeGUI(handles)
+
+    hObject=handles.figure1;
+
+    handles.InitComplete=0;
+    % Update handles structure
+    guidata(hObject, handles);
+
+    %Draw Logo
+    axes(handles.PPLogo)
+    imshow('ARLlogoParaPower.png')
+    text(0,0,['Version ' ARLParaPowerVersion],'vertical','bott')
+    setappdata(gcf,'Version',ARLParaPowerVersion)
+    set(handles.GeometryVisualization,'visi','off');
+
+    TimeStep_Callback(handles.TimeStep, [], handles)
+
+    TableHandle=handles.features;
+    UpdateMatList('Initialize',TableHandle,FTC('mat'))
+    AddStatusLine('ClearStatus')
+    set(handles.VisualStress,'enable','on');
+    disp('stop button functionality is not implemented in this GUI yet.')
+    set(handles.pushbutton18,'enable','off')
+
+
+    %Set Stress Model Directory
+    set(handles.StressModel,'userdata','Stress_Models')
+
+    T=uicontrol(gcf,'style','text','units','normal','posit',[0.01 0 .3 .02],'string','DISTRIBUTION C: See Help for details','horiz','left');
+    E=get(T,'extent');
+    P=get(T,'posit');
+    set(T,'posit',[P(1) P(2) E(3) E(4)]);
+    %Populate Stress Models.  They exist in the directory and match "Stress_*.m"
+    StressDir=get(handles.StressModel,'user');
+    StressModels=dir([StressDir '/Stress*.m']);
+    for Fi=1:length(StressModels)
+        StressModelFunctions{Fi}=StressModels.name;
+        StressModelFunctions{Fi}=strrep(StressModelFunctions{Fi},'.m','');
+        StressModelFunctions{Fi}=strrep(StressModelFunctions{Fi},'Stress_','');
+        AddStatusLine(['Adding stress model ' StressModelFunctions{Fi} '.'])
+    end
+    StressModelFunctions{end+1}='None';
+    set(handles.StressModel,'string',StressModelFunctions);
+    setappdata(handles.figure1,'Initialized',true);
 
 end
 
@@ -186,6 +199,22 @@ function addfeature_Callback(hObject, eventdata, handles)
     VisUpdateStatus(handles,true);
 end
 
+function Out=GetResults()
+    Fhandle= ParaPowerGUI_V2;
+    if isappdata(Fhandle,'Results')
+        Out.R=getappdata(Fhandle,'Results');
+    else
+        Out.R=[];
+        disp('No results available from current figure.')
+    end
+    if isappdata(Fhandle,'TestCaseModel')
+        Out.M=getappdata(Fhandle,'TestCaseModel');
+    else
+        Out.M=[];
+        disp('No model available from current figure.')
+    end
+end
+
 % --- Executes during object creation, after setting all properties.
 function Tinit_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to Tinit (see GCBO)
@@ -194,9 +223,9 @@ function Tinit_CreateFcn(hObject, eventdata, handles)
 
 % Hint: edit controls usually have a white background on Windows.
 %       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
+    if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+        set(hObject,'BackgroundColor','white');
+    end
 end
 
 function E=EmptyFeatureRow
@@ -241,7 +270,11 @@ function savebutton_Callback(hObject, eventdata, handles)
 
     Initialize_Callback(hObject, eventdata, handles, false)
     TestCaseModel = getappdata(gcf,'TestCaseModel');
-    Results=getappdata(gcf,'Results');
+    if isappdata(gcf,'Results')
+        Results=getappdata(gcf,'Results');
+    else
+        Results=[];
+    end
     oldpathname=get(handles.loadbutton,'userdata');
     if isnumeric(oldpathname)
         oldpathname='';
@@ -252,9 +285,9 @@ function savebutton_Callback(hObject, eventdata, handles)
         [fname,pathname] = uiputfile ([oldpathname '*.guistate']);
         hgsave(gcf,[pathname fname])
     else
-        [fname,pathname] = uiputfile ([oldpathname '*.mat']);
+        [fname,pathname] = uiputfile ([oldpathname '*.ppmodel']);
         AddStatusLine(['Saving "' pathname fname '".']);
-        save([pathname fname],'TestCaseModel','Results')  
+        save([pathname fname],'TestCaseModel','Results','-mat')  
     end
     if fname ~= 0
         set(handles.loadbutton,'userdata',pathname);
@@ -278,7 +311,7 @@ function loadbutton_Callback(hObject, eventdata, handles)
     if isnumeric(oldpathname)
         oldpathname='';
     end
-    [filename, pathname]= uigetfile({'*.mat' 'Models'; '*.guistate' 'GUI State'; '*.*' 'All Files'},'',oldpathname);
+    [filename, pathname]= uigetfile({'*.ppmodel' 'Models'; '*.guistate' 'GUI State'; '*.*' 'All Files'},'',oldpathname);
     %[filename,pathname] = uigetfile([oldpathname '*.mat']);
     CurTitle=get(handles.figure1,'name');
     Colon=strfind(CurTitle,':');
@@ -307,14 +340,14 @@ function loadbutton_Callback(hObject, eventdata, handles)
                 set(gcf,'name',CurTitle);
             end
         catch ME
-            load ([pathname filename]);
+            load ([pathname filename],'-mat');
 %        end
 %        if not(strncmpi('etatsiug.',filename(end:-1:1),8)) %If filename is not .guistate, then load model into the GUI
             AddStatusLine(['Loading model"' pathname filename '".']);
     %        TestCaseModel = uiimport([pathname filename]);
             %Changing from data saved as fields to saved as a structured variable
 
-            load([pathname filename]);
+            %load([pathname filename]);
             if not(exist('TestCaseModel','var'))
                 warning(sprintf('"%s" saved in old format.  File will be loaded anyway with no user action necessary. File will be saved in new format by default.',[pathname filename]))
                 TestCaseModel.ExternalConditions=ExternalConditions;
@@ -325,7 +358,7 @@ function loadbutton_Callback(hObject, eventdata, handles)
             OldVersion=false;
             if isfield(TestCaseModel,'Version')
                if not(strcmpi(TestCaseModel.Version,'V2.0') )
-                   OldVersion=true
+                   OldVersion=true;
                end
             else
                 TestCaseModel.Version='';
@@ -336,7 +369,6 @@ function loadbutton_Callback(hObject, eventdata, handles)
                 AddStatusLine('Attempting to load data from previous version, profile may be corrupted.','warning')
             end
 
-            setappdata(gcf,'TestCaseModel',TestCaseModel)
             ExternalConditions=TestCaseModel.ExternalConditions;
             Features=TestCaseModel.Features;
             Params=TestCaseModel.Params;
@@ -404,10 +436,14 @@ function loadbutton_Callback(hObject, eventdata, handles)
            if length(QData) < n
                QData{n}=[];
            end
+           
+           setappdata(gcf,'TestCaseModel',TestCaseModel)
            setappdata(gcf,TableDataName, QData)
-           if exist('Results','var')
-            setappdata(gcf,'Results',Results)
+           if exist('Results','var') && not(isempty(Results))
+               setappdata(gcf,'Results',Results)
+               AddStatusLine('Results loaded.');
            end
+           
            %Update Materials
            UpdateMatList('LoadMatLib',handles.features, FTC('mat'), TestCaseModel.MatLib)
            
@@ -428,8 +464,8 @@ function RunAnalysis_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-        if handles.InitComplete == 0 
-            Initialize_Callback(hObject, eventdata, handles)
+        if handles.InitComplete == 0 %Code modified so that draw does NOT automatically occur on run
+            Initialize_Callback(hObject, eventdata, handles, false)
         else
             Initialize_Callback(handles.Initialize, eventdata, handles, false)
         end
@@ -948,6 +984,13 @@ MatHandle=get(handles.features,'userdata');
 delete(MatHandle);
 UpdateMatList('Initialize',handles.features, FTC('mat'))
 
+DataToRemove={TableDataName 'TestCaseModel' 'MI' 'Results'};
+for I=1:length(DataToRemove)
+    if isappdata(handles.figure1,DataToRemove{I})
+        rmappdata(handles.figure1,DataToRemove{I});
+    end
+end
+
 guidata(hObject, handles);
 AddStatusLine('Done.', true,handles.figure1)
 end
@@ -1321,13 +1364,14 @@ function T=TableDataName
     T='Qtables';
 end
 
-function TableOpenClose(Action,SourceTableHandle, Index)
+%function TableOpenClose(Action,SourceTableHandle, Index)
+function TableOpenClose(Action, Index)
     Data=getappdata(gcf,TableDataName);
-    if exist('SourceTableHandle','var')
-        setappdata(gcf,'SourceTableHandle',SourceTableHandle);
-    else
-        SourceTableHandle=getappdata(gcf,'SourceTableHandle');
-    end
+    %if exist('SourceTableHandle','var')
+    %    setappdata(gcf,'SourceTableHandle',SourceTableHandle);
+    %else
+    %    SourceTableHandle=getappdata(gcf,'SourceTableHandle');
+    %end
     FrameHandle=TableEditHandles('panel');
     %HList=get(FrameHandle,'children');
     LabelH=TableEditHandles('label');
@@ -1486,7 +1530,8 @@ function features_CellSelectionCallback(hObject, eventdata, handles)
         set(hObject,'data',[])        % Clear selected cell hack by deleting 
         set(hObject,'data',TempData)  % data and then reinstating data.
         VisUpdateStatus(handles,true);
-        TableOpenClose('open',hObject,Row)
+        TableOpenClose('open', Row)
+%        TableOpenClose('open',hObject,Row)
     end
   end
 end
@@ -1570,10 +1615,7 @@ end
 % their tags.  The function FTC('') is used to ID colums in the %
 % host table that the Q value data tables interact with and     %
 % MUST be updated if host table (features) changes structure. A %
-% handle to the source table is stored in                       % 
-% getappdata(gcf,'SourceTableHandle').                          %
-% This handle is stored dynamically and does not need to be     %
-% managed by the programmer.                                    %
+% handle to the source table is accessed by TableEditHandles()  %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
@@ -1770,8 +1812,19 @@ function HelpButton_Callback(hObject, eventdata, handles)
     HelpText{end+1}='Developer/Programmer Information';
     HelpText{end+1}='   Material Database';
     HelpText{end+1}='      The handle to the Materials Database figure is stored in userdata of the features table';
-    HelpText{end+1}='   Feature Table Structure';
+    HelpText{end+1}='   APPDATA Stored in Main Figure';
+    HelpText{end+1}='      Qtables (derefernced by TableDataName()): Tabular data containing time variant Q values.';
+    HelpText{end+1}='      Version: Version number of the GUI and code';
+    HelpText{end+1}='      TestCaseModel: Input model definition';
+    HelpText{end+1}='      MI: Model input which is TestCaseModel processed by FormModel.';
+    HelpText{end+1}='      Results: Results from last analysis';
+    HelpText{end+1}='      Initialized: TRUE if it''s not a new GUI';
+    HelpText{end+1}='';
     HelpText{end+1}='   Time Variant Q';
+    HelpText{end+1}='      The main interface to get/retrieve time variant Q values is TableOpenClose()';
+    HelpText{end+1}='      The function TableEditHandles() is used to gain access to handles relevant for table handling';
+    HelpText{end+1}='      The programmer MUST adjust the table data if the features table change!';
+    HelpText{end+1}='';
     HelpText{end+1}='   Stress Models';
     HelpText{end+1}='';
     HelpText{end+1}='Contributors:';

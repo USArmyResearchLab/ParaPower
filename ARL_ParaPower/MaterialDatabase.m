@@ -340,6 +340,7 @@ function MatLib=PopulateMatLib(MatTableHandle)
         MatLib=getappdata(F,'Materials');
         delete(F)
     else
+        F=get(get(MatTableHandle,'parent'),'parent');
         GUIColNames=get(MatTableHandle,'columnname');
         MatDbase=get(MatTableHandle,'data');
         GUIColNames=strip(GUIColNames); %Remove extra spaces from the names of the GUI columns
@@ -369,7 +370,7 @@ function MatLib=PopulateMatLib(MatTableHandle)
         TypeList=get(MatTableHandle,'columnformat');
         TypeList=TypeList{GetMatCol('type')};
         MatLib.TypeList=TypeList';
-        setappdata(gcf,'Materials',MatLib);
+        setappdata(F,'Materials',MatLib);
     end
 
 

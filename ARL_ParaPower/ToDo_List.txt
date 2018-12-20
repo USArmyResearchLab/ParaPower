@@ -6,11 +6,11 @@ Prettify results plots
 Add total mass output 
 Static Analysis is broken
 Double clicking on figure to load is not working right for Lauren.
-Delete results on GUI clear
-Only redraw when 'redraw' is pressed not on all inits
 
 Items Completed.
 ------------------
+Only redraw when 'redraw' is pressed not on all inits
+Delete results on GUI clear
 Save Feature descriptors
 Ensure that Load/Save Profile includes proper material information
 Q is NaN
