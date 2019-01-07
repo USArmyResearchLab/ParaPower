@@ -298,14 +298,14 @@ for Fi=1:length(Features)
      end
 end
 
-ModelMatrix=ModelMatrix*i;  %Make all feature number imaginary, then replace "imaginary" feature numbers with "real" material numbers.
+ModelMatrix=ModelMatrix*1i;  %Make all feature number imaginary, then replace "imaginary" feature numbers with "real" material numbers.
 for Fi=1:length(Features)
     MatNum=find(strcmpi(Features(Fi).Matl,MatLib.Material));
     if isempty(MatNum)
         MatNum=NaN;
         fprintf('Feature %2.0f material %s is unknown',Fi,MatNum);
     end
-    ModelMatrix(ModelMatrix==Fi*i)=MatNum;
+    ModelMatrix(ModelMatrix==Fi*1i)=MatNum;
 end
      
 if ischar(PottingMaterial)
@@ -352,16 +352,16 @@ function UseLayer=GetZeroLayer(Coords, FeatureCoords)
 return
 
 function In=GetInXYZ(FeatureExtent, Coords)
-    E=eps(max(abs(Coords)));
+    E=100*eps(max(abs(Coords)));
     %eps tolerancing implemented to combat precision issues.
     if FeatureExtent(1)==FeatureExtent(2)
         In=find(abs(FeatureExtent(1)-Coords)<eps);
         In=In(1:end-1);
     else
         In=find(FeatureExtent(1)-E <= Coords & FeatureExtent(2)-E > Coords);
-        if length(Coords(In))~=length(unique(Coords(In)))
-            In=In(2:end);
-        end
+        %if length(Coords(In))~=length(unique(Coords(In)))
+        %    In=In(2:end);
+        %end
     end
 return
 
