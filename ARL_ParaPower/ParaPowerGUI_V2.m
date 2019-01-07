@@ -100,7 +100,8 @@ function InitializeGUI(handles)
     TimeStep_Callback(handles.TimeStep, [], handles)
 
     TableHandle=handles.features;
-    UpdateMatList('Initialize',TableHandle,FTC('mat'))
+    %Material Database initialization occurs in ClearGUI
+%    UpdateMatList('Initialize',TableHandle,FTC('mat'))
     AddStatusLine('ClearStatus')
     set(handles.VisualStress,'enable','on');
     disp('stop button functionality is not implemented in this GUI yet.')
@@ -114,6 +115,7 @@ function InitializeGUI(handles)
     E=get(T,'extent');
     P=get(T,'posit');
     set(T,'posit',[P(1) P(2) E(3) E(4)]);
+    
     %Populate Stress Models.  They exist in the directory and match "Stress_*.m"
     StressDir=get(handles.StressModel,'user');
     StressModels=dir([StressDir '/Stress*.m']);
@@ -130,6 +132,7 @@ function InitializeGUI(handles)
     StressModelFunctions{end+1}='None';
     set(handles.StressModel,'string',StressModelFunctions);
     setappdata(handles.figure1,'Initialized',true);
+    ClearGUI_Callback(handles.ClearGUI, [], handles, false)
 
 end
 
@@ -290,8 +293,9 @@ function savebutton_Callback(hObject, eventdata, handles)
         hgsave(gcf,[pathname fname])
     else
         [fname,pathname] = uiputfile ([oldpathname '*.ppmodel']);
-        AddStatusLine(['Saving "' pathname fname '".']);
+        AddStatusLine(['Saving "' pathname fname '".,,']);
         save([pathname fname],'TestCaseModel','Results','-mat')  
+        AddStatusLine('Done', true);
     end
     if fname ~= 0
         set(handles.loadbutton,'userdata',pathname);
@@ -340,14 +344,14 @@ function loadbutton_Callback(hObject, eventdata, handles)
             else
                 delete(F_Old);
                 drawnow
-                AddStatusLine(['Loading GUISTATE from "' pathname filename '".']);
+                AddStatusLine(['Loading GUISTATE from "' pathname filename '"...']);
                 set(gcf,'name',CurTitle);
             end
         catch ME
             load ([pathname filename],'-mat');
 %        end
 %        if not(strncmpi('etatsiug.',filename(end:-1:1),8)) %If filename is not .guistate, then load model into the GUI
-            AddStatusLine(['Loading model"' pathname filename '".']);
+            AddStatusLine(['Loading model "' pathname filename '"...']);
     %        TestCaseModel = uiimport([pathname filename]);
             %Changing from data saved as fields to saved as a structured variable
 
@@ -449,14 +453,21 @@ function loadbutton_Callback(hObject, eventdata, handles)
            end
            
            %Update Materials
-           UpdateMatList('LoadMatLib',handles.features, FTC('mat'), TestCaseModel.MatLib)
-           
+           if isfield(TestCaseModel,'MatLib')
+               UpdateMatList('LoadMatLib',handles.features, FTC('mat'), TestCaseModel.MatLib)
+           else
+               AddStatusLine('Materials database not included in this model.');
+               AddStatusLine('It is likely an old model. ');
+               AddStatusLine('Current database will be used. ',false,'warning')
+               AddStatusLine(' ');
+           end
 
            %%%Set Parameters
            set(handles.Tinit,'String', Params.Tinit)
            set(handles.TimeStep,'String',Params.DeltaT)
            set(handles.NumTimeSteps,'String',Params.Tsteps)
            set(handles.Tprocess,'String',ExternalConditions.Tproc)
+           AddStatusLine('Done', true);
            Initialize_Callback(hObject, eventdata, handles, true)
         end
     end
@@ -535,16 +546,13 @@ function RunAnalysis_Callback(hObject, eventdata, handles)
            figure(numplots)
            plot (Dout(:,1), Dout(:,2))
            figure(handles.figure1)
+           %AddStatusLine('Done.', true);
        end
-       
-       
        Results.Tprint=Tprnt;
        Results.Stress=Stress;
        Results.MeltFrac=MeltFrac;
        Results.Model=MI;
        setappdata(handles.figure1, 'Results', Results);
-
-       AddStatusLine('Done.', true);
 end
        
 % --- Executes on button press in VisualStress.
@@ -923,8 +931,10 @@ if strcmpi(P,'No')
     return
 end
 
-AddStatusLine('CLEARSTATUS');
-AddStatusLine('Clearing GUI...')
+if Confirm
+    AddStatusLine('CLEARSTATUS');
+    AddStatusLine('Clearing GUI...')
+end
 axes(handles.GeometryVisualization)
 cla reset;
 
@@ -996,7 +1006,9 @@ for I=1:length(DataToRemove)
 end
 
 guidata(hObject, handles);
-AddStatusLine('Done.', true,handles.figure1)
+if Confirm
+    AddStatusLine('Done.', true,handles.figure1)
+end
 end
 
 % --- Executes on button press in pushbutton18.
@@ -1088,7 +1100,7 @@ if get(handles.VisualTemp,'Value')==1
        figure(numplots)
        pause(.001)
        if trans_model
-           Visualize(sprintf('t=%1.2f ms, State: %i of %i',MI.GlobalTime(StateN)*1000, StateN,length(Tprnt(1,1,1,:)))...
+           Visualize(sprintf('t=%1.2f ms, State: %i of %i',MI.GlobalTime(StateN)*1000, StateN-1,length(Tprnt(1,1,1,:))-1)...
                ,MI,'state', Tprnt(:,:,:,StateN), 'RemoveMaterial',[0] ...
                ,'scaletitle', 'Temperature' ...
                )
@@ -1109,7 +1121,7 @@ if get(handles.VisualStress,'Value')==1
        figure(numplots)
        pause(.001)
        if trans_model
-           Visualize(sprintf('t=%1.2f ms, State: %i of %i',MI.GlobalTime(StateN)*1000, StateN,length(Stress(1,1,1,:)))...
+           Visualize(sprintf('t=%1.2f ms, State: %i of %i',MI.GlobalTime(StateN)*1000, StateN-1,length(Stress(1,1,1,:))-1)...
                ,MI,'state', Stress(:,:,:,StateN), 'RemoveMaterial',[0] ...
                ,'scaletitle', 'Stress' ...
                )
@@ -1129,7 +1141,7 @@ if get(handles.VisualMelt,'Value')==1
        figure(numplots+1)
        pause(.001)
        if trans_model
-           Visualize(sprintf('t=%1.2f ms, State: %i of %i',MI.GlobalTime(StateN)*1000, StateN,length(MeltFrac(1,1,1,:)))...
+           Visualize(sprintf('t=%1.2f ms, State: %i of %i',MI.GlobalTime(StateN)*1000, StateN-1,length(MeltFrac(1,1,1,:))-1)...
                ,MI,'state', MeltFrac(:,:,:,StateN), 'RemoveMaterial',[0] ...
                ,'scaletitle', 'Melt Fraction' ...
                )
@@ -1202,6 +1214,8 @@ function LogoAxes_CreateFcn(hObject, eventdata, handles)
 end
 
 function AddStatusLine(textline,varargin)% Optional args are AddToLastLine,Flag, ThisFig)
+%AddStatusLine(TextLine, boolean) OR AddStatusLine(TextLine, figure) or
+%AddSTatusLine(TextLine, boolean, figure) OR AddStatusLine(TextLine,boolean, Flag, figure)
 
     AddToLastLine=false;
     Flag='';
