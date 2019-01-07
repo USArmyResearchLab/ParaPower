@@ -1,6 +1,6 @@
 function buttontest
-  clf
-  DoButtons('init',{'bdf1' 'b2' 'b3'},[.01 .1 .2 .1],'normal',{'cyan' 'magenta' 'yellow'})
+
+  DoButtons('init',{'Al' 'Cu' 'AlN'},[.01 .1 .2 .1],'normal',{'red' 'cyan' 'yellow'})
 end
 
 function DoButtons(Action,varargin)
@@ -64,16 +64,22 @@ function TogglePanel(ButtonH,Action)
     Index=IndexColor{1};
     OrigColor=IndexColor{2};
     
+    VisText{1}='off';
+    VisText{2}='on';
+    
+    Parms=get(gca,'user');
+    
     Values=get(PanelH,'user');
     %Values(Index)=xor(1,Values(Index));
     if get(ButtonH,'value')
         Values(Index)=1;
         set(ButtonH,'backgroundcolor',OrigColor,'foregroundcolor',[1 1 1]-OrigColor)
+        set(Parms.MatPatchList{Index},'visible','on');
     else
         Values(Index)=0;
         set(ButtonH,'backgroundColor',[.9 .9 .9],'foregroundcolor',[0 0 0]);
+        set(Parms.MatPatchList{Index},'visible','off');
     end
-    Values
     set(PanelH,'user',Values)
 end
     

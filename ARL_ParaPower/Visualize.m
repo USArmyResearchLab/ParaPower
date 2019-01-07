@@ -196,9 +196,22 @@ function Visualize (PlotTitle, MI, varargin)
     if isempty(PlotState)
         PlotState=ModelMatrix;
     end
+    MatListNumbers=unique(ModelMatrix(:));
+    for Ci=1:length(PlotParms.RemoveMatl)
+        MatListNumbers=MatListNumbers(MatListNumbers~=PlotParms.RemoveMatl(Ci));
+    end
+    for Imat=1:length(MatListNumbers)
+%        PlotParms.MatPatchList{Imat}=zeros(1,2*length(find(ModelMatrix(:)==MatList(Imat))));
+         PlotParms.MatPatchList{Imat}=[];
+    end
         
     if ~all(size(PlotState)==size(ModelMatrix))
         error('The dimensions of the plotstate provided do not match the dimensions of the model.')
+    end
+    ButtonColors=[];
+    ButtonColorM=colormap(parula(length(MatListNumbers)));
+    for Ci=1:length(ButtonColorM(:,1))
+        ButtonColors{Ci}=ButtonColorM(Ci,:);
     end
         
     if PlotGeom
@@ -259,6 +272,7 @@ function Visualize (PlotTitle, MI, varargin)
                         ThisColor=floor((PlotState(Xi,Yi,Zi)-ValMin)/ValRange*(length(CM(:,1))-1) + 1);
                         %fprintf('%i ',ThisColor)
                     end
+                    ThisMat=find(MatListNumbers==ModelMatrix(Xi,Yi,Zi));
                     if ~isnan(ThisColor)
                         if isempty(PlotParms.TwoD)
                             F   =patch('faces',[1 2 3 4 1 5 6 2 1 4 8 5 1],'vertices',P,'facecolor',CM(ThisColor,:),'FaceAlpha',FaceAlpha);
@@ -289,7 +303,7 @@ function Visualize (PlotTitle, MI, varargin)
                             set(F,'facecolor','none');
                         end
                     end
-                    
+                    PlotParms.MatPatchList{ThisMat}=[PlotParms.MatPatchList{ThisMat} F];
                     NoHeat=true;
                     if ~isempty(Q)
                         T='';
@@ -440,32 +454,33 @@ function Visualize (PlotTitle, MI, varargin)
         set(CB,'ticks',Scale);
         set(CB,'ticklabels',linspace(ValMin,ValMin+ValRange,length(Scale)));
     else
-        caxis([0 1])
-        %ColorListOrig=ColorList;
-        %ColorList=ColorList(ColorList~=0);
-        NumColors=length(ColorList);
-        if NumColors>1
-            Offset=zeros(1,NumColors);
-            Offset(1)=0.25;
-            Offset(end)=-0.25;
-            TickLocns=((0:NumColors-1)+Offset)/(NumColors-1);
-        else
-            TickLocns=0.5;
-        end
-        set(CB,'ticks',TickLocns);
-        for Mi=1:length(matlist)
-            matlist{Mi}=sprintf('%s (%i)',matlist{Mi},Mi);
-        end
-        set(CB,'ticklabels',matlist(ColorList));
-        %ColorList=ColorListOrig;
+        set(CB,'visible','off')
+
     end
-%    Pos=get(CB,'position');
-    %set(CB,'position',[1-Pos(3) Pos(2) Pos(3)*.5 Pos(4)]);
-    if PlotGeom
-        set(CB,'location','north');
-        set(CB,'yaxislocation','bottom')
-        set(CB,'position',[.05 .95 .90 .05]);
-    end
+%         caxis([0 1])
+%         %ColorListOrig=ColorList;
+%         %ColorList=ColorList(ColorList~=0);
+%         NumColors=length(ColorList);
+%         if NumColors>1
+%             Offset=zeros(1,NumColors);
+%             Offset(1)=0.25;
+%             Offset(end)=-0.25;
+%             TickLocns=((0:NumColors-1)+Offset)/(NumColors-1);
+%         else
+%             TickLocns=0.5;
+%         end
+%         set(CB,'ticks',TickLocns);
+%         for Mi=1:length(matlist)
+%             matlist{Mi}=sprintf('%s (%i)',matlist{Mi},Mi);
+%         end
+%         set(CB,'ticklabels',matlist(ColorList));
+%         %ColorList=ColorListOrig;
+%         set(CB,'location','north');
+%         set(CB,'yaxislocation','bottom')
+%         set(CB,'position',[.05 .95 .90 .05]);
+
+    DoButtons('init',matlist(MatListNumbers),[.25,.9,.50,.1],'normal',ButtonColors);
+    %end
 
     if ~isempty(Q)
         %CurA=gca;
@@ -506,5 +521,84 @@ function [Val, PV]=Pop(PV)
     else
         PV={};
     end
+end
+function DoButtons(Action,varargin)
+%'Init', ButtonNames{'button1', 'button2'}, Position (X, Y, Width, Height), Color{'red' 'blue' 'green'} Units
+
+    switch upper(Action)
+        case 'INIT'
+            ButtonNames=varargin{1};
+            Position=varargin{2};
+            if length(varargin) >2
+                Units=varargin{3};
+            else
+                Units='normal';
+            end
+            if length(varargin) > 3
+                Color=varargin{4};
+            else
+                Color=[];
+            end
+        otherwise
+    end
+    
+    if strcmpi(Action,'init')
+        %PanelH=uipanel('parent',gcf,'posit',Position,'bordertype','none');
+        TotalWidth=0;
+        for I=1:length(ButtonNames)
+            ButtonNames{I}=[' ' ButtonNames{I} ' '];
+            BH=uicontrol('parent',gcf,'style','togglebutton','min',0,'max',1,'string',ButtonNames{I},'fontweight','bold','units','normal');
+            E=get(BH,'extent');
+            delete(BH);
+            TotalWidth=TotalWidth+E(3);
+            Values(I)=1;
+        end
+        %set(PanelH,'user',Values);
+        Gap=(Position(3)-TotalWidth)/(length(ButtonNames)-1);
+        CurX=Position(1);
+        for I=1:length(ButtonNames)
+            W=Position(3)-Gap*(length(ButtonNames)-1)/length(ButtonNames);
+            H=Position(4);
+            Y=Position(2);
+            Toggle=@TogglePanel;
+            BH(I)=uicontrol('parent',gcf,'style','togglebutton','min',0,'max',1,'string',ButtonNames{I},...
+                            'units',Units, 'position',[CurX Y W H],'value',1,'fontweight','bold', ...
+                            'callback',Toggle);
+            if ~isempty(Color)
+                set(BH(I),'backgroundcolor',Color{I})
+                C=get(BH(I),'backgroundcolor');
+                set(BH(I),'foregroundcolor',[1 1 1]-C,'user',{I C})
+            end
+            E=get(BH(I),'extent');
+            set(BH(I),'position',[CurX Y E(3) E(4)]);
+            CurX=CurX+E(3)+Gap;
+        end
+    end
+end
+
+function TogglePanel(ButtonH,Action)
+
+    %PanelH=get(ButtonH,'parent');
+    IndexColor=get(ButtonH,'user');
+    Index=IndexColor{1};
+    OrigColor=IndexColor{2};
+    
+    VisText{1}='off';
+    VisText{2}='on';
+    
+    Parms=get(gca,'user');
+    
+    %Values=get(PanelH,'user');
+    %Values(Index)=xor(1,Values(Index));
+    if get(ButtonH,'value')
+        %Values(Index)=1;
+        set(ButtonH,'backgroundcolor',OrigColor,'foregroundcolor',[1 1 1]-OrigColor)
+        set(Parms.MatPatchList{Index},'visible','on');
+    else
+        %Values(Index)=0;
+        set(ButtonH,'backgroundColor',[.9 .9 .9],'foregroundcolor',[0 0 0]);
+        set(Parms.MatPatchList{Index},'visible','off');
+    end
+    %set(PanelH,'user',Values)
 end
     
