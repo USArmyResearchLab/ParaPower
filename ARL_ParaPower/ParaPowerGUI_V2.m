@@ -45,8 +45,23 @@ if nargout
 else
     gui_mainfcn(gui_State, varargin{:});
 end
-end
 % End initialization code - DO NOT EDIT
+
+%Implement trap to enable double clicking on figure file
+if not(isempty(varargin)) && not(strcmpi(varargin{1}(end-14:end),'CloseRequestFcn'))
+    ThisFig=gcf; 
+%    ThisFig=varargin{2};  %Recurse to find figure handle
+%    while not(strcmpi(class(ThisFig),'matlab.ui.figure'))
+%        ThisFig=get(ThisFig,'parent');
+%    end
+
+    if ishandle(ThisFig) && isempty(getappdata(ThisFig,'Initialized')) && isempty(varargin{4})
+        handles = guihandles(ThisFig);
+        guidata(ThisFig, handles);
+        InitializeGUI(handles);
+    end
+end
+end
 
 % --- Executes just before ParaPowerGUI_V2 is made visible.
 function ParaPowerGUI_V2_OpeningFcn(hObject, eventdata, handles, varargin)
@@ -146,7 +161,9 @@ function varargout = ParaPowerGUI_V2_OutputFcn(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Get default command line output from handles structure
-varargout{1} = handles.output;
+if isfield(handles,'output')
+    varargout{1} = handles.output;
+end
 end
 
 %{

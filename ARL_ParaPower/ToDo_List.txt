@@ -5,10 +5,12 @@ Enable 'stop' button on GUI
 Prettify results plots
 Add total mass output 
 Static Analysis is broken
-Double clicking on figure to load is not working right for Lauren.
 
 Items Completed.
 ------------------
+Double clicking on figure to load is not working right for Lauren.
+Plot state on detailed visual output doesn't match GUI time step (off by 1)
+Add notice of finished save in status window.
 Clarify Materials database save
 Only redraw when 'redraw' is pressed not on all inits
 Delete results on GUI clear
