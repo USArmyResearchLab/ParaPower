@@ -381,10 +381,10 @@ function helpbutton_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 Text={};
-Text{end+1}='This Material database is designed to work with ARL ParaPower.' ;
-Text{end+1}='When first called, it creates a dialog box.  When closed it turns';
-Text{end+1}='the dialog box invisible, but it still exists in memory so that the';
-Text{end+1}='material data can be extracted from it.';
+Text{end+1}=['This Material database is designed to work with ARL ParaPower.' ...
+             'When first called, it creates a dialog box.  When closed it turns ' ...
+             'the dialog box invisible, but it still exists in memory so that the ' ...
+             'material data can be extracted from it.'];
 Text{end+1}='';
 Text{end+1}='On first call the following form should be used:';
 Text{end+1}='   F=MaterialDatabase;';
@@ -404,8 +404,12 @@ Text{end+1}='DefaultMaterials.mat.  If that files doesn''t exist, then the';
 Text{end+1}='database starts out empty.  The file can be created using the';
 Text{end+1}='''Save'' button.  To completely eliminate the GUI use delete(F).';
 Text{end+1}='';
-Text{end+1}='To programmatically pull the material database use P=MaterialDatabase(''PopulateMatLib'')';
+Text{end+1}='To programmatically access the material database use P=MaterialDatabase(''PopulateMatLib'')';
+Text{end+1}='where P is the struct variable that will contain the database.';
 Text{end+1}='';
+Text{end+1}=['Parapower automatically save the current material database into the current profile. ', ...
+            'As a result, the ''save'' button is only needed to save a new material database that ', ...
+            'you want to access across multiple profiles or to update the default material database.'];
 
 
 TextOutput='';

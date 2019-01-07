@@ -6,10 +6,10 @@ Prettify results plots
 Add total mass output 
 Static Analysis is broken
 Double clicking on figure to load is not working right for Lauren.
-Clarify Materials database save
 
 Items Completed.
 ------------------
+Clarify Materials database save
 Only redraw when 'redraw' is pressed not on all inits
 Delete results on GUI clear
 Save Feature descriptors
