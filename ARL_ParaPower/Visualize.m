@@ -200,19 +200,16 @@ function Visualize (PlotTitle, MI, varargin)
     for Ci=1:length(PlotParms.RemoveMatl)
         MatListNumbers=MatListNumbers(MatListNumbers~=PlotParms.RemoveMatl(Ci));
     end
+    
     for Imat=1:length(MatListNumbers)
 %        PlotParms.MatPatchList{Imat}=zeros(1,2*length(find(ModelMatrix(:)==MatList(Imat))));
-         PlotParms.MatPatchList{Imat}=[];
+         MatPatchList{Imat}=[];
     end
         
     if ~all(size(PlotState)==size(ModelMatrix))
         error('The dimensions of the plotstate provided do not match the dimensions of the model.')
     end
-    ButtonColors=[];
-    ButtonColorM=colormap(parula(length(MatListNumbers)));
-    for Ci=1:length(ButtonColorM(:,1))
-        ButtonColors{Ci}=ButtonColorM(Ci,:);
-    end
+    ButtonColors=colormap(parula(length(MatListNumbers)));
         
     if PlotGeom
         ColorList=unique(PlotState(:));  
@@ -303,7 +300,7 @@ function Visualize (PlotTitle, MI, varargin)
                             set(F,'facecolor','none');
                         end
                     end
-                    PlotParms.MatPatchList{ThisMat}=[PlotParms.MatPatchList{ThisMat} F];
+                    MatPatchList{ThisMat}=[MatPatchList{ThisMat} F];
                     NoHeat=true;
                     if ~isempty(Q)
                         T='';
@@ -479,7 +476,9 @@ function Visualize (PlotTitle, MI, varargin)
 %         set(CB,'yaxislocation','bottom')
 %         set(CB,'position',[.05 .95 .90 .05]);
 
-    DoButtons('init',matlist(MatListNumbers),[.25,.9,.50,.1],'normal',ButtonColors);
+    DoButtons('init','Names',matlist(MatListNumbers),'position',[.75,.9,0.00,0],'units','normal',...
+              'colors',ButtonColors, 'entities',MatPatchList,'direction','vertical',...
+              'Parent',get(gca,'parent'));
     %end
 
     if ~isempty(Q)
@@ -522,56 +521,133 @@ function [Val, PV]=Pop(PV)
         PV={};
     end
 end
-function DoButtons(Action,varargin)
-%'Init', ButtonNames{'button1', 'button2'}, Position (X, Y, Width, Height), Color{'red' 'blue' 'green'} Units
 
+function DoButtons(Action,varargin)
+%'Init' the following parameters exist
+%  'names'     - cell array of button names
+%  'position'  - Positioning of the group of buttons (if H,W=0 will be auto)
+%  'units'     - default is 'normal'
+%  'color'     - cell array of button colors
+%  'entities'  - Handles to entites to be switched on/off
+%  'direction' - Buttons arranged vertical or horizontal
+%  'parent'    - Handle to parent. Default is gcf
+
+    if (not(isempty(varargin))) && iscell(varargin{1})
+        PropValPairs=varargin{1};
+    else
+        PropValPairs=varargin;
+    end
+    strleft=@(S,n) S(1:min(n,length(S)));
+    
     switch upper(Action)
         case 'INIT'
-            ButtonNames=varargin{1};
-            Position=varargin{2};
-            if length(varargin) >2
-                Units=varargin{3};
-            else
-                Units='normal';
+            Units='normal';
+            Position=[0 0 0 0];
+            ButtonNames={'1'};
+            Color=[];
+            Parent=gcf;
+            Direction='horizontal';
+            while ~isempty(PropValPairs) 
+                [Prop, PropValPairs]=Pop(PropValPairs);
+                if ~ischar(Prop)
+                    error('Property name must be a string.');
+                end
+                Pl=length(Prop);
+                %disp(Prop)
+                switch lower(Prop)
+                    case strleft('names',Pl)
+                        [Value, PropValPairs]=Pop(PropValPairs); 
+                        ButtonNames=Value;
+                    case strleft('position',Pl)
+                        [Value, PropValPairs]=Pop(PropValPairs); 
+                        Position=Value;
+                    case strleft('units',Pl)
+                        [Value, PropValPairs]=Pop(PropValPairs); 
+                        Units=Value;
+                    case strleft('colors',Pl)
+                        [Value, PropValPairs]=Pop(PropValPairs); 
+                        Color=Value;
+                    case strleft('entities',Pl)
+                        [Value, PropValPairs]=Pop(PropValPairs); 
+                        Entities=Value;
+                    case strleft('direction',Pl)
+                        [Value, PropValPairs]=Pop(PropValPairs);
+                        Direction=Value;
+                    case strleft('parent',Pl)
+                        [Value, PropValPairs]=Pop(PropValPairs);
+                        Parent=Value;
+                    otherwise
+                        fprintf('Property "%s" is unknown.\n',Prop)
+                end
+
             end
-            if length(varargin) > 3
-                Color=varargin{4};
-            else
-                Color=[];
-            end
-        otherwise
     end
-    
+            
     if strcmpi(Action,'init')
-        %PanelH=uipanel('parent',gcf,'posit',Position,'bordertype','none');
         TotalWidth=0;
+        TotalHeight=0;
+        MaxWidth=0;
+        %ClearButtons
+        OldButtons=get(Parent,'children');
+        for I=1:length(OldButtons)
+            U=get(OldButtons(I),'user');
+            if iscell(U) && strcmpi(U{3},'B613')
+                delete(OldButtons(I))
+            end
+        end
         for I=1:length(ButtonNames)
             ButtonNames{I}=[' ' ButtonNames{I} ' '];
             BH=uicontrol('parent',gcf,'style','togglebutton','min',0,'max',1,'string',ButtonNames{I},'fontweight','bold','units','normal');
             E=get(BH,'extent');
             delete(BH);
-            TotalWidth=TotalWidth+E(3);
-            Values(I)=1;
+            MaxWidth=max(E(3),MaxWidth);
+            TotalWidth =TotalWidth +E(3);
+            TotalHeight=TotalHeight+E(4);
         end
-        %set(PanelH,'user',Values);
-        Gap=(Position(3)-TotalWidth)/(length(ButtonNames)-1);
+        if Position(3)==0
+            HGap=.01;
+            Position(3)=.1;
+        else
+            HGap=(Position(3)-TotalWidth)/(length(ButtonNames)-1);
+        end
+        if Position(4)==0
+            VGap=.01;
+            Position(4)=0.1;
+        else
+            VGap=(Position(4)-TotalHeight)/(length(ButtonNames)-1);
+        end
         CurX=Position(1);
+        CurY=Position(2);
         for I=1:length(ButtonNames)
-            W=Position(3)-Gap*(length(ButtonNames)-1)/length(ButtonNames);
-            H=Position(4);
-            Y=Position(2);
             Toggle=@TogglePanel;
-            BH(I)=uicontrol('parent',gcf,'style','togglebutton','min',0,'max',1,'string',ButtonNames{I},...
-                            'units',Units, 'position',[CurX Y W H],'value',1,'fontweight','bold', ...
+            BH(I)=uicontrol('parent',Parent,'style','togglebutton','min',0,'max',1,'string',ButtonNames{I},...
+                            'units',Units, 'value',1,'fontweight','bold', ...
                             'callback',Toggle);
             if ~isempty(Color)
-                set(BH(I),'backgroundcolor',Color{I})
+                set(BH(I),'backgroundcolor',Color(I,:))
                 C=get(BH(I),'backgroundcolor');
-                set(BH(I),'foregroundcolor',[1 1 1]-C,'user',{I C})
+                set(BH(I),'foregroundcolor',[1 1 1]-C,'user',{Entities{I} C 'B613'})
             end
-            E=get(BH(I),'extent');
-            set(BH(I),'position',[CurX Y E(3) E(4)]);
-            CurX=CurX+E(3)+Gap;
+            if strcmpi(Direction,'horizontal')
+                W=Position(3)-HGap*(length(ButtonNames)-1)/length(ButtonNames);
+                H=Position(4);
+                Y=Position(2);
+                set(BH(I),'position',[CurX Y W H]);
+                E=get(BH(I),'extent');
+                set(BH(I),'position',[CurX Y-E(4) E(3) E(4)]);
+                CurX=CurX+E(3)+HGap;
+            else
+                W=Position(3)-HGap*(length(ButtonNames)-1)/length(ButtonNames);
+                H=Position(4);
+                X=Position(1);
+                set(BH(I),'position',[X CurY W H]);
+                E=get(BH(I),'extent');
+                if MaxWidth>Position(3)
+                    Position(3)=MaxWidth;
+                end
+                set(BH(I),'position',[X CurY Position(3) E(4)]);
+                CurY=CurY-E(4)-VGap;
+            end
         end
     end
 end
@@ -579,25 +655,21 @@ end
 function TogglePanel(ButtonH,Action)
 
     %PanelH=get(ButtonH,'parent');
-    IndexColor=get(ButtonH,'user');
-    Index=IndexColor{1};
-    OrigColor=IndexColor{2};
+    EntityColor=get(ButtonH,'user');
+    Entities =EntityColor{1};
+    OrigColor=EntityColor{2};
     
     VisText{1}='off';
     VisText{2}='on';
     
-    Parms=get(gca,'user');
-    
-    %Values=get(PanelH,'user');
-    %Values(Index)=xor(1,Values(Index));
     if get(ButtonH,'value')
         %Values(Index)=1;
         set(ButtonH,'backgroundcolor',OrigColor,'foregroundcolor',[1 1 1]-OrigColor)
-        set(Parms.MatPatchList{Index},'visible','on');
+        set(Entities,'visible','on');
     else
         %Values(Index)=0;
         set(ButtonH,'backgroundColor',[.9 .9 .9],'foregroundcolor',[0 0 0]);
-        set(Parms.MatPatchList{Index},'visible','off');
+        set(Entities,'visible','off');
     end
     %set(PanelH,'user',Values)
 end

@@ -1,6 +1,5 @@
 Features to Add
 -------------------
-In 'visualize' click different materials 'on' and 'off'
 Enable 'stop' button on GUI
 Prettify results plots
 Add total mass output 
@@ -8,6 +7,7 @@ Static Analysis is broken
 
 Items Completed.
 ------------------
+In 'visualize' click different materials 'on' and 'off'
 Double clicking on figure to load is not working right for Lauren.
 Plot state on detailed visual output doesn't match GUI time step (off by 1)
 Add notice of finished save in status window.
