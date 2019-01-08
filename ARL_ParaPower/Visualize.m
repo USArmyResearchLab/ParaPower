@@ -77,6 +77,7 @@ function Visualize (PlotTitle, MI, varargin)
     ColorTitle='';
     PlotState=[];
     Q=[];
+    PlotParms.ShowButtons=true;
     Qt=0; %Time at which Q will be evaluated
 
     strleft=@(S,n) S(1:min(n,length(S)));
@@ -112,6 +113,9 @@ function Visualize (PlotTitle, MI, varargin)
             case strleft('edgeonlymaterial',Pl)
                 [Value, PropValPairs]=Pop(PropValPairs); 
                 PlotParms.EdgeOnlyMatl=Value;
+            case strleft('showbuttons',Pl)
+                [Value, PropValPairs]=Pop(PropValPairs); 
+                PlotParms.ShowButtons=Value;
             case strleft('transmaterial',Pl)
                 [Value, PropValPairs]=Pop(PropValPairs); 
                 PlotParms.TransMatl=Value;
@@ -400,9 +404,9 @@ function Visualize (PlotTitle, MI, varargin)
         L(2)=line([1 1]*min(X) , [min(Y) Ymax], [1 1]*min(Z));
         L(3)=line([1 1]*min(X) , [1 1]*min(Y) , [min(Z) Zmax]);
         set(L,'color',[0 1 0], 'linewidth',2)
-        text(Xmax,0,0,'X');
-        text(0,Ymax,0,'Y');
-        text(0,0,Zmax,'Z');
+        text(Xmax,min(Y),min(Z),'X');
+        text(min(X),Ymax,min(Z),'Y');
+        text(min(X),min(Y),Zmax,'Z');
     end
     
     if PlotParms.ShowExtent
@@ -476,10 +480,11 @@ function Visualize (PlotTitle, MI, varargin)
 %         set(CB,'yaxislocation','bottom')
 %         set(CB,'position',[.05 .95 .90 .05]);
 
-    DoButtons('init','Names',matlist(MatListNumbers),'position',[.75,.9,0.00,0],'units','normal',...
-              'colors',ButtonColors, 'entities',MatPatchList,'direction','vertical',...
-              'Parent',get(gca,'parent'));
-    %end
+    if PlotParms.ShowButtons
+        DoButtons('init','Names',{matlist{MatListNumbers} 'BCs'},'position',[.75,.9, 0.0, 0],'units','normal',...
+                  'colors',[ButtonColors; .9 .9 .9], 'entities',[MatPatchList {T}],'direction','vertical',...
+                  'Parent',get(gca,'parent'));
+    end
 
     if ~isempty(Q)
         %CurA=gca;
