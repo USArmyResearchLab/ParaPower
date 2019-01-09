@@ -26,7 +26,7 @@ function varargout = ParaPowerGUI_V2(varargin)
 
 % Edit the above text to modify the response to help ParaPowerGUI_V2
 
-% Last Modified by GUIDE v2.5 12-Dec-2018 10:53:33
+% Last Modified by GUIDE v2.5 08-Jan-2019 15:42:38
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -47,18 +47,15 @@ else
 end
 % End initialization code - DO NOT EDIT
 
-%Implement trap to enable double clicking on figure file
-if not(isempty(varargin)) && not(strcmpi(varargin{1}(end-14:end),'CloseRequestFcn'))
-    ThisFig=gcf; 
-%    ThisFig=varargin{2};  %Recurse to find figure handle
-%    while not(strcmpi(class(ThisFig),'matlab.ui.figure'))
-%        ThisFig=get(ThisFig,'parent');
-%    end
-
-    if ishandle(ThisFig) && isempty(getappdata(ThisFig,'Initialized')) && isempty(varargin{4})
-        handles = guihandles(ThisFig);
-        guidata(ThisFig, handles);
-        InitializeGUI(handles);
+if 0
+    %Implement trap to enable double clicking on figure file
+    if not(isempty(varargin)) && not(strcmpi(varargin{1}(end-14:end),'CloseRequestFcn'))
+        ThisFig=gcf; 
+        if ishandle(ThisFig) && isempty(getappdata(ThisFig,'Initialized')) && isempty(varargin{4})
+            handles = guihandles(ThisFig);
+            guidata(ThisFig, handles);
+            InitializeGUI(handles);
+        end
     end
 end
 end
@@ -205,6 +202,7 @@ function addfeature_Callback(hObject, eventdata, handles)
         TableData=EmptyRow;
     else
         InsertRows=find(cell2mat(TableData(:,FTC('check')))==true);
+        InsertRows=InsertRows(1);
         if isempty(InsertRows)
             TableData(end+1,:)=EmptyRow;
             QData{length(TableData(:,1))}=[];
@@ -237,6 +235,13 @@ function Out=GetResults()
         Out.M=[];
         disp('No model available from current figure.')
     end
+end
+
+function Tinit_Callback(hObject, eventdata, handles)
+
+end
+function Tprocess_Callback(hObject, eventdata, handles)
+
 end
 
 % --- Executes during object creation, after setting all properties.
@@ -518,9 +523,11 @@ function RunAnalysis_Callback(hObject, eventdata, handles)
         AddStatusLine('Thermal...',true)
         
         %not used TimeStepOutput = get(handles.slider1,'Value');
-
+        tic
         GlobalTime=MI.GlobalTime;  %Since there is global time vector, construct one here.
         [Tprnt, MI, MeltFrac]=ParaPowerThermal(MI);
+        Etime=toc;
+        AddStatusLine(sprintf('(%3.2fs)...',Etime),true)
         
         AddStatusLine(['Stress (' StressModel ')...'],true);
         if strcmpi(StressModel,'none')
@@ -528,7 +535,10 @@ function RunAnalysis_Callback(hObject, eventdata, handles)
         else
             OldPath=path;
             addpath(get(handles.StressModel,'user'));
+            tic
             eval(['Stress=Stress_' StressModel '(MI,Tprnt);']);
+            Etime=toc;
+            AddStatusLine(sprintf('(%3.2fs)...',Etime),true)
             path(OldPath)
         end
         if not(exist('Stress','var'))
@@ -537,7 +547,8 @@ function RunAnalysis_Callback(hObject, eventdata, handles)
             AddStatusLine('');
             Stress=[];
         end
-                                       
+        slider1_Callback(handles.slider1, [], handles)
+        set(handles.slider1,'value',1);
         AddStatusLine('Complete.',true)
        
 
@@ -562,6 +573,8 @@ function RunAnalysis_Callback(hObject, eventdata, handles)
            numplots = 1;
            figure(numplots)
            plot (Dout(:,1), Dout(:,2))
+           xlabel('Time (s)')
+           ylabel('Temperature')
            figure(handles.figure1)
            %AddStatusLine('Done.', true);
        end
@@ -967,7 +980,7 @@ end
 
 Kids=get(handles.uipanel5,'children');
 for i=1:length(Kids)
-    if strcmpi(get(Kids(i),'userdata'),'REMOVE');
+    if strcmpi(get(Kids(i),'type'),'uicontrol') || strcmpi(get(Kids(i),'userdata'),'REMOVE');
         delete(Kids(i))
     end
 end
@@ -1882,4 +1895,13 @@ function HelpButton_Callback(hObject, eventdata, handles)
                     'for this document shall be referred to US Army Research Laboratory, Power Conditioning Branch (RDRL-SED-P). '];
     HelpText{end+1}='';
     set(T,'string',HelpText)
+end
+
+
+% --- Executes during object creation, after setting all properties.
+function ExtCondTable_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to ExtCondTable (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+set(hObject, 'Data', cell(2,6));
 end

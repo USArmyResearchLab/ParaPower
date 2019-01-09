@@ -8,7 +8,7 @@ Static Analysis is broken
 Items Completed.
 ------------------
 In 'visualize' click different materials 'on' and 'off'
-Double clicking on figure to load is not working right for Lauren.
+Double clicking on figure to load is not working right for Lauren...not valid functionality.
 Plot state on detailed visual output doesn't match GUI time step (off by 1)
 Add notice of finished save in status window.
 Clarify Materials database save

@@ -201,6 +201,12 @@ function Visualize (PlotTitle, MI, varargin)
         PlotState=ModelMatrix;
     end
     MatListNumbers=unique(ModelMatrix(:));
+    VList=cell(length(MatListNumbers),1);     %OPTIM
+    FList=cell(length(MatListNumbers),1);   %OPTIM
+    CList=cell(length(MatListNumbers),1);
+    CVList=cell(length(MatListNumbers),1);
+    QFList=cell(length(MatListNumbers),1);
+    FAList=cell(length(MatListNumbers),1);
     for Ci=1:length(PlotParms.RemoveMatl)
         MatListNumbers=MatListNumbers(MatListNumbers~=PlotParms.RemoveMatl(Ci));
     end
@@ -263,6 +269,12 @@ function Visualize (PlotTitle, MI, varargin)
                     P(6,:)=[X(Xi)   Y(Yi+1) Z(Zi+1)] + [  Xoffset -Yoffset -Zoffset] ;
                     P(7,:)=[X(Xi+1) Y(Yi+1) Z(Zi+1)] + [ -Xoffset -Yoffset -Zoffset] ;
                     P(8,:)=[X(Xi+1) Y(Yi)   Z(Zi+1)] + [ -Xoffset  Yoffset -Zoffset] ;
+                    Face(1,:)=[1 2 3 4]; %Z-
+                    Face(2,:)=[1 5 6 2]; %X-
+                    Face(3,:)=[1 4 8 5]; %Y-
+                    Face(4,:)=[7 6 5 8]; %Z+
+                    Face(5,:)=[7 8 4 3]; %X+
+                    Face(6,:)=[7 3 2 6]; %Y+
                     %fprintf('Xi=%i, Yi=%i, Zi=%i  (%g, %g, %g) (%g, %g, %g)\n',Xi, Yi,Zi, X1, Y1, Z1, X2, Y2, Z2)
                     if ~isempty(find(ModelMatrix(Xi,Yi,Zi) == PlotParms.TransMatl, 1))
                         FaceAlpha=PlotParms.Transparency;
@@ -274,37 +286,52 @@ function Visualize (PlotTitle, MI, varargin)
                         %fprintf('%i ',ThisColor)
                     end
                     ThisMat=find(MatListNumbers==ModelMatrix(Xi,Yi,Zi));
+                    ThisVertC = ones(length(P),1) * CM(ThisColor,:);
                     if ~isnan(ThisColor)
                         if isempty(PlotParms.TwoD)
-                            F   =patch('faces',[1 2 3 4 1 5 6 2 1 4 8 5 1],'vertices',P,'facecolor',CM(ThisColor,:),'FaceAlpha',FaceAlpha);
-                            F(2)=patch('faces',[7 6 5 8 7 8 4 3 7 3 2 6 7],'vertices',P,'Facecolor',CM(ThisColor,:),'FaceAlpha',FaceAlpha);
+                            VList{ThisMat}=[VList{ThisMat}; P];              %OPTIM              
+                            PtStart=length(VList{ThisMat}(:,1))-length(P(:,1)); %OPTIM
+                            ThisFace  = Face+PtStart;
+                            ThisFaceC = ones(length(Face(:,1)),1) * CM(ThisColor,:);
                         else
                             F=[];
                             if any(strcmp(PlotParms.TwoD,'X+'))
-                                F=[F patch('faces',[4 3 7 8],'vertices',P,'facecolor',CM(ThisColor,:),'FaceAlpha',FaceAlpha)];
+                                ThisFace  =  Face(5,:)+PtStart;  %OPTIM
+                                ThisFaceC =  CM(ThisColor,:);
                             end
                             if any(strcmp(PlotParms.TwoD,'X-'))
-                                F=[F patch('faces',[1 2 6 5],'vertices',P,'facecolor',CM(ThisColor,:),'FaceAlpha',FaceAlpha)];
+                                ThisFace  =  Face(2,:)+PtStart;  %OPTIM
+                                ThisFaceC = CM(ThisColor,:);
                             end
                             if any(strcmp(PlotParms.TwoD,'Y+'))
-                                F=[F patch('faces',[7 3 2 6],'vertices',P,'facecolor',CM(ThisColor,:),'FaceAlpha',FaceAlpha)];
+                                ThisFace  =  Face(6,:)+PtStart;  %OPTIM
+                                ThisFaceC = CM(ThisColor,:);
                             end
                             if any(strcmp(PlotParms.TwoD,'Y-'))
-                                F=[F patch('faces',[1 4 8 5],'vertices',P,'facecolor',CM(ThisColor,:),'FaceAlpha',FaceAlpha)];
+                                ThisFace  =  Face(3,:)+PtStart;  %OPTIM
+                                ThisFaceC =  CM(ThisColor,:);
                             end
                             if any(strcmp(PlotParms.TwoD,'Z+'))
-                                F=[F patch('faces',[5 6 7 8],'vertices',P,'facecolor',CM(ThisColor,:),'FaceAlpha',FaceAlpha)];
+                                ThisFace  =  Face(4,:)+PtStart;  %OPTIM
+                                ThisFaceC =  CM(ThisColor,:);
                             end
                             if any(strcmp(PlotParms.TwoD,'Z-'))
-                                F=[F patch('faces',[1 2 3 4],'vertices',P,'facecolor',CM(ThisColor,:),'FaceAlpha',FaceAlpha)];
+                                ThisFace  =  Face(1,:)+PtStart;  %OPTIM
+                                ThisFaceC =  CM(ThisColor,:);
                             end
                         end
-                        if ~isempty(find(ModelMatrix(Xi,Yi,Zi) == PlotParms.EdgeOnlyMatl, 1))
-                            set(F,'EdgeColor',get(F(1),'facecolor'));
-                            set(F,'facecolor','none');
-                        end
+                        FList{ThisMat}=[FList{ThisMat}; ThisFace];  %OPTIM
+                        CList{ThisMat}=[CList{ThisMat}; ThisFaceC];
+                        CVList{ThisMat}=[CVList{ThisMat}; ThisVertC];
+                        FAList{ThisMat}=FaceAlpha;
+%                        if ~isempty(find(ModelMatrix(Xi,Yi,Zi) == PlotParms.EdgeOnlyMatl, 1))
+%                            set(F,'EdgeColor',get(F(1),'facecolor'));
+%                            set(F,'facecolor','none');
+%                        end
                     end
-                    MatPatchList{ThisMat}=[MatPatchList{ThisMat} F];
+%                    if ~PlotGeom
+%                        MatPatchList{ThisMat}=[MatPatchList{ThisMat} F];
+%                    end
                     NoHeat=true;
                     if ~isempty(Q)
                         T='';
@@ -323,20 +350,13 @@ function Visualize (PlotTitle, MI, varargin)
                             else
                                 ThisQ=char(ThisQ);
                             end
+                            F=patch('faces',ThisFace,'vertices',VList{ThisMat},'facecolor','none');
+                            QFList{ThisMat} = [QFList{ThisMat} F];
                             if isKey(QList,ThisQ)
                                 QList(ThisQ)=[QList(ThisQ) F];
                             else
                                 QList(ThisQ)=F;
                             end
-%                             Sp=' '; %char(10) if want them on different line
-%                             if isscalar(ThisQ)
-%                                 T=[T Sp sprintf('Q=%g',ThisQ)]; %#ok<*AGROW>
-%                             else
-%                                 T=[T Sp sprintf('Q=f(t)')];
-%                             end
-%                             set(F,'PlotParms.EdgeColor',[1 0 0]);
-%                             set(F,'linewidth',5);
-%                             NoHeat=false;
                         end
                         text(mean([X(Xi) X(Xi+1)]), mean([Y(Yi) Y(Yi+1)]), mean([Z(Zi) Z(Zi+1)]),T,'horiz','center')
                     end
@@ -348,6 +368,36 @@ function Visualize (PlotTitle, MI, varargin)
             end
         end
     end
+%    if PlotGeom
+        for Imat=1:length(MatListNumbers) %OPTIM
+            if ~isempty(find(MatListNumbers(Imat) == PlotParms.TransMatl, 1))
+                FaceAlpha=PlotParms.Transparency;
+            end
+            EdgeColor='black';
+            if ~isempty(PlotParms.EdgeColor) 
+                EdgeColor=PlotParms.EdgeColor;
+            end
+            if ~isempty(find(MatListNumbers(Imat) == PlotParms.EdgeOnlyMatl, 1))
+                FaceColor='none';
+                EdgeColor='flat';
+                ColorList=CList{Imat};
+                ColorList=CVList{Imat};
+            else
+                FaceColor='flat';
+                ColorList=CList{Imat};
+            end
+            
+%            ThisColor=find(ColorList==MatListNumbers(Imat));
+            F   =patch('faces',FList{Imat},'vertices',VList{Imat}, ...
+                        'facevertexcdata',ColorList, ...
+                        'facealpha',FaceAlpha, ...
+                        'edgecolor', EdgeColor, ...
+                        'facecolor',FaceColor, ...
+                        'facealpha',FAList{Imat});
+                        % 'FaceAlpha',FaceAlpha);
+            MatPatchList{Imat}=[F QFList{Imat}];
+        end %OPTIM
+ %   end
     Xrange=max(X)-min(X);
     Yrange=max(Y)-min(Y);
     Zrange=max(Z)-min(Z);
@@ -458,27 +508,6 @@ function Visualize (PlotTitle, MI, varargin)
         set(CB,'visible','off')
 
     end
-%         caxis([0 1])
-%         %ColorListOrig=ColorList;
-%         %ColorList=ColorList(ColorList~=0);
-%         NumColors=length(ColorList);
-%         if NumColors>1
-%             Offset=zeros(1,NumColors);
-%             Offset(1)=0.25;
-%             Offset(end)=-0.25;
-%             TickLocns=((0:NumColors-1)+Offset)/(NumColors-1);
-%         else
-%             TickLocns=0.5;
-%         end
-%         set(CB,'ticks',TickLocns);
-%         for Mi=1:length(matlist)
-%             matlist{Mi}=sprintf('%s (%i)',matlist{Mi},Mi);
-%         end
-%         set(CB,'ticklabels',matlist(ColorList));
-%         %ColorList=ColorListOrig;
-%         set(CB,'location','north');
-%         set(CB,'yaxislocation','bottom')
-%         set(CB,'position',[.05 .95 .90 .05]);
 
     if PlotParms.ShowButtons
         DoButtons('init','Names',{matlist{MatListNumbers} 'BCs'},'position',[.75,.9, 0.0, 0],'units','normal',...
@@ -587,7 +616,7 @@ function DoButtons(Action,varargin)
 
             end
     end
-            
+    MakeButton=@(Name)uicontrol('parent',Parent,'style','togglebutton','min',0,'max',1,'string',Name,'fontweight','bold','units',Units,'value',1);
     if strcmpi(Action,'init')
         TotalWidth=0;
         TotalHeight=0;
@@ -602,7 +631,7 @@ function DoButtons(Action,varargin)
         end
         for I=1:length(ButtonNames)
             ButtonNames{I}=[' ' ButtonNames{I} ' '];
-            BH=uicontrol('parent',gcf,'style','togglebutton','min',0,'max',1,'string',ButtonNames{I},'fontweight','bold','units','normal');
+            BH=MakeButton(ButtonNames{I});
             E=get(BH,'extent');
             delete(BH);
             MaxWidth=max(E(3),MaxWidth);
@@ -611,13 +640,13 @@ function DoButtons(Action,varargin)
         end
         if Position(3)==0
             HGap=.01;
-            Position(3)=.1;
+            Position(3)=.01;
         else
             HGap=(Position(3)-TotalWidth)/(length(ButtonNames)-1);
         end
         if Position(4)==0
             VGap=.01;
-            Position(4)=0.1;
+            Position(4)=0.01;
         else
             VGap=(Position(4)-TotalHeight)/(length(ButtonNames)-1);
         end
@@ -625,9 +654,8 @@ function DoButtons(Action,varargin)
         CurY=Position(2);
         for I=1:length(ButtonNames)
             Toggle=@TogglePanel;
-            BH(I)=uicontrol('parent',Parent,'style','togglebutton','min',0,'max',1,'string',ButtonNames{I},...
-                            'units',Units, 'value',1,'fontweight','bold', ...
-                            'callback',Toggle);
+            BH(I)=MakeButton(ButtonNames{I});
+            set(BH(I),'callback',Toggle);
             if ~isempty(Color)
                 set(BH(I),'backgroundcolor',Color(I,:))
                 C=get(BH(I),'backgroundcolor');
