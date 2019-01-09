@@ -17,15 +17,12 @@ V3.0.0 - Complete GUI rewrite
 		 FormModel and Visualize intermediary functions added to ease model build by script
 		 MaterialDatabase added to replace matlibfun
 		 Voids do not quite work yet.
+V3.1.0 - Refined GUI
+		 Major rewrite of visualization with significant speed improvement
 		 
 
 Features to Add
-1. Enable voids in solution
-2. In 'visualize' click different materials 'on' and 'off'
-4. Re-enable stress analysis
-5. Enable 'stop' button on GUI
-6. Show full hexahedral domain in green outline or equiv
-7. Address the defined Q for features that are overwritten
-8. In feature table add buttons to insert/move up/move down
-9. Ensure potting material in testmodelcase structure is 0
+1. Enable 'stop' button on GUI
+2. Address the defined Q for features that are overwritten
+3. Ensure potting material in testmodelcase structure is 0
 
