@@ -75,6 +75,7 @@ function Visualize (PlotTitle, MI, varargin)
     PlotParms.HideBC=false;
     PlotParms.MinCoord=MI.OriginPoint;
     PlotParms.LinIntState=false;
+    PlotParms.LinIntBtn=false;
     ColorTitle='';
     PlotState=[];
     Q=[];
@@ -123,6 +124,8 @@ function Visualize (PlotTitle, MI, varargin)
             case strleft('transparency',Pl)
                 [Value, PropValPairs]=Pop(PropValPairs); 
                 PlotParms.Transparency=Value;
+            case strleft('btnlinint',Pl)
+                PlotParms.LinIntBtn=true;
             case strleft('showq',Pl)
                 [Value, NewPropValPairs]=Pop(PropValPairs);
                 if isnumeric(Value)
@@ -281,14 +284,11 @@ function Visualize (PlotTitle, MI, varargin)
         ValMin=1;
         ValRange=length(ColorList);
     else
+        %Peak value is still retained in the color scale from the
+        %non-interpolated values.
         CM=colormap(parula(64));
-        if PlotParms.LinIntState
-            ValMin=min(LPlotState(:));
-            ValRange=max(LPlotState(:))-ValMin;
-        else
-            ValMin=min(PlotState(:));
-            ValRange=max(PlotState(:))-ValMin;
-        end
+        ValMin=min(PlotState(:));
+        ValRange=max(PlotState(:))-ValMin;
         if ValRange==0
             ValRange=1;
         end
@@ -532,7 +532,11 @@ function Visualize (PlotTitle, MI, varargin)
         set(T,'edge',[0 0 0]);
     end
 
-    title(PlotTitle)
+    if PlotParms.LinIntState
+        title([PlotTitle, ' (linear interp. elements)'])
+    else
+        title(PlotTitle)
+    end
     set(gca,'visi','on')
     %Display axes in green.
     if PlotParms.PlotAxes
@@ -629,7 +633,61 @@ function Visualize (PlotTitle, MI, varargin)
     end
     delete(DrawStatus)
     set(ThisAxis,'userdata',PlotParms)
+    if PlotParms.LinIntState
+        ButtonText='Linearly Interpolated Elements';
+    else
+        ButtonText='Single Valued Elements';
+    end
+    if PlotParms.LinIntBtn
+        LICB=@(A,B)LinIntToggle(PlotTitle, MI, varargin);
+        LIButton=uicontrol('style','togglebutton','min',0,'max',1,'value',1,'string',ButtonText,'unit','normal','posit',[0 0 .1 .1],'callback',LICB);
+        set(LIButton,'units','centimeters','user',{[] [] 'B613_Command'});
+        E=get(LIButton,'extent');
+        if E(4) < 1
+            Hgt=1;
+        else
+            Hgt=E(4);
+        end
+        P=get(LIButton,'position');
+        set(LIButton,'position',[P(1) P(2) E(3)*1.1 Hgt]);
+        set(LIButton,'units','normal');
+    end
     drawnow
+end
+
+function LinIntToggle(PlotTitle, MI, varargin)
+    VAI=varargin;
+    while(iscell(VAI{1}))
+        VAI=VAI{1};
+    end
+    %disp('Before');disp(VAI)
+    if max(strcmpi(VAI,'linint'))==1
+        VAI=VAI(~strcmpi(VAI,'linint'));
+    else
+        VAI=[VAI 'linint'];
+    end    
+    %disp('After');disp(VAI)
+    [az,el]=view;
+    %GetButtonStates
+    OldButtons=get(gcf,'children');
+    for I=1:length(OldButtons)
+        U=get(OldButtons(I),'user');
+        if iscell(U) && strcmpi(U{3},'B613')
+            BtnState(I)=get(OldButtons(I),'value');
+        elseif iscell(U) && strcmpi(U{3},'B613_Command')
+            delete(OldButtons(I))
+        end
+    end
+    Visualize(PlotTitle, MI, VAI)
+    view(az,el)
+    OldButtons=get(gcf,'children');
+    for I=1:length(OldButtons)
+        U=get(OldButtons(I),'user');
+        if iscell(U) && strcmpi(U{3},'B613')
+            set(OldButtons(I),'value',BtnState(I));
+            TogglePanel(OldButtons(I),[]);
+        end
+    end
 end
 
 function [Val, PV]=Pop(PV) 
