@@ -39,7 +39,7 @@ for it=1:length(GlobalTime)
             for jj=1:Num_Col
                 % Calculate the thermal stress
                 % Skip locations that have no material
-                if Mat(ii,jj,kk) == 0
+                if Mat(ii,jj,kk) <= 0
                     Stress(ii,jj,kk,it)=0;
                 elseif kk <= nlsub
                     Stress(ii,jj,kk,it)=substrate_ex(ii,jj,kk,delT,dz,cte,E,nu,nlsub,Mat,NL);
