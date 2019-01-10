@@ -202,12 +202,11 @@ function addfeature_Callback(hObject, eventdata, handles)
         TableData=EmptyRow;
     else
         InsertRows=find(cell2mat(TableData(:,FTC('check')))==true);
-        InsertRows=InsertRows(1);
         if isempty(InsertRows)
             TableData(end+1,:)=EmptyRow;
             QData{length(TableData(:,1))}=[];
         else
-            for Irow=InsertRows(end:-1:1)
+            for Irow=reshape(InsertRows(end:-1:1),1,[])
                 TableData(Irow+1:end+1,:)=TableData(Irow:end,:);
                 TableData(Irow,:)=EmptyFeatureRow;
                 QData(Irow+1:end+1)=QData(Irow:end);
