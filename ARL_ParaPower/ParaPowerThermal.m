@@ -198,3 +198,39 @@ ModelInput.Map=Map;  %The rows of A correspond to elements enumerated by Mat(Map
 thermal_elapsed = toc(time_thermal);
 
 end
+
+function flux = InternalFlux(T,A)  
+%creates (sparse) matrix 'flux' with size(A) with entries f_ij that
+%gives nodal power transfer from node i to node j in Watts.
+%This matrix should be skew symmetric with 0s on the diagonal.
+    diagT = spdiags(T,0,size(A,1),size(A,2));
+    flux = diagT*A-A*diagT;
+end
+
+function flux = Flux(T,A,B,Ta)
+%creates sparse matrix flux with size([A B]) with entries f_ij,j<=Ni that
+%gives nodal power transfer from node i to node j in Watts.
+%the augemented columns j>Ni give nodal power transfer to the boundaries 
+%specified by the fullheader that corresponds to columns of B
+%The submatrix stemming from A should be skew symmetric with 0s on the diagonal.
+    diagT = spdiags(T,0,size(A,1),size(A,2));
+    diagfullT = spdiags([T;Ta],0,size(A,1)+size(B,2),size(A,1)+size(B,2));
+    flux = diagT*[A B]-[A B]*diagfullT;
+end
+
+function flux = ExternalFlux(T,B,Ta)
+%creates sparse matrix flux with size(B) with entries f_ij,
+%gives nodal power transfer from node i to boundary j in Watts.
+%the columns j are
+%specified by the fullheader that corresponds to columns of B
+    diagT = spdiags(T,0,size(B,1),size(B,1));
+    diagTa = spdiags(Ta,0,size(B,2),size(B,2));
+    flux = diagT*B-B*diagTa;
+end
+
+function accum = Storage(T,A)
+%returns a vector of size(T) that gives the nodal energy accumulation in
+%Watts.  In steady state, this vector should be zero for unheated elements,
+%and be equal in magnitude to the heat rate of heated elements.
+    accum = A*T;
+end

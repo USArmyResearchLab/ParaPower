@@ -101,6 +101,7 @@ function InitializeGUI(handles)
     handles.InitComplete=0;
     % Update handles structure
     guidata(hObject, handles);
+    GUIDisable(handles.figure1)
 
     %Draw Logo
     axes(handles.PPLogo)
@@ -145,6 +146,7 @@ function InitializeGUI(handles)
     set(handles.StressModel,'string',StressModelFunctions);
     setappdata(handles.figure1,'Initialized',true);
     ClearGUI_Callback(handles.ClearGUI, [], handles, false)
+    GUIEnable(handles.figure1)
 
 end
 
@@ -500,6 +502,7 @@ function RunAnalysis_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
+        GUIDisable(handles.figure1);
         if handles.InitComplete == 0 %Code modified so that draw does NOT automatically occur on run
             Initialize_Callback(hObject, eventdata, handles, false)
         else
@@ -521,33 +524,46 @@ function RunAnalysis_Callback(hObject, eventdata, handles)
         drawnow
         AddStatusLine('Thermal...',true)
         
-        %not used TimeStepOutput = get(handles.slider1,'Value');
-        tic
-        GlobalTime=MI.GlobalTime;  %Since there is global time vector, construct one here.
-        [Tprnt, MI, MeltFrac]=ParaPowerThermal(MI);
-        Etime=toc;
-        AddStatusLine(sprintf('(%3.2fs)...',Etime),true)
-        
-        AddStatusLine(['Stress (' StressModel ')...'],true);
-        if strcmpi(StressModel,'none')
-            Stress=[];
-        else
-            OldPath=path;
-            addpath(get(handles.StressModel,'user'));
+        try
+            %not used TimeStepOutput = get(handles.slider1,'Value');
             tic
-            eval(['Stress=Stress_' StressModel '(MI,Tprnt);']);
+            GlobalTime=MI.GlobalTime;  %Since there is global time vector, construct one here.
+            [Tprnt, MI, MeltFrac]=ParaPowerThermal(MI);
             Etime=toc;
             AddStatusLine(sprintf('(%3.2fs)...',Etime),true)
-            path(OldPath)
+        catch ME
+            AddStatusLine('Error during thermal solve.')
+            AddStatusLine('')
+            disp(ME.getReport)
+            Tprnt=[];
         end
-        if not(exist('Stress','var'))
-            AddStatusLine('Error.','Error')
-            AddStatusLine(['Unknown stress model: ' StressModel ]);
-            AddStatusLine('');
+        AddStatusLine(['Stress (' StressModel ')...'],true);
+        try
+            if strcmpi(StressModel,'none')
+                Stress=[];
+            else
+                OldPath=path;
+                addpath(get(handles.StressModel,'user'));
+                tic
+                eval(['Stress=Stress_' StressModel '(MI,Tprnt);']);
+                Etime=toc;
+                AddStatusLine(sprintf('(%3.2fs)...',Etime),true)
+                path(OldPath)
+            end
+            if not(exist('Stress','var'))
+                AddStatusLine('Error.','Error')
+                AddStatusLine(['Unknown stress model: ' StressModel ]);
+                AddStatusLine('');
+                Stress=[];
+            end
+            slider1_Callback(handles.slider1, [], handles)
+            set(handles.slider1,'value',1);
+        catch ME
+            AddStatusLine('Error during stress solve.')
+            AddStatusLine('')
+            disp(ME.getReport)
             Stress=[];
         end
-        slider1_Callback(handles.slider1, [], handles)
-        set(handles.slider1,'value',1);
         AddStatusLine('Complete.',true)
        
 
@@ -582,6 +598,7 @@ function RunAnalysis_Callback(hObject, eventdata, handles)
        Results.MeltFrac=MeltFrac;
        Results.Model=MI;
        setappdata(handles.figure1, 'Results', Results);
+       GUIEnable(handles.figure1);
 end
        
 % --- Executes on button press in VisualStress.
@@ -680,6 +697,7 @@ function Initialize_Callback(hObject, eventdata, handles, DrawModel)
 if not(exist('DrawModel'))
     DrawModel=true;
 end
+GUIDisable(handles.figure1)
 KillInit=0;
 AddStatusLine('Initializing...',handles.figure1)
 clear Features ExternalConditions Params PottingMaterial Descr
@@ -910,6 +928,8 @@ else
         end
     end
 end
+GUIEnable(handles.figure1)
+
 end
 
 % --- Executes on button press in DeleteFeature.
@@ -1127,7 +1147,7 @@ if get(handles.VisualTemp,'Value')==1
     else
        numplots = numplots+1;
        figure(numplots)
-       pause(.001)
+       clf;
        if trans_model
            Visualize(sprintf('t=%1.2f ms, State: %i of %i',MI.GlobalTime(StateN)*1000, StateN-1,length(Tprnt(1,1,1,:))-1)...
                ,MI,'state', Tprnt(:,:,:,StateN), 'RemoveMaterial',[0] ...
@@ -1148,7 +1168,7 @@ if get(handles.VisualStress,'Value')==1
     else
        numplots =numplots+1;
        figure(numplots)
-       pause(.001)
+       clf
        if trans_model
            Visualize(sprintf('t=%1.2f ms, State: %i of %i',MI.GlobalTime(StateN)*1000, StateN-1,length(Stress(1,1,1,:))-1)...
                ,MI,'state', Stress(:,:,:,StateN), 'RemoveMaterial',[0] ...
@@ -1168,7 +1188,7 @@ if get(handles.VisualMelt,'Value')==1
         AddStatusLine('No melt-fraction solution exists.','warning')
     else
        figure(numplots+1)
-       pause(.001)
+       clf
        if trans_model
            Visualize(sprintf('t=%1.2f ms, State: %i of %i',MI.GlobalTime(StateN)*1000, StateN-1,length(MeltFrac(1,1,1,:))-1)...
                ,MI,'state', MeltFrac(:,:,:,StateN), 'RemoveMaterial',[0] ...
@@ -1282,7 +1302,7 @@ function AddStatusLine(textline,varargin)% Optional args are AddToLastLine,Flag,
     end
     
     if not(exist('ThisFig','var'))
-        ThisFig=gcf;
+        ThisFig=findobj(0,'-depth',1,'tag','figure1')
     end
     handles=guihandles(ThisFig);
     Hstat=handles.StatusWindow;
@@ -1896,6 +1916,25 @@ function HelpButton_Callback(hObject, eventdata, handles)
     set(T,'string',HelpText)
 end
 
+function GUIDisable(GUIHandle)
+    CurObjects=getappdata(GUIHandle,'DisabledObjects');
+    if isempty(CurObjects)
+        ObjectsToChange=findobj(GUIHandle,'enable','on','-property','callback','type','uicontrol');
+        ObjectsToChange=[ObjectsToChange; findobj(GUIHandle,'enable','on','-property','celleditcallback','type','uitable')];
+        %ObjectsToChange=[ObjectsToChange; findobj(GUIHandle,'enable','on','type','uicontrol','style','popupmenu')];
+        %ObjectsToChange=[ObjectsToChange; findobj(GUIHandle,'enable','on','type','uicontrol','style','checkbox')];
+        setappdata(GUIHandle,'DisabledObjects', ObjectsToChange);
+        set(ObjectsToChange,'enable','off')
+    end
+end
+
+function GUIEnable(GUIHandle)
+    ObjectsToChange=getappdata(GUIHandle,'DisabledObjects');
+    if ~isempty(ObjectsToChange)
+        set(ObjectsToChange(isvalid(ObjectsToChange)),'enable','on')
+        setappdata(GUIHandle,'DisabledObjects', []);
+    end
+end
 
 % --- Executes during object creation, after setting all properties.
 function ExtCondTable_CreateFcn(hObject, eventdata, handles)
