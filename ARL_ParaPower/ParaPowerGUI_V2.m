@@ -502,7 +502,6 @@ function RunAnalysis_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-        GUIDisable(handles.figure1);
         if handles.InitComplete == 0 %Code modified so that draw does NOT automatically occur on run
             Initialize_Callback(hObject, eventdata, handles, false)
         else
@@ -510,6 +509,7 @@ function RunAnalysis_Callback(hObject, eventdata, handles)
         end
         numplots = 1;
         
+        GUIDisable(handles.figure1);
         StressModelV=get(handles.StressModel,'value');
         StressModel=get(handles.StressModel,'string');
         StressModel=StressModel{StressModelV};
