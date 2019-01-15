@@ -263,7 +263,8 @@ function Visualize (PlotTitle, MI, varargin)
     for Imat=1:length(MatListNumbers)
 %        PlotParms.MatPatchList{Imat}=zeros(1,2*length(find(ModelMatrix(:)==MatList(Imat))));
          MatPatchList{Imat}=[];
-         if max(PlotState(ModelMatrix(:)==MatListNumbers(Imat)))==0 & min(PlotState(ModelMatrix(:)==MatListNumbers(Imat)))==0
+%         if max(PlotState(ModelMatrix(:)==MatListNumbers(Imat)))==0 & min(PlotState(ModelMatrix(:)==MatListNumbers(Imat)))==0  %%Change this to NNZ or ANY
+         if nnz(PlotState(ModelMatrix(:)==MatListNumbers(Imat)))==0
              ZeroValueMaterials(MatListNumbers(Imat))=true;
          else
              ZeroValueMaterials(MatListNumbers(Imat))=false;
@@ -337,17 +338,11 @@ function Visualize (PlotTitle, MI, varargin)
                     end
                     if PlotGeom
                         ThisColor=find(ColorList==PlotState(Xi,Yi,Zi));
+                        ThisVertC = ones(length(P),1) * CM(ThisColor,:);
                     else
                     	if PlotParms.LinIntState
                             if ZeroValueMaterials(ModelMatrix(Xi, Yi, Zi))
-                                ThisColor(1)=1;
-                                ThisColor(2)=1;
-                                ThisColor(3)=1;
-                                ThisColor(4)=1;
-                                ThisColor(5)=1;
-                                ThisColor(6)=1;
-                                ThisColor(7)=1;
-                                ThisColor(8)=1;
+                                ThisColor(1:8)=1;
                             else
                                 ThisColor(1)=floor((LPlotState(Xi  ,Yi  ,Zi  )-ValMin)/ValRange*(length(CM(:,1))-1) + 1);
                                 ThisColor(2)=floor((LPlotState(Xi  ,Yi+1,Zi  )-ValMin)/ValRange*(length(CM(:,1))-1) + 1);
@@ -362,15 +357,15 @@ function Visualize (PlotTitle, MI, varargin)
                             ThisColor=floor((PlotState(Xi,Yi,Zi)-ValMin)/ValRange*(length(CM(:,1))-1) + 1);
                         end
                         %fprintf('%i ',ThisColor)
+                        if PlotParms.LinIntState
+                            for Fi=1:8
+                                ThisVertC(Fi,:) = CM(ThisColor(Fi),:);
+                            end
+                        else
+                            ThisVertC = ones(length(P),1) * CM(ThisColor,:);
+                        end
                     end
                     ThisMat=find(MatListNumbers==ModelMatrix(Xi,Yi,Zi));
-                    if PlotParms.LinIntState
-                        for Fi=1:8
-                            ThisVertC(Fi,:) = CM(ThisColor(Fi),:);
-                        end
-                    else
-                        ThisVertC = ones(length(P),1) * CM(ThisColor,:);
-                    end
                     if ~max(isnan(ThisColor))
                         if isempty(PlotParms.TwoD)
                             VList{ThisMat}=[VList{ThisMat}; P];              %OPTIM              
