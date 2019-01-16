@@ -74,6 +74,8 @@ function Visualize (PlotTitle, MI, varargin)
     PlotParms.ShowExtent=false;
     PlotParms.HideBC=false;
     PlotParms.MinCoord=MI.OriginPoint;
+    PlotParms.LinIntState=false;
+    PlotParms.LinIntBtn=false;
     ColorTitle='';
     PlotState=[];
     Q=[];
@@ -122,6 +124,8 @@ function Visualize (PlotTitle, MI, varargin)
             case strleft('transparency',Pl)
                 [Value, PropValPairs]=Pop(PropValPairs); 
                 PlotParms.Transparency=Value;
+            case strleft('btnlinint',Pl)
+                PlotParms.LinIntBtn=true;
             case strleft('showq',Pl)
                 [Value, NewPropValPairs]=Pop(PropValPairs);
                 if isnumeric(Value)
@@ -141,6 +145,8 @@ function Visualize (PlotTitle, MI, varargin)
                 PlotParms.MinCoord=Value;
             case strleft('hidebc',Pl)
                 PlotParms.HideBC=true;
+            case strleft('linintstate',Pl)
+                PlotParms.LinIntState=true;
             case strleft('modelgeometry',Pl)
                 h=MI.h;
                 Ta=MI.Ta;
@@ -167,7 +173,7 @@ function Visualize (PlotTitle, MI, varargin)
         VoidMaterials=unique(ModelMatrix(:));
         MaxMaterial=max(VoidMaterials(:));
         VoidMaterials=VoidMaterials(VoidMaterials<=0); %Extract all materials less than zero.
-        for Vmat=reshape(VoidMaterials,1,[]);
+        for Vmat=reshape(VoidMaterials,1,[])
             MaxMaterial=MaxMaterial+1;
             ModelMatrix(ModelMatrix==Vmat)=MaxMaterial;
             if Vmat==0
@@ -200,6 +206,49 @@ function Visualize (PlotTitle, MI, varargin)
     if isempty(PlotState)
         PlotState=ModelMatrix;
     end
+    
+    if PlotParms.LinIntState
+        LPlotState=zeros(size(PlotState)+[1 1 1]);
+        LPlotState(1:end-1 , 1:end-1 , 1:end-1) = LPlotState(1:end-1 , 1:end-1 , 1:end-1) + PlotState;
+        LPlotState(1:end-1 , 2:end   , 2:end  ) = LPlotState(1:end-1 , 2:end   , 2:end  ) + PlotState;
+        LPlotState(2:end   , 1:end-1 , 2:end  ) = LPlotState(2:end   , 1:end-1 , 2:end  ) + PlotState;
+        LPlotState(2:end   , 2:end   , 1:end-1) = LPlotState(2:end   , 2:end   , 1:end-1) + PlotState;
+        LPlotState(2:end   , 2:end   , 2:end  ) = LPlotState(2:end   , 2:end   , 2:end  ) + PlotState;
+        LPlotState(1:end-1 , 1:end-1 , 2:end  ) = LPlotState(1:end-1 , 1:end-1 , 2:end  ) + PlotState;
+        LPlotState(1:end-1 , 2:end   , 1:end-1) = LPlotState(1:end-1 , 2:end   , 1:end-1) + PlotState;
+        LPlotState(2:end   , 1:end-1 , 1:end-1) = LPlotState(2:end   , 1:end-1 , 1:end-1) + PlotState;
+        Factor=ones(size(LPlotState)) / 8;
+        %Faces
+        Factor(1  , :  , :  ) = 1/4;
+        Factor(:  , 1  , :  ) = 1/4;
+        Factor(:  , :  , 1  ) = 1/4;
+        Factor(end, :  , :  ) = 1/4;
+        Factor(:  , end, :  ) = 1/4;
+        Factor(:  , :  , end) = 1/4;
+        %Lines
+        Factor(1  , 1  , :  ) = 1/2;
+        Factor(1  , :  , 1  ) = 1/2;
+        Factor(:  , 1  , 1  ) = 1/2;
+        Factor(end, end, :  ) = 1/2;
+        Factor(end, :  , end) = 1/2;
+        Factor(:  , end, end) = 1/2;
+        Factor(1  , end, :  ) = 1/2;
+        Factor(1  , :  , end) = 1/2;
+        Factor(:  , 1  , end) = 1/2;
+        Factor(end, 1  , :  ) = 1/2;
+        Factor(end, :  , 1  ) = 1/2;
+        Factor(:  , end, 1  ) = 1/2;
+        %Vertices
+        Factor(1  , 1  , 1  ) = 1;
+        Factor(end, end, end) = 1;
+        Factor(1  , 1  , end) = 1;
+        Factor(1  , end, 1  ) = 1;
+        Factor(end, 1  , 1  ) = 1;
+        Factor(1  , end, end) = 1;
+        Factor(end, 1  , end) = 1;
+        Factor(end, end, 1  ) = 1;
+        LPlotState=LPlotState .* Factor;  %Transformed into average vertex values now.
+    end
     MatListNumbers=unique(ModelMatrix(:));
     VList=cell(length(MatListNumbers),1);     %OPTIM
     FList=cell(length(MatListNumbers),1);   %OPTIM
@@ -214,6 +263,12 @@ function Visualize (PlotTitle, MI, varargin)
     for Imat=1:length(MatListNumbers)
 %        PlotParms.MatPatchList{Imat}=zeros(1,2*length(find(ModelMatrix(:)==MatList(Imat))));
          MatPatchList{Imat}=[];
+%         if max(PlotState(ModelMatrix(:)==MatListNumbers(Imat)))==0 & min(PlotState(ModelMatrix(:)==MatListNumbers(Imat)))==0  %%Change this to NNZ or ANY
+         if nnz(PlotState(ModelMatrix(:)==MatListNumbers(Imat)))==0
+             ZeroValueMaterials(MatListNumbers(Imat))=true;
+         else
+             ZeroValueMaterials(MatListNumbers(Imat))=false;
+         end
     end
         
     if ~all(size(PlotState)==size(ModelMatrix))
@@ -230,6 +285,8 @@ function Visualize (PlotTitle, MI, varargin)
         ValMin=1;
         ValRange=length(ColorList);
     else
+        %Peak value is still retained in the color scale from the
+        %non-interpolated values.
         CM=colormap(parula(64));
         ValMin=min(PlotState(:));
         ValRange=max(PlotState(:))-ValMin;
@@ -281,18 +338,40 @@ function Visualize (PlotTitle, MI, varargin)
                     end
                     if PlotGeom
                         ThisColor=find(ColorList==PlotState(Xi,Yi,Zi));
+                        ThisVertC = ones(length(P),1) * CM(ThisColor,:);
                     else
-                        ThisColor=floor((PlotState(Xi,Yi,Zi)-ValMin)/ValRange*(length(CM(:,1))-1) + 1);
+                    	if PlotParms.LinIntState
+                            if ZeroValueMaterials(ModelMatrix(Xi, Yi, Zi))
+                                ThisColor(1:8)=1;
+                            else
+                                ThisColor(1)=floor((LPlotState(Xi  ,Yi  ,Zi  )-ValMin)/ValRange*(length(CM(:,1))-1) + 1);
+                                ThisColor(2)=floor((LPlotState(Xi  ,Yi+1,Zi  )-ValMin)/ValRange*(length(CM(:,1))-1) + 1);
+                                ThisColor(3)=floor((LPlotState(Xi+1,Yi+1,Zi  )-ValMin)/ValRange*(length(CM(:,1))-1) + 1);
+                                ThisColor(4)=floor((LPlotState(Xi+1,Yi  ,Zi  )-ValMin)/ValRange*(length(CM(:,1))-1) + 1);
+                                ThisColor(5)=floor((LPlotState(Xi  ,Yi  ,Zi+1)-ValMin)/ValRange*(length(CM(:,1))-1) + 1);
+                                ThisColor(6)=floor((LPlotState(Xi  ,Yi+1,Zi+1)-ValMin)/ValRange*(length(CM(:,1))-1) + 1);
+                                ThisColor(7)=floor((LPlotState(Xi+1,Yi+1,Zi+1)-ValMin)/ValRange*(length(CM(:,1))-1) + 1);
+                                ThisColor(8)=floor((LPlotState(Xi+1,Yi  ,Zi+1)-ValMin)/ValRange*(length(CM(:,1))-1) + 1);
+                            end
+                        else
+                            ThisColor=floor((PlotState(Xi,Yi,Zi)-ValMin)/ValRange*(length(CM(:,1))-1) + 1);
+                        end
                         %fprintf('%i ',ThisColor)
+                        if PlotParms.LinIntState
+                            for Fi=1:8
+                                ThisVertC(Fi,:) = CM(ThisColor(Fi),:);
+                            end
+                        else
+                            ThisVertC = ones(length(P),1) * CM(ThisColor,:);
+                        end
                     end
                     ThisMat=find(MatListNumbers==ModelMatrix(Xi,Yi,Zi));
-                    ThisVertC = ones(length(P),1) * CM(ThisColor,:);
-                    if ~isnan(ThisColor)
+                    if ~max(isnan(ThisColor))
                         if isempty(PlotParms.TwoD)
                             VList{ThisMat}=[VList{ThisMat}; P];              %OPTIM              
                             PtStart=length(VList{ThisMat}(:,1))-length(P(:,1)); %OPTIM
                             ThisFace  = Face+PtStart;
-                            ThisFaceC = ones(length(Face(:,1)),1) * CM(ThisColor,:);
+                            ThisFaceC = ones(length(Face(:,1)),1) * CM(ThisColor(1),:);
                         else
                             F=[];
                             if any(strcmp(PlotParms.TwoD,'X+'))
@@ -383,8 +462,13 @@ function Visualize (PlotTitle, MI, varargin)
                 ColorList=CList{Imat};
                 ColorList=CVList{Imat};
             else
-                FaceColor='flat';
-                ColorList=CList{Imat};
+                if PlotParms.LinIntState
+                    FaceColor='interp';
+                    ColorList=CVList{Imat};
+                else
+                    FaceColor='flat';
+                    ColorList=CList{Imat};
+                end
             end
             
 %            ThisColor=find(ColorList==MatListNumbers(Imat));
@@ -443,7 +527,11 @@ function Visualize (PlotTitle, MI, varargin)
         set(T,'edge',[0 0 0]);
     end
 
-    title(PlotTitle)
+    if PlotParms.LinIntState
+        title([PlotTitle, ' (linear interp. elements)'])
+    else
+        title(PlotTitle)
+    end
     set(gca,'visi','on')
     %Display axes in green.
     if PlotParms.PlotAxes
@@ -540,7 +628,61 @@ function Visualize (PlotTitle, MI, varargin)
     end
     delete(DrawStatus)
     set(ThisAxis,'userdata',PlotParms)
+    if PlotParms.LinIntState
+        ButtonText='Linearly Interpolated Elements';
+    else
+        ButtonText='Single Valued Elements';
+    end
+    if PlotParms.LinIntBtn
+        LICB=@(A,B)LinIntToggle(PlotTitle, MI, varargin);
+        LIButton=uicontrol('style','togglebutton','min',0,'max',1,'value',1,'string',ButtonText,'unit','normal','posit',[0 0 .1 .1],'callback',LICB);
+        set(LIButton,'units','centimeters','user',{[] [] 'B613_Command'});
+        E=get(LIButton,'extent');
+        if E(4) < 1
+            Hgt=1;
+        else
+            Hgt=E(4);
+        end
+        P=get(LIButton,'position');
+        set(LIButton,'position',[P(1) P(2) E(3)*1.1 Hgt]);
+        set(LIButton,'units','normal');
+    end
     drawnow
+end
+
+function LinIntToggle(PlotTitle, MI, varargin)
+    VAI=varargin;
+    while(iscell(VAI{1}))
+        VAI=VAI{1};
+    end
+    %disp('Before');disp(VAI)
+    if max(strcmpi(VAI,'linint'))==1
+        VAI=VAI(~strcmpi(VAI,'linint'));
+    else
+        VAI=[VAI 'linint'];
+    end    
+    %disp('After');disp(VAI)
+    [az,el]=view;
+    %GetButtonStates
+    OldButtons=get(gcf,'children');
+    for I=1:length(OldButtons)
+        U=get(OldButtons(I),'user');
+        if iscell(U) && strcmpi(U{3},'B613')
+            BtnState(I)=get(OldButtons(I),'value');
+        elseif iscell(U) && strcmpi(U{3},'B613_Command')
+            delete(OldButtons(I))
+        end
+    end
+    Visualize(PlotTitle, MI, VAI)
+    view(az,el)
+    OldButtons=get(gcf,'children');
+    for I=1:length(OldButtons)
+        U=get(OldButtons(I),'user');
+        if iscell(U) && strcmpi(U{3},'B613')
+            set(OldButtons(I),'value',BtnState(I));
+            TogglePanel(OldButtons(I),[]);
+        end
+    end
 end
 
 function [Val, PV]=Pop(PV) 
