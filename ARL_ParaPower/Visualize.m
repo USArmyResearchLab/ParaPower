@@ -31,18 +31,7 @@ function Visualize (PlotTitle, MI, varargin)
 %  Z cross section
 %  Vectorize
 
-
-    ThisAxis=gca;
-    AxisParent=get(ThisAxis,'parent');
-    Kids=get(AxisParent,'children');
-    for i=1:length(Kids)
-        if strcmpi(get(Kids(i),'userdata'),'REMOVE');
-            delete(Kids(i))
-        end
-    end
-    cla;drawnow
-    DrawStatus=text(.5,.5,'Drawing...','fontsize',40,'userdata','REMOVE','horizontal','center','vertical','middle','unit','normal'); drawnow
-
+    
     DeltaCoord=  {MI.X MI.Y MI.Z};
     ModelMatrix=MI.Model;
 	
@@ -102,6 +91,9 @@ function Visualize (PlotTitle, MI, varargin)
             case strleft('scaletitle',Pl)
                 [Value, PropValPairs]=Pop(PropValPairs); 
                 ColorTitle=Value;
+            case strleft('parent',Pl)
+                [Value, PropValPairs]=Pop(PropValPairs); 
+                Parent=Value;
             case strleft('2d',Pl)
                 [Value, PropValPairs]=Pop(PropValPairs); 
                 PlotParms.TwoD=[PlotParms.TwoD upper(Value)];
@@ -160,6 +152,29 @@ function Visualize (PlotTitle, MI, varargin)
         end
 
     end
+    OrigAxis=gca;
+    if exist('Parent','var')
+        PanelH=Parent;
+        ThisAxis=findobj(PanelH,'type','axes');
+    elseif strcmpi(class(get(OrigAxis,'parent')),'matlab.ui.Figure')
+        PanelH=uipanel('foregroundcolor','green','bordertype','line');
+        APosit=get(gca,'outerposit');
+        set(PanelH,'posit',APosit);
+        ThisAxis=axes(PanelH);
+    else
+        ThisAxis=OrigAxis;
+        PanelH=gcf;
+    end
+    AxisParent=get(ThisAxis,'parent');
+    Kids=get(AxisParent,'children');
+    for i=1:length(Kids)
+        if strcmpi(get(Kids(i),'userdata'),'REMOVE');
+            delete(Kids(i))
+        end
+    end
+    axes(ThisAxis)
+    cla;drawnow
+    DrawStatus=text(.5,.5,'Drawing...','fontsize',40,'userdata','REMOVE','horizontal','center','vertical','middle','unit','normal'); drawnow
     
     Direx=FormModel('GetDirex');
 
@@ -595,15 +610,17 @@ function Visualize (PlotTitle, MI, varargin)
         Scale=linspace(0,1,11);
         set(CB,'ticks',Scale);
         set(CB,'ticklabels',linspace(ValMin,ValMin+ValRange,length(Scale)));
+        RightMostPosition=get(CB,'posit');
+        RightMostPosition=RightMostPosition(1);
     else
         set(CB,'visible','off')
-
+        RightMostPosition=0.95;
     end
 
     if PlotParms.ShowButtons
-        DoButtons('init','Names',{matlist{MatListNumbers} 'BCs'},'position',[.75,.9, 0.0, 0],'units','normal',...
+        DoButtons('init','Names',{matlist{MatListNumbers} 'BCs'},'position',[.75,.9, 0, 0],'units','normal',...
                   'colors',[ButtonColors; .9 .9 .9], 'entities',[MatPatchList {T}],'direction','vertical',...
-                  'Parent',get(gca,'parent'));
+                  'Parent',get(gca,'parent'),'MaxRight',RightMostPosition);
     end
 
     if ~isempty(Q)
@@ -637,8 +654,8 @@ function Visualize (PlotTitle, MI, varargin)
         ButtonText='Single Valued Elements';
     end
     if PlotParms.LinIntBtn
-        LICB=@(A,B)LinIntToggle(PlotTitle, MI, varargin);
-        LIButton=uicontrol('style','togglebutton','min',0,'max',1,'value',1,'string',ButtonText,'unit','normal','posit',[0 0 .1 .1],'callback',LICB);
+        LICB=@(A,B)LinIntToggle(PlotTitle, MI, PanelH, varargin);
+        LIButton=uicontrol(PanelH,'style','togglebutton','min',0,'max',1,'value',1,'string',ButtonText,'unit','normal','posit',[0 0 .1 .1],'callback',LICB);
         set(LIButton,'units','centimeters','user',{[] [] 'B613_Command'});
         E=get(LIButton,'extent');
         if E(4) < 1
@@ -651,13 +668,15 @@ function Visualize (PlotTitle, MI, varargin)
         set(LIButton,'units','normal');
     end
     drawnow
+    axes(OrigAxis)
 end
 
-function LinIntToggle(PlotTitle, MI, varargin)
+function LinIntToggle(PlotTitle, MI, PanelH, varargin)
     VAI=varargin;
     while(iscell(VAI{1}))
         VAI=VAI{1};
     end
+    VAI={VAI{:} 'parent' PanelH};
     %disp('Before');disp(VAI)
     if max(strcmpi(VAI,'linint'))==1
         VAI=VAI(~strcmpi(VAI,'linint'));
@@ -667,7 +686,7 @@ function LinIntToggle(PlotTitle, MI, varargin)
     %disp('After');disp(VAI)
     [az,el]=view;
     %GetButtonStates
-    OldButtons=get(gcf,'children');
+    OldButtons=get(PanelH,'children');
     for I=1:length(OldButtons)
         U=get(OldButtons(I),'user');
         if iscell(U) && strcmpi(U{3},'B613')
@@ -676,9 +695,10 @@ function LinIntToggle(PlotTitle, MI, varargin)
             delete(OldButtons(I))
         end
     end
+    %VAI=VAI(~strcmp(VAI,'btnlinint'));
     Visualize(PlotTitle, MI, VAI)
     view(az,el)
-    OldButtons=get(gcf,'children');
+    OldButtons=get(PanelH,'children');
     for I=1:length(OldButtons)
         U=get(OldButtons(I),'user');
         if iscell(U) && strcmpi(U{3},'B613')
@@ -726,6 +746,7 @@ function DoButtons(Action,varargin)
             Color=[];
             Parent=gcf;
             Direction='horizontal';
+            MaxRight=1.0;
             while ~isempty(PropValPairs) 
                 [Prop, PropValPairs]=Pop(PropValPairs);
                 if ~ischar(Prop)
@@ -755,6 +776,9 @@ function DoButtons(Action,varargin)
                     case strleft('parent',Pl)
                         [Value, PropValPairs]=Pop(PropValPairs);
                         Parent=Value;
+                    case strleft('maxright',Pl)
+                        [Value, PropValPairs]=Pop(PropValPairs);
+                        MaxRight=Value;
                     otherwise
                         fprintf('Property "%s" is unknown.\n',Prop)
                 end
@@ -821,9 +845,15 @@ function DoButtons(Action,varargin)
                 set(BH(I),'position',[X CurY W H]);
                 E=get(BH(I),'extent');
                 if MaxWidth>Position(3)
+                %    Position(1)=Position(1)-MaxWidth-Position(3);
                     Position(3)=MaxWidth;
                 end
-                set(BH(I),'position',[X CurY Position(3) E(4)]);
+               if X + Position(3) <= MaxRight
+                    set(BH(I),'position',[X CurY Position(3) E(4)]);
+                else
+                    Delta=X+Position(3)-MaxRight;
+                    set(BH(I),'position',[X-Delta CurY Position(3) E(4)]);
+                end
                 CurY=CurY-E(4)-VGap;
             end
         end
