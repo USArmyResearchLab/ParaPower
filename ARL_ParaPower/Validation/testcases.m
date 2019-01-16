@@ -70,8 +70,14 @@ for Icase=1:length(testcasefiles)
         fprintf('Analysis executing...')
 
 
+        tic;
+        %[Tprnt, MI, MeltFrac]=ParaPowerThermal(MI);
+        S1=PPT2(MI);
+        S1=simulate(S1);
+        Tprnt=S1.Tres;
+        MeltFrac=S1.PHres;
+        toc;
         
-        [Tprnt, MI, MeltFrac]=ParaPowerThermal(MI);
         
        fprintf('Complete.\n')
                                            
@@ -83,7 +89,7 @@ for Icase=1:length(testcasefiles)
        )                                
        %figure(3);clf; pause(.001)
        %Visualize(sprintf('t=%1.2f ms, State: %i of %i',StateN*MI.DeltaT*1000, StateN,length(Tprnt(1,1,1,:))),[0 0 0 ],{MI.X MI.Y MI.Z}, MI.Model, MeltFrac(:,:,:,StateN),'Melt Fraction')                                
-       disp('Press key to continue.');pause
+       %disp('Press key to continue.');pause
     end
 end
 

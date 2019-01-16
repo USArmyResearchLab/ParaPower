@@ -160,7 +160,7 @@ for it=2:length(GlobalTime)
 
     if not(isnan(GlobalTime(2))) && it~=length(GlobalTime)  %Do we have timesteps to undertake?
         
-       if exist('changing','var') && any(changing)  %Have material properties changed?
+       if meltable && any(changing)  %Have material properties changed?
             touched=find((abs(A)*changing)>0);  %find not only those elements changing, but those touched by changing elements
             
             %update capacitance (only those changing since internal to element)
