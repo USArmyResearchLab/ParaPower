@@ -1104,7 +1104,16 @@ function View_Callback(hObject, eventdata, handles)
 TimeString=get(handles.InterestTime,'String'); %this is empty if static analysis results found
 TimeStepString=get(handles.InterestTime,'String'); %this is empty if no results
 
-numplots = 3; 
+NumPlot = 0; 
+NumPlot=NumPlot + get(handles.VisualMelt,'Value');
+NumPlot=NumPlot + get(handles.VisualStress,'Value');
+NumPlot=NumPlot + get(handles.VisualTemp,'Value');
+
+if ~strcmpi(get(gcf,'name'),'Results')
+    figure
+    set(gcf,'unit','normal','posit',[0.05 0.05 0.9 0.9],'name','Results');
+end
+
 
 if isempty(TimeStepString)  %no model results
     MI=getappdata(handles.figure1,'MI');
@@ -1140,14 +1149,15 @@ if ~trans_model
         state_str=[];
     end
 end
-
+CurPlot=1;
 if get(handles.VisualTemp,'Value')==1
     if isempty(Tprnt)
         AddStatusLine('No temperature solution exists.','warning')
     else
-       numplots = numplots+1;
-       figure(numplots)
-       clf;
+       subplot(1,NumPlot,CurPlot)
+       CurPlot=CurPlot + 1;
+%       figure(numplots)
+%       clf;
        if trans_model
            Visualize(sprintf('t=%1.2f ms, State: %i of %i',MI.GlobalTime(StateN)*1000, StateN-1,length(Tprnt(1,1,1,:))-1)...
                ,MI,'state', Tprnt(:,:,:,StateN), 'RemoveMaterial',[0] ...
@@ -1161,14 +1171,15 @@ if get(handles.VisualTemp,'Value')==1
        end
     end
 end
-
 if get(handles.VisualStress,'Value')==1
     if isempty(Stress)
         AddStatusLine('No stress solution exists.','warning')
     else
        numplots =numplots+1;
-       figure(numplots)
-       clf
+       subplot(1,NumPlot,CurPlot)
+       CurPlot=CurPlot + 1;
+%        figure(numplots)
+%        clf
        if trans_model
            Visualize(sprintf('t=%1.2f ms, State: %i of %i',MI.GlobalTime(StateN)*1000, StateN-1,length(Stress(1,1,1,:))-1)...
                ,MI,'state', Stress(:,:,:,StateN), 'RemoveMaterial',[0] ...
@@ -1187,8 +1198,10 @@ if get(handles.VisualMelt,'Value')==1
     if isempty(MeltFrac)
         AddStatusLine('No melt-fraction solution exists.','warning')
     else
-       figure(numplots+1)
-       clf
+       subplot(1,NumPlot,CurPlot)
+       CurPlot=CurPlot + 1;
+%        figure(numplots+1)
+%        clf
        if trans_model
            Visualize(sprintf('t=%1.2f ms, State: %i of %i',MI.GlobalTime(StateN)*1000, StateN-1,length(MeltFrac(1,1,1,:))-1)...
                ,MI,'state', MeltFrac(:,:,:,StateN), 'RemoveMaterial',[0] ...
