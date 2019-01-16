@@ -124,6 +124,9 @@ function Visualize (PlotTitle, MI, varargin)
             case strleft('transparency',Pl)
                 [Value, PropValPairs]=Pop(PropValPairs); 
                 PlotParms.Transparency=Value;
+            case strleft('position',Pl)
+                [Value, PropValPairs]=Pop(PropValPairs); 
+                PlotParms.Position=Value;
             case strleft('btnlinint',Pl)
                 PlotParms.LinIntBtn=true;
             case strleft('showq',Pl)
