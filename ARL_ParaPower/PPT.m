@@ -211,36 +211,36 @@ classdef PPT % < matlab.System & matlab.system.mixin.Propagates & matlab.system.
         
         function obj=simulate(obj)
             
-            obj.Qv = obj.Qinit(obj.Q,obj.GlobalTime,obj.Qmask);
+            Qv = obj.Qinit(obj.Q,obj.GlobalTime,obj.Qmask);
             
-            MI=obj.MI
-            htcs=obj.htcs
-            Ta_vec=obj.Ta_vec
-            Q=obj.Q
-            GlobalTime=obj.GlobalTime
-            Tres=obj.Tres
-            PHres=obj.PHres
-            Qmask=obj.Qmask
-            meltmask=obj.meltmask
-            meltable=obj.meltable
-            K=obj.K
-            CP=obj.CP
-            RHO=obj.RHO
-            Lv=obj.Lv
-            Map=obj.Map
-            fullheader=obj.fullheader
-            Mat=obj.Mat
-            T=obj.T
-            PH=obj.PH
-            A=obj.A
-            Atrans=obj.Atrans
-            Cap=obj.Cap
-            vol=obj.vol
-            B=obj.B
-            C=obj.C
-            Aj=obj.Aj
-            Bj=obj.Bj
-
+            MI=obj.MI;
+            htcs=obj.htcs;
+            Ta_vec=obj.Ta_vec;
+            Q=obj.Q;
+            GlobalTime=obj.GlobalTime;
+            Tres=obj.Tres;
+            PHres=obj.PHres;
+            Qmask=obj.Qmask;
+            meltmask=obj.meltmask;
+            meltable=obj.meltable;
+            K=obj.K;
+            CP=obj.CP;
+            RHO=obj.RHO;
+            Lv=obj.Lv;
+            Map=obj.Map;
+            fullheader=obj.fullheader;
+            Mat=obj.Mat;
+            T=obj.T;
+            PH=obj.PH;
+            A=obj.A;
+            Atrans=obj.Atrans;
+            Cap=obj.Cap;
+            vol=obj.vol;
+            B=obj.B;
+            C=obj.C;
+            Aj=obj.Aj;
+            Bj=obj.Bj;
+            delta_t=obj.delta_t;
             
             
             for it=2:length(GlobalTime)

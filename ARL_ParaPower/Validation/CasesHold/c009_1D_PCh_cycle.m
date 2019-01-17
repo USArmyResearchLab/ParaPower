@@ -28,13 +28,13 @@ Desc='Test Case Template';  %Description of the test case
 
     Params.Tinit     = 50;
     Params.DeltaT    = .2e-2;
-    Params.Tsteps    = 20;
+    Params.Tsteps    = 90000;
 
     PottingMaterial  = 0;
     
     BarLen=.02;
     BarWid=0.001;
-    BarDiv=4;
+    BarDiv=60;
     BarBas=1e-3;
     
     Features(1).x    = [0 BarWid];
@@ -54,7 +54,7 @@ Desc='Test Case Template';  %Description of the test case
     Features(end).dy   = 1;
     Features(end).dz   = 1;
     Features(end).Matl = 'Cu';
-    Features(end).Q    = 0.3;  %'0.3*sin(0.25*t)+0.3';
+    Features(end).Q    = '0.3*sin(0.25*t)+0.3';
 
    
     %{

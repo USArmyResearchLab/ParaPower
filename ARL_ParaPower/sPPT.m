@@ -1,27 +1,29 @@
-%ParaPowerThermal as a class definition
-%calling constructor as S = PPT(MI) will initialize a simulation 
-classdef PPT2 % < matlab.System & matlab.system.mixin.Propagates & matlab.system.mixin.CustomIcon
-    %going to do this as a generic class first, debug, and circle back to
-    %system objects.
- 
-    % Public, non-tunable properties.  We don't want this changing during
-    % simulation
-    properties %(Nontunable)
-        MI %Input model information
-    end
-    
-    properties     % Public, tunable properties
+classdef sPPT < matlab.System & matlab.system.mixin.Propagates ...
+        & matlab.system.mixin.CustomIcon
+    % Untitled Add summary here
+    %
+    % NOTE: When renaming the class name Untitled, the file name
+    % and constructor name must be updated to use the class name.
+    %
+    % This template includes most, but not all, possible properties, attributes,
+    % and methods that you can implement for a System object in Simulink.
+
+    % Public, tunable properties
+    properties
         htcs
         Ta_vec
         Q          %function handle cell array
         GlobalTime
     end
-    
-    properties %(DiscreteState)
-        %Outputs
+
+    % Public, non-tunable properties
+    properties(Nontunable)
+        MI %Input model information
+    end
+
+    properties(DiscreteState)
         Tres  %4D Array corresponding to temperatures at x,y,z,t.
         PHres %4D Array Meltfraction
-        % should flux go here?
     end
 
     % Pre-computed constants
@@ -38,10 +40,7 @@ classdef PPT2 % < matlab.System & matlab.system.mixin.Propagates & matlab.system
         CP
         RHO
         Lv
-    end
-
         
-    properties (SetAccess=protected)
         %Maps
         Map
         fullheader
@@ -61,15 +60,20 @@ classdef PPT2 % < matlab.System & matlab.system.mixin.Propagates & matlab.system
         Aj      %struct holding internal adjacency, areas, and hLengths matrices
         Bj      %struct holding boundary adjacency, areas, and hLengths
     end
-    
 
-    
     methods
-        %contstructor
-        %% Initialization
-        function obj = PPT2(MI)
-       
-        
+        % Constructor
+        function obj = sPPT(varargin)
+            % Support name-value pair arguments when constructing object
+            setProperties(obj,nargin,varargin{:})
+        end
+    end
+
+    methods(Access = protected)
+        %% Common functions
+        function setupImpl(obj)
+            % Perform one-time calculations, such as computing constants
+            MI=obj.MI;
             h=MI.h;
             Ta=MI.Ta;
             Mat=MI.Model;
@@ -120,14 +124,15 @@ classdef PPT2 % < matlab.System & matlab.system.mixin.Propagates & matlab.system
 
             
             C=zeros(nnz(Mat>0),1); % Nodal capacitance terms for transient effects
-            T=zeros(nnz(Mat>0),max([2 length(GlobalTime)])); % Temperature DOF vector, must hold at least initial cond and static/single result
+            T=zeros(nnz(Mat>0),1); % Temperature DOF vector, must hold at least initial cond and static/single result
             T(:,1)=T_init;
-            Tres=zeros(numel(Mat),size(T,2)); % Nodal temperature results
+            %Tres=zeros(numel(Mat),size(T,2)); % Nodal temperature results
 
             %% Phase Change Setup Hook
-            PHres=Tres;
+            %PHres=Tres;
             %[isPCM,kondl,rhol,sphtl,Lw,Tm,PH,PH_init] = PCM_init(Mat,matprops,Num_Row,Num_Col,Num_Lay,steps);
-            [~,rhol,~,Lw,~,PH,PH_init] = PCM_init(MI,Mat);
+            [~,rhol,~,Lw,~,~,PH_init] = PCM_init(MI,Mat);
+            PH=zeros(nnz(Mat>0),1);
             PH(:,1)=PH_init;
             obj.Lv=(rho+rhol)/2 .* Lw;  %generate volumetric latent heat of vap using average density
             %should we have a PH_init?
@@ -148,6 +153,8 @@ classdef PPT2 % < matlab.System & matlab.system.mixin.Propagates & matlab.system
                 Ta_vec=1;
             end
 
+            %{ 
+            Moved to stepImpl
             % Diagonal Terms
             if not(isempty(GlobalTime))
                 obj.delta_t=GlobalTime(2:end)-GlobalTime(1:end-1);
@@ -165,7 +172,8 @@ classdef PPT2 % < matlab.System & matlab.system.mixin.Propagates & matlab.system
                 %C is zero from init
             end
             % Form loop over the number of time steps desired
-
+            %}
+            
             %Globaltime is to single time step from 0 to NaN if static analysis is needed
             %delta_t is based off of GlobalTime for transient analysis and set to NaN
             %   for static analysis.  
@@ -184,8 +192,8 @@ classdef PPT2 % < matlab.System & matlab.system.mixin.Propagates & matlab.system
             obj.Ta_vec=Ta_vec;
             obj.Q=Q;
             obj.GlobalTime=GlobalTime;
-            obj.Tres=Tres;
-            obj.PHres=PHres;
+            %obj.Tres=Tres;
+            %obj.PHres=PHres;
             obj.Qmask=Qmask;
             %obj.meltmask=meltmask;
             obj.meltable=meltable;
@@ -199,27 +207,31 @@ classdef PPT2 % < matlab.System & matlab.system.mixin.Propagates & matlab.system
             obj.T=T;
             obj.PH=PH;
             obj.A=A;
-            obj.Atrans=Atrans;
-            obj.Cap=Cap;
-            obj.vol=vol;
+            %obj.Atrans=Atrans;
+            %obj.Cap=Cap;
+            %obj.vol=vol;
             obj.B=B;
-            obj.C=C;
+            %obj.C=C;
             obj.Aj=Aj;
             obj.Bj=Bj;
-           
         end
-        
-        function obj=simulate(obj)
-            
-            Qv = obj.Qinit(obj.Q,obj.GlobalTime,obj.Qmask);
+
+        function [Tres, PHres] = stepImpl(obj,GlobalTime)
+            % Implement algorithm. 
+            if nargin==1
+              GlobalTime=obj.GlobalTime;  %use last stored GT
+            else
+              obj.GlobalTime=GlobalTime;  %overwrite stored GT
+              new_time=true;
+            end
             
             MI=obj.MI;
             htcs=obj.htcs;
             Ta_vec=obj.Ta_vec;
             Q=obj.Q;
-            GlobalTime=obj.GlobalTime;
-            Tres=obj.Tres;
-            PHres=obj.PHres;
+            
+            %Tres=obj.Tres;
+            %PHres=obj.PHres;
             Qmask=obj.Qmask;
             meltmask=obj.meltmask;
             meltable=obj.meltable;
@@ -230,8 +242,8 @@ classdef PPT2 % < matlab.System & matlab.system.mixin.Propagates & matlab.system
             Map=obj.Map;
             fullheader=obj.fullheader;
             Mat=obj.Mat;
-            T=obj.T;
-            PH=obj.PH;
+            %T=obj.T;
+            %PH=obj.PH;
             A=obj.A;
             Atrans=obj.Atrans;
             Cap=obj.Cap;
@@ -240,8 +252,35 @@ classdef PPT2 % < matlab.System & matlab.system.mixin.Propagates & matlab.system
             C=obj.C;
             Aj=obj.Aj;
             Bj=obj.Bj;
-            delta_t=obj.delta_t;
+            %delta_t=obj.delta_t;
             
+            
+            Qv = obj.Qinit(Q,GlobalTime,Qmask);
+            
+            %adjust state vectors to timestep
+            T=zeros(nnz(Mat>0),max([2 length(GlobalTime)])); % Temperature DOF vector, must hold at least initial cond and static/single result
+            PH = zeros(nnz(Mat>0),max([2 length(GlobalTime)])); %percent melted of a given node
+            T(:,1)=obj.T(:,end);    %initialize state with last state.
+            PH(:,1)=obj.PH(:,end);
+
+            
+            % Diagonal Terms
+            if not(isempty(GlobalTime))
+                delta_t=GlobalTime(2:end)-GlobalTime(1:end-1);
+                % Calculate the capacitance term associated with each node and adjust the 
+                % A matrix (implicit end - future) and C vector (explicit - present) to include the transient effects
+                [Cap,vol]=mass(MI.X,MI.Y,MI.Z,RHO,CP,Mat); %units of J/K
+                vol=reshape(vol,size(Mat));
+                Atrans=-spdiags(Cap,0,size(A,1),size(A,2))./delta_t(1);  %Save Transient term for the diagonal of A matrix, units W/K
+                C=-Cap./delta_t(1).*T(:,1); %units of watts
+            else
+                %implies static analysis
+                delta_t=NaN;
+                Atrans=spalloc(size(A,1),size(A,2),0); %allocate Atrans as zero
+                GlobalTime=[0 NaN];
+                %C is zero from init
+            end
+            obj.delta_t=delta_t;
             
             for it=2:length(GlobalTime)
                 
@@ -259,7 +298,8 @@ classdef PPT2 % < matlab.System & matlab.system.mixin.Propagates & matlab.system
                                                                             MI.MatLib.tmelt,Lv,K,CP,RHO);   %These arguments need to be restructured
                 end
                 
-                if not(isnan(GlobalTime(2))) && it~=length(GlobalTime)  %Do we have timesteps to undertake?
+                if ~isnan(GlobalTime(2)) %update even after last timestep
+                    %was not(isnan(GlobalTime(2))) && it~=length(GlobalTime)  %Do we have timesteps to undertake?
                     
                     if meltable && any(changing)  %Have material properties changed?
                         touched=find((abs(A)*changing)>0);  %find not only those elements changing, but those touched by changing elements
@@ -282,14 +322,19 @@ classdef PPT2 % < matlab.System & matlab.system.mixin.Propagates & matlab.system
                 %Time history of A and B are not being stored, instead overwritten
             end
             
-            obj.Tres(obj.Mat>0,:)=T;
-            obj.PHres(obj.Mat>0,:)=PH;
+            Tres=zeros(numel(Mat),size(T,2)); % Nodal temperature results
+            PHres=Tres;
             
-            obj.Tres=reshape(obj.Tres,[size(MI.Model) length(GlobalTime)]);
-            obj.PHres=reshape(obj.PHres,[size(MI.Model) length(GlobalTime)]);
-           
+            Tres(Mat>0,:)=T;
+            PHres(Mat>0,:)=PH;
+            
+            Tres=reshape(Tres,[size(MI.Model) length(GlobalTime)]);
+            PHres=reshape(PHres,[size(MI.Model) length(GlobalTime)]);
+            obj.Tres=Tres;
+            obj.PHres=PHres;
+            
                         %dump properties
-            obj.MI=MI;
+            %obj.MI=MI;
             obj.htcs=htcs;
             obj.Ta_vec=Ta_vec;
             obj.Q=Q;
@@ -318,11 +363,62 @@ classdef PPT2 % < matlab.System & matlab.system.mixin.Propagates & matlab.system
             obj.Bj=Bj;
             
         end
-        
+
+        function resetImpl(obj)
+            % Initialize / reset discrete-state properties
+        end
+
+        %% Backup/restore functions
+        function s = saveObjectImpl(obj)
+            % Set properties in structure s to values in object obj
+
+            % Set public properties and states
+            s = saveObjectImpl@matlab.System(obj);
+
+            % Set private and protected properties
+            %s.myproperty = obj.myproperty;
+        end
+
+        function loadObjectImpl(obj,s,wasLocked)
+            % Set properties in object obj to values in structure s
+
+            % Set private and protected properties
+            % obj.myproperty = s.myproperty; 
+
+            % Set public properties and states
+            loadObjectImpl@matlab.System(obj,s,wasLocked);
+        end
+
+        %% Simulink functions
+        function ds = getDiscreteStateImpl(obj)
+            % Return structure of properties with DiscreteState attribute
+            ds = struct([]);
+        end
+
+        function flag = isInputSizeMutableImpl(obj,index)
+            % Return false if input size cannot change
+            % between calls to the System object
+            flag = false;
+        end
+
+        function out = getOutputSizeImpl(obj)
+            % Return size for each output port
+            out = [1 1];
+
+            % Example: inherit size from first input port
+            % out = propagatedInputSize(obj,1);
+        end
+
+        function icon = getIconImpl(obj)
+            % Define icon for System block
+            icon = mfilename("sPPT"); % Use class name
+            % icon = "My System"; % Example: text icon
+            % icon = ["My","System"]; % Example: multi-line text icon
+            % icon = matlab.system.display.Icon("myicon.jpg"); % Example: image file icon
+        end
     end
-        
-    methods (Static)
-        
+
+    methods (Static)  %ParaPower internal methods.
         function Qv=Qinit(Q,GlobalTime,Qmask)
             %creates sparse array of element nodal power
             
@@ -344,10 +440,21 @@ classdef PPT2 % < matlab.System & matlab.system.mixin.Propagates & matlab.system
             else
                 disp('Transient Analysis');
                 %cell arrays are fun!
-                GT_eval{1}=GlobalTime;
-                GT_eval=repmat(GT_eval,nnz(Qmask),1);
-                Qval=cell2mat(cellfun(@arrayfun,Q(Qmask),GT_eval,'UniformOutput',false));
-                clear GT_eval
+                %cell arrays are fun!
+%                 tic
+%                 GT_eval{1}=GlobalTime;
+%                 GT_eval=repmat(GT_eval,nnz(Qmask),1);  
+%                 Qval=cell2mat(cellfun(@arrayfun,Q(Qmask),GT_eval,'UniformOutput',false));
+%                 toc
+%                 tic
+                QmFind=find(Qmask);
+                Qval=zeros(length(QmFind),length(GlobalTime));
+                for Qi=1:length(QmFind)
+                    Qval(Qi,:)=Q{QmFind(Qi)}(GlobalTime);
+                    
+                 end
+%                 toc
+%                 clear GT_eval
                 %evaluate each nonempty cell of Q at all timesteps
                 Qv=spalloc(length(Q(:)),length(GlobalTime)-1,nnz(Qmask)*(length(GlobalTime)-1));
                 Qv(Qmask,:)=sparse(Qval(:,1:end-1)+Qval(:,2:end))/2;
@@ -394,8 +501,19 @@ classdef PPT2 % < matlab.System & matlab.system.mixin.Propagates & matlab.system
             %Watts.  In steady state, this vector should be zero for unheated elements,
             %and be equal in magnitude to the heat rate of heated elements.
             accum = A*T;
-        end      
-        
+        end  
+    end
+    
+    methods(Static, Access = protected)
+        %% Simulink customization functions
+        function header = getHeaderImpl
+            % Define header panel for System block dialog
+            header = matlab.system.display.Header(mfilename("class"));
+        end
+
+        function group = getPropertyGroupsImpl
+            % Define property section(s) for System block dialog
+            group = matlab.system.display.Section(mfilename("class"));
+        end
     end
 end
-
