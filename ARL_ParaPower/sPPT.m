@@ -24,10 +24,12 @@ classdef sPPT < matlab.System & matlab.system.mixin.Propagates ...
     properties(DiscreteState)
         Tres  %4D Array corresponding to temperatures at x,y,z,t.
         PHres %4D Array Meltfraction
+        T_in  %3D Array corresponding to temperatures at initial time
+        PH_in %3D Array Meltfraction to temperatures at initial time
     end
 
     % Pre-computed constants
-    properties(Access = private)
+    properties(Access = protected)
         %various masks and flags
         Qmask     %masks out unheated elements
         meltmask  %masks out unmeltable elements
@@ -72,7 +74,7 @@ classdef sPPT < matlab.System & matlab.system.mixin.Propagates ...
     methods(Access = protected)
         %% Common functions
         function setupImpl(obj)
-            % Perform one-time calculations, such as computing constants
+            % Perform model initialization using parameters stored in MI
             MI=obj.MI;
             h=MI.h;
             Ta=MI.Ta;
@@ -80,6 +82,10 @@ classdef sPPT < matlab.System & matlab.system.mixin.Propagates ...
             Q=MI.Q;
             T_init=MI.Tinit;
             GlobalTime=MI.GlobalTime;
+            
+            if isempty(obj.GlobalTime)  %GT needs to be defined prior to setup if using repeated absolute calls
+                obj.GlobalTime=GlobalTime; %This assumes repeated relative calls
+            end
 
             rollcall=unique(Mat);
             rollcall=rollcall(rollcall>0); %cant index zero or negative mat numbers
@@ -191,7 +197,7 @@ classdef sPPT < matlab.System & matlab.system.mixin.Propagates ...
             obj.htcs=htcs;
             obj.Ta_vec=Ta_vec;
             obj.Q=Q;
-            obj.GlobalTime=GlobalTime;
+
             %obj.Tres=Tres;
             %obj.PHres=PHres;
             obj.Qmask=Qmask;
@@ -216,18 +222,32 @@ classdef sPPT < matlab.System & matlab.system.mixin.Propagates ...
             obj.Bj=Bj;
         end
 
-        function [Tres, PHres] = stepImpl(obj,GlobalTime)
+        function [Tres, PH_in, T_in, PHres] = stepImpl(obj,GlobalTime)
             % Implement algorithm. 
-            if nargin==1
+            if nargin<2
               GlobalTime=obj.GlobalTime;  %use last stored GT
+              disp('Using internal time definition... assuming relative timestepping')
+              %This method assumes the first element of GT is the time of
+              %the initial state.  A dt vector is computed that has one less
+              %element, and is the basis of the timestepping.   Time-dep
+              %conditions are still referenced by the absolute time of GT.
+           
             else
+              disp('Using absolute time input')
+              time_in=obj.GlobalTime(end);
+              if ~(time_in < GlobalTime(1))
+                  error('non-positive initial step')
+              end
+              GlobalTime=[time_in GlobalTime]; %pad input GT
               obj.GlobalTime=GlobalTime;  %overwrite stored GT
-              new_time=true;
+              %new_time=true;
             end
             
+            
+            
             MI=obj.MI;
-            htcs=obj.htcs;
-            Ta_vec=obj.Ta_vec;
+            %htcs=obj.htcs;
+            %Ta_vec=obj.Ta_vec;
             Q=obj.Q;
             
             %Tres=obj.Tres;
@@ -282,9 +302,11 @@ classdef sPPT < matlab.System & matlab.system.mixin.Propagates ...
             end
             obj.delta_t=delta_t;
             
+            obj=pre_step_hook(obj);
+            
             for it=2:length(GlobalTime)
                 
-                T(:,it)=(A+Atrans)\(-B*Ta_vec'+Qv(Map,it-1)+C);  %T is temps at the end of the it'th step, C holds info about temps prior to it'th step
+                T(:,it)=(A+Atrans)\(-B*obj.Ta_vec'+Qv(Map,it-1)+C);  %T is temps at the end of the it'th step, C holds info about temps prior to it'th step
                 
                 if meltable && not(isnan(GlobalTime(2))) %melting disabled for static analyses
                     %{
@@ -311,7 +333,7 @@ classdef sPPT < matlab.System & matlab.system.mixin.Propagates ...
                         %[A,B,A_areas,B_areas,A_hLengths,B_hLengths,htcs] = conduct_build(Acon,Bcon,newMap,fullheader,K,hint,h,Mat,dx,dy,dz);
                         
                         %update A and B
-                        [A,B,htcs] = conduct_update(A,B,Aj.areas,Bj.areas,Aj.hLengths,Bj.hLengths,htcs,K(Map),touched);
+                        [A,B,~] = conduct_update(A,B,Aj.areas,Bj.areas,Aj.hLengths,Bj.hLengths,obj.htcs,K(Map),touched);
                     end
                     
                     
@@ -320,50 +342,72 @@ classdef sPPT < matlab.System & matlab.system.mixin.Propagates ...
                 end
                 
                 %Time history of A and B are not being stored, instead overwritten
+                obj.T=T(:,it);
+                obj.PH=PH(:,it);
+                obj.A=A;
+                obj.B=B;
+                obj=post_step_hook(obj);
             end
             
-            Tres=zeros(numel(Mat),size(T,2)); % Nodal temperature results
+            Tres=zeros(numel(Mat),size(T,2)-1); % Nodal temperature results
             PHres=Tres;
+            T_in=zeros(numel(Mat),1);
+            PH_in=T_in;
             
-            Tres(Mat>0,:)=T;
-            PHres(Mat>0,:)=PH;
+            T_in(Mat>0,:)=T(:,1);
+            Tres(Mat>0,:)=T(:,2:end);
+            PH_in(Mat>0,:)=PH(:,1);
+            PHres(Mat>0,:)=PH(:,2:end);
             
-            Tres=reshape(Tres,[size(MI.Model) length(GlobalTime)]);
-            PHres=reshape(PHres,[size(MI.Model) length(GlobalTime)]);
+            T_in=reshape(T_in,size(MI.Model));
+            Tres=reshape(Tres,[size(MI.Model) length(GlobalTime)-1]);
+            PH_in=reshape(PH_in,size(MI.Model));
+            PHres=reshape(PHres,[size(MI.Model) length(GlobalTime)-1]);
+            
+            obj.T_in=T_in;
             obj.Tres=Tres;
+            obj.PH_in=PH_in;
             obj.PHres=PHres;
             
                         %dump properties
             %obj.MI=MI;
-            obj.htcs=htcs;
-            obj.Ta_vec=Ta_vec;
+            %obj.htcs=htcs;
+            %obj.Ta_vec=Ta_vec;
             obj.Q=Q;
-            obj.GlobalTime=GlobalTime;
+            %obj.GlobalTime=GlobalTime;
             obj.Tres=Tres;
             obj.PHres=PHres;
-            obj.Qmask=Qmask;
+            %obj.Qmask=Qmask;
             %obj.meltmask=meltmask;
-            obj.meltable=meltable;
+            %obj.meltable=meltable;
             obj.K=K;
             obj.CP=CP;
             obj.RHO=RHO;
             %obj.LV handled above
-            obj.Map=Map;
-            obj.fullheader=fullheader;
-            obj.Mat=Mat;
-            obj.T=T;
+            %obj.Map=Map;
+            %obj.fullheader=fullheader;
+            %obj.Mat=Mat;
+            obj.T=T; 
             obj.PH=PH;
-            obj.A=A;
+            %obj.A=A; moved
             obj.Atrans=Atrans;
             obj.Cap=Cap;
-            obj.vol=vol;
-            obj.B=B;
+            %obj.vol=vol;
+            %obj.B=B; moved
             obj.C=C;
-            obj.Aj=Aj;
-            obj.Bj=Bj;
+            %obj.Aj=Aj;
+            %obj.Bj=Bj;
             
         end
 
+        function obj = pre_step_hook(obj)
+            %derive and overload me to insert post-property initialization
+        end
+        
+        function obj = post_step_hook(obj)
+            %derive and overload me to insert postprocessing hook
+        end
+                
         function resetImpl(obj)
             % Initialize / reset discrete-state properties
         end
@@ -390,10 +434,10 @@ classdef sPPT < matlab.System & matlab.system.mixin.Propagates ...
         end
 
         %% Simulink functions
-        function ds = getDiscreteStateImpl(obj)
+        %function ds = getDiscreteStateImpl(obj)
             % Return structure of properties with DiscreteState attribute
-            ds = struct([]);
-        end
+            %ds = struct([]);
+        %end
 
         function flag = isInputSizeMutableImpl(obj,index)
             % Return false if input size cannot change
@@ -482,7 +526,7 @@ classdef sPPT < matlab.System & matlab.system.mixin.Propagates ...
             %specified by the fullheader that corresponds to columns of B
             %The submatrix stemming from A should be skew symmetric with 0s on the diagonal.
             diagT = spdiags(T,0,size(A,1),size(A,2));
-            diagfullT = spdiags([T;Ta],0,size(A,1)+size(B,2),size(A,1)+size(B,2));
+            diagfullT = spdiags([T;Ta'],0,size(A,1)+size(B,2),size(A,1)+size(B,2));
             flux = diagT*[A B]-[A B]*diagfullT;
         end
         
@@ -492,7 +536,7 @@ classdef sPPT < matlab.System & matlab.system.mixin.Propagates ...
             %the columns j are
             %specified by the fullheader that corresponds to columns of B
             diagT = spdiags(T,0,size(B,1),size(B,1));
-            diagTa = spdiags(Ta,0,size(B,2),size(B,2));
+            diagTa = spdiags(Ta',0,size(B,2),size(B,2));
             flux = diagT*B-B*diagTa;
         end
         

@@ -1,4 +1,6 @@
 %This M files executes the set of validation test cases for ParaPower
+clear
+
 addpath('..');  %include above directory which contains the parapower code
 CaseDir='Cases';  %Update this to include the directory that will hold the case files.
 
@@ -58,6 +60,7 @@ for Icase=1:length(testcasefiles)
         %Material Properties
         if isfield(TestCaseModel,'MatLib')
             MatLib=TestCaseModel.MatLib;
+            TestCaseModel.Version='V2.0';
         else
             disp('Adding default materials from the material database to the model')
             TestCaseModel.MatLib=Mats;
@@ -72,10 +75,11 @@ for Icase=1:length(testcasefiles)
 
         tic;
         %[Tprnt, MI, MeltFrac]=ParaPowerThermal(MI);
-        S1=PPT2(MI);
-        S1=simulate(S1);
-        Tprnt=S1.Tres;
-        MeltFrac=S1.PHres;
+        S1=hookPPT;
+        S1.MI=MI;
+        [~]=S1();
+        Tprnt=cat(4,S1.T_in,S1.Tres);
+        MeltFrac=cat(4,S1.PH_in,S1.PHres);
         toc;
         
         
