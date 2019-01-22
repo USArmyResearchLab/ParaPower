@@ -8,8 +8,9 @@ classdef sPPT < matlab.System & matlab.system.mixin.Propagates ...
     % This template includes most, but not all, possible properties, attributes,
     % and methods that you can implement for a System object in Simulink.
 
-    % Public, tunable properties
-    properties
+    %these were previously tunable, but simulink disallows internal
+    %modification through sys_ob methods (i.e. stepImpl)
+    properties(Access = protected) % Public, tunable properties
         htcs
         Ta_vec
         Q          %function handle cell array
@@ -21,7 +22,7 @@ classdef sPPT < matlab.System & matlab.system.mixin.Propagates ...
         MI %Input model information
     end
 
-    properties(DiscreteState)
+    properties(Access = protected)%(DiscreteState)
         Tres  %4D Array corresponding to temperatures at x,y,z,t.
         PHres %4D Array Meltfraction
         T_in  %3D Array corresponding to temperatures at initial time
