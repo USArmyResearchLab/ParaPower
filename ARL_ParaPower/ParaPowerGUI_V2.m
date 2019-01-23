@@ -1111,7 +1111,7 @@ NumPlot=NumPlot + get(handles.VisualTemp,'Value');
 
 if ~strcmpi(get(gcf,'name'),'Results')
     figure
-    set(gcf,'unit','normal','posit',[0.05 0.05 0.9 0.9],'name','Results');
+    set(gcf,'unit','normal','posit',[0.05 0.05 0.9 0.85],'name','Results');
 end
 
 
