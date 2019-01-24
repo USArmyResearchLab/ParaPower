@@ -45,7 +45,7 @@ classdef hookPPT < sPPT
         end
         
         function type = getOutputDataTypeImpl(obj)
-            type = "double";
+            type = 'double';
         end
         
         function cx = isOutputComplexImpl(obj)

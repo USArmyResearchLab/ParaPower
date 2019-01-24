@@ -315,10 +315,12 @@ classdef sPPT < matlab.System & matlab.system.mixin.Propagates ...
                                                                                                MI.MatLib.k,MI.MatLib.k_l,MI.MatLib.cp,MI.MatLib.cp_l,MI.MatLib.rho,MI.MatLib.rho_l,...
                                                                                                MI.MatLib.tmelt,Lv,K,CP,RHO);   %These arguments need to be restructured
                      %}                                                                      
-                                                                                           
+                   
                    [T(:,it),PH(:,it),changing,K,CP,RHO]=vec_Phase_Change(T(:,it),PH(:,it-1),Mat,Map,meltmask,...
                                                                             MI.MatLib.k,MI.MatLib.k_l,MI.MatLib.cp,MI.MatLib.cp_l,MI.MatLib.rho,MI.MatLib.rho_l,...
                                                                             MI.MatLib.tmelt,Lv,K,CP,RHO);   %These arguments need to be restructured
+                    
+                   [obj,changing] = ph_ch_hook(obj,changing,it);
                 end
                 
                 if ~isnan(GlobalTime(2)) %update even after last timestep
@@ -408,7 +410,11 @@ classdef sPPT < matlab.System & matlab.system.mixin.Propagates ...
         function obj = post_step_hook(obj)
             %derive and overload me to insert postprocessing hook
         end
-                
+        
+        function [obj,changing] = ph_ch_hook(obj,changing,it)
+            %derive and overload me to insert phase change modification hook
+        end
+        
         function resetImpl(obj)
             % Initialize / reset discrete-state properties
         end
