@@ -10,7 +10,7 @@ function Visualize (PlotTitle, MI, varargin)
 %      multiplie time to include multiple faces.
 %   ScaleTitle  - title of the colorbar, value is a char array
 %   State - a matrix the same dimenstions as modelmat with the state to plot, value is 3 dim array
-%   PlotParms.RemoveMaterial=[] - Which materials to remove from the plot, value is array of mat numbers
+%   RemoveMaterial=[] - Which materials to remove from the plot, value is array of mat numbers
 %   EdgeOnlyMaterial=[] - Show only the edges of this material, value is array of mat numbers
 %   Transparency=0.5 - FaceAlpha value, 0-clear, 1-opaque, value is a scalar between 0 & 1
 %   ShowQ, time - Display Q on each face, no value, this is a flag and
@@ -24,7 +24,6 @@ function Visualize (PlotTitle, MI, varargin)
 %   RemoveMaterial=[0] - Materials to remove entirely from display
 %   ShowExtent=false - Show extent of the model by a box
 %   HideBC - Do not show H/Temp boundary conditions on plot
-%   HideMatbuttons - Flag to not show material buttons
 %
 %To Do Features:
 %  X cross section
@@ -84,7 +83,6 @@ function Visualize (PlotTitle, MI, varargin)
     while ~isempty(PropValPairs) 
         [Prop, PropValPairs]=Pop(PropValPairs);
         if ~ischar(Prop)
-            disp(Prop)
             error('Property name must be a string.');
         end
         Pl=length(Prop);
@@ -109,11 +107,9 @@ function Visualize (PlotTitle, MI, varargin)
             case strleft('edgeonlymaterial',Pl)
                 [Value, PropValPairs]=Pop(PropValPairs); 
                 PlotParms.EdgeOnlyMatl=Value;
-            case strleft('showbuttons',Pl) %Included for backward compatibility
+            case strleft('showbuttons',Pl)
                 [Value, PropValPairs]=Pop(PropValPairs); 
                 PlotParms.ShowButtons=Value;
-            case strleft('hidematbuttons',Pl)
-                PlotParms.ShowButtons=false;
             case strleft('transmaterial',Pl)
                 [Value, PropValPairs]=Pop(PropValPairs); 
                 PlotParms.TransMatl=Value;
@@ -364,40 +360,27 @@ function Visualize (PlotTitle, MI, varargin)
                     else
                     	if PlotParms.LinIntState
                             if ZeroValueMaterials(ModelMatrix(Xi, Yi, Zi))
-                                %ThisColor(1:8)=1;
-                                ThisColor(1:8)=ValMin;
+                                ThisColor(1:8)=1;
                             else
-%                                 ThisColor(1)=floor((LPlotState(Xi  ,Yi  ,Zi  )-ValMin)/ValRange*(length(CM(:,1))-1) + 1);
-%                                 ThisColor(2)=floor((LPlotState(Xi  ,Yi+1,Zi  )-ValMin)/ValRange*(length(CM(:,1))-1) + 1);
-%                                 ThisColor(3)=floor((LPlotState(Xi+1,Yi+1,Zi  )-ValMin)/ValRange*(length(CM(:,1))-1) + 1);
-%                                 ThisColor(4)=floor((LPlotState(Xi+1,Yi  ,Zi  )-ValMin)/ValRange*(length(CM(:,1))-1) + 1);
-%                                 ThisColor(5)=floor((LPlotState(Xi  ,Yi  ,Zi+1)-ValMin)/ValRange*(length(CM(:,1))-1) + 1);
-%                                 ThisColor(6)=floor((LPlotState(Xi  ,Yi+1,Zi+1)-ValMin)/ValRange*(length(CM(:,1))-1) + 1);
-%                                 ThisColor(7)=floor((LPlotState(Xi+1,Yi+1,Zi+1)-ValMin)/ValRange*(length(CM(:,1))-1) + 1);
-%                                 ThisColor(8)=floor((LPlotState(Xi+1,Yi  ,Zi+1)-ValMin)/ValRange*(length(CM(:,1))-1) + 1);
-                                ThisColor(1)=LPlotState(Xi  ,Yi  ,Zi  );
-                                ThisColor(2)=LPlotState(Xi  ,Yi+1,Zi  );
-                                ThisColor(3)=LPlotState(Xi+1,Yi+1,Zi  );
-                                ThisColor(4)=LPlotState(Xi+1,Yi  ,Zi  );
-                                ThisColor(5)=LPlotState(Xi  ,Yi  ,Zi+1);
-                                ThisColor(6)=LPlotState(Xi  ,Yi+1,Zi+1);
-                                ThisColor(7)=LPlotState(Xi+1,Yi+1,Zi+1);
-                                ThisColor(8)=LPlotState(Xi+1,Yi  ,Zi+1);
-
+                                ThisColor(1)=floor((LPlotState(Xi  ,Yi  ,Zi  )-ValMin)/ValRange*(length(CM(:,1))-1) + 1);
+                                ThisColor(2)=floor((LPlotState(Xi  ,Yi+1,Zi  )-ValMin)/ValRange*(length(CM(:,1))-1) + 1);
+                                ThisColor(3)=floor((LPlotState(Xi+1,Yi+1,Zi  )-ValMin)/ValRange*(length(CM(:,1))-1) + 1);
+                                ThisColor(4)=floor((LPlotState(Xi+1,Yi  ,Zi  )-ValMin)/ValRange*(length(CM(:,1))-1) + 1);
+                                ThisColor(5)=floor((LPlotState(Xi  ,Yi  ,Zi+1)-ValMin)/ValRange*(length(CM(:,1))-1) + 1);
+                                ThisColor(6)=floor((LPlotState(Xi  ,Yi+1,Zi+1)-ValMin)/ValRange*(length(CM(:,1))-1) + 1);
+                                ThisColor(7)=floor((LPlotState(Xi+1,Yi+1,Zi+1)-ValMin)/ValRange*(length(CM(:,1))-1) + 1);
+                                ThisColor(8)=floor((LPlotState(Xi+1,Yi  ,Zi+1)-ValMin)/ValRange*(length(CM(:,1))-1) + 1);
                             end
                         else
-%                            ThisColor=floor((PlotState(Xi,Yi,Zi)-ValMin)/ValRange*(length(CM(:,1))-1) + 1);
-                            ThisColor=PlotState(Xi,Yi,Zi);
+                            ThisColor=floor((PlotState(Xi,Yi,Zi)-ValMin)/ValRange*(length(CM(:,1))-1) + 1);
                         end
                         %fprintf('%i ',ThisColor)
                         if PlotParms.LinIntState
                             for Fi=1:8
-%                                ThisVertC(Fi,:) = CM(ThisColor(Fi),:);
-                                ThisVertC(Fi) = ThisColor(Fi);
+                                ThisVertC(Fi,:) = CM(ThisColor(Fi),:);
                             end
                         else
-%                            ThisVertC = ones(length(P),1) * CM(ThisColor,:);
-                            ThisVertC = ones(length(P),1) * ThisColor;
+                            ThisVertC = ones(length(P),1) * CM(ThisColor,:);
                         end
                     end
                     ThisMat=find(MatListNumbers==ModelMatrix(Xi,Yi,Zi));
@@ -406,39 +389,32 @@ function Visualize (PlotTitle, MI, varargin)
                             VList{ThisMat}=[VList{ThisMat}; P];              %OPTIM              
                             PtStart=length(VList{ThisMat}(:,1))-length(P(:,1)); %OPTIM
                             ThisFace  = Face+PtStart;
-%                            ThisFaceC = ones(length(Face(:,1)),1) * CM(ThisColor(1),:);
-                            ThisFaceC = ones(length(Face(:,1)),1) * ThisColor(1);
+                            ThisFaceC = ones(length(Face(:,1)),1) * CM(ThisColor(1),:);
                         else
                             F=[];
                             if any(strcmp(PlotParms.TwoD,'X+'))
                                 ThisFace  =  Face(5,:)+PtStart;  %OPTIM
-%                                ThisFaceC =  CM(ThisColor,:);
-                                ThisFaceC =  ThisColor;
+                                ThisFaceC =  CM(ThisColor,:);
                             end
                             if any(strcmp(PlotParms.TwoD,'X-'))
                                 ThisFace  =  Face(2,:)+PtStart;  %OPTIM
-%                                ThisFaceC =  CM(ThisColor,:);
-                                ThisFaceC =  ThisColor;
+                                ThisFaceC = CM(ThisColor,:);
                             end
                             if any(strcmp(PlotParms.TwoD,'Y+'))
                                 ThisFace  =  Face(6,:)+PtStart;  %OPTIM
-%                                ThisFaceC =  CM(ThisColor,:);
-                                ThisFaceC =  ThisColor;
+                                ThisFaceC = CM(ThisColor,:);
                             end
                             if any(strcmp(PlotParms.TwoD,'Y-'))
                                 ThisFace  =  Face(3,:)+PtStart;  %OPTIM
-%                                ThisFaceC =  CM(ThisColor,:);
-                                ThisFaceC =  ThisColor;
+                                ThisFaceC =  CM(ThisColor,:);
                             end
                             if any(strcmp(PlotParms.TwoD,'Z+'))
                                 ThisFace  =  Face(4,:)+PtStart;  %OPTIM
-%                                ThisFaceC =  CM(ThisColor,:);
-                                ThisFaceC =  ThisColor;
+                                ThisFaceC =  CM(ThisColor,:);
                             end
                             if any(strcmp(PlotParms.TwoD,'Z-'))
                                 ThisFace  =  Face(1,:)+PtStart;  %OPTIM
-%                                ThisFaceC =  CM(ThisColor,:);
-                                ThisFaceC =  ThisColor;
+                                ThisFaceC =  CM(ThisColor,:);
                             end
                         end
                         FList{ThisMat}=[FList{ThisMat}; ThisFace];  %OPTIM
@@ -489,42 +465,41 @@ function Visualize (PlotTitle, MI, varargin)
             end
         end
     end
-    for Imat=1:length(MatListNumbers) %OPTIM
-        if ~isempty(find(MatListNumbers(Imat) == PlotParms.TransMatl, 1))
-            FaceAlpha=PlotParms.Transparency;
-        end
-        EdgeColor='black';
-        if ~isempty(PlotParms.EdgeColor) 
-            EdgeColor=PlotParms.EdgeColor;
-        end
-        if ~isempty(find(MatListNumbers(Imat) == PlotParms.EdgeOnlyMatl, 1))
-            FaceColor='none';
-            EdgeColor='flat';
-            ColorList=CList{Imat};
-            ColorList=CVList{Imat};
-        else
-            if PlotParms.LinIntState
-                FaceColor='interp';
+%    if PlotGeom
+        for Imat=1:length(MatListNumbers) %OPTIM
+            if ~isempty(find(MatListNumbers(Imat) == PlotParms.TransMatl, 1))
+                FaceAlpha=PlotParms.Transparency;
+            end
+            EdgeColor='black';
+            if ~isempty(PlotParms.EdgeColor) 
+                EdgeColor=PlotParms.EdgeColor;
+            end
+            if ~isempty(find(MatListNumbers(Imat) == PlotParms.EdgeOnlyMatl, 1))
+                FaceColor='none';
+                EdgeColor='flat';
+                ColorList=CList{Imat};
                 ColorList=CVList{Imat};
             else
-                FaceColor='flat';
-                ColorList=CList{Imat};
+                if PlotParms.LinIntState
+                    FaceColor='interp';
+                    ColorList=CVList{Imat};
+                else
+                    FaceColor='flat';
+                    ColorList=CList{Imat};
+                end
             end
-        end
-
+            
 %            ThisColor=find(ColorList==MatListNumbers(Imat));
-        if PlotGeom
-            ColorList=CM(ColorList,:);
-        end
-        F   =patch('faces',FList{Imat},'vertices',VList{Imat}, ...
-                    'facevertexcdata',ColorList, ...
-                    'facealpha',FaceAlpha, ...
-                    'edgecolor', EdgeColor, ...
-                    'facecolor',FaceColor, ...
-                    'facealpha',FAList{Imat});
-                    % 'FaceAlpha',FaceAlpha);
-        MatPatchList{Imat}=[F QFList{Imat}];
-    end %OPTIM
+            F   =patch('faces',FList{Imat},'vertices',VList{Imat}, ...
+                        'facevertexcdata',ColorList, ...
+                        'facealpha',FaceAlpha, ...
+                        'edgecolor', EdgeColor, ...
+                        'facecolor',FaceColor, ...
+                        'facealpha',FAList{Imat});
+                        % 'FaceAlpha',FaceAlpha);
+            MatPatchList{Imat}=[F QFList{Imat}];
+        end %OPTIM
+ %   end
     Xrange=max(X)-min(X);
     Yrange=max(Y)-min(Y);
     Zrange=max(Z)-min(Z);
@@ -632,11 +607,9 @@ function Visualize (PlotTitle, MI, varargin)
     set(CB,'userdata','REMOVE')
     if ~PlotGeom
         ylabel(CB,ColorTitle);
-        %caxis([ValMin ValMin+ValRange]);
-        %set(CB,'limit',[0 1]);
-        %Scale=linspace(0,1,11);
-        %set(CB,'ticks',Scale);
-        %set(CB,'ticklabels',linspace(ValMin,ValMin+ValRange,length(Scale)));
+        Scale=linspace(0,1,11);
+        set(CB,'ticks',Scale);
+        set(CB,'ticklabels',linspace(ValMin,ValMin+ValRange,length(Scale)));
         RightMostPosition=get(CB,'posit');
         RightMostPosition=RightMostPosition(1);
     else
