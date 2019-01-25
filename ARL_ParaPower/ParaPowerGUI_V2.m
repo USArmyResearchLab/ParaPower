@@ -26,7 +26,7 @@ function varargout = ParaPowerGUI_V2(varargin)
 
 % Edit the above text to modify the response to help ParaPowerGUI_V2
 
-% Last Modified by GUIDE v2.5 08-Jan-2019 15:42:38
+% Last Modified by GUIDE v2.5 25-Jan-2019 07:25:18
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -491,6 +491,7 @@ function loadbutton_Callback(hObject, eventdata, handles)
            set(handles.NumTimeSteps,'String',Params.Tsteps)
            set(handles.Tprocess,'String',ExternalConditions.Tproc)
            AddStatusLine('Done', true);
+           slider1_Callback(handles.slider1, eventdata, handles)
            Initialize_Callback(hObject, eventdata, handles, true)
         end
     end
@@ -1108,10 +1109,13 @@ NumPlot = 0;
 NumPlot=NumPlot + get(handles.VisualMelt,'Value');
 NumPlot=NumPlot + get(handles.VisualStress,'Value');
 NumPlot=NumPlot + get(handles.VisualTemp,'Value');
-
-if ~strcmpi(get(gcf,'name'),'Results')
+Objects=findobj(0,'-depth',1,'type','figure');
+ResultFigure=find(strcmpi(get(Objects,'name'),'results'));
+if isempty(ResultFigure)
     figure
     set(gcf,'unit','normal','posit',[0.05 0.05 0.9 0.85],'name','Results');
+else
+    figure(Objects(ResultFigure(1)));
 end
 
 
@@ -1956,3 +1960,21 @@ function ExtCondTable_CreateFcn(hObject, eventdata, handles)
 % handles    empty - handles not created until after all CreateFcns called
 set(hObject, 'Data', cell(2,6));
 end
+
+
+% --- Executes on button press in ClearResultsButton.
+function ClearResultsButton_Callback(hObject, eventdata, handles)
+% hObject    handle to ClearResultsButton (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+    P=questdlg('Are you sure you want to clear the current analysis results?','Confirmation','Yes','No','No');
+    if strcmpi(P,'Yes')
+        if isappdata(gcf,'Results')
+           rmappdata(gcf,'Results');
+           slider1_Callback(handles.slider1, eventdata, handles)
+           AddStatusLine('Results cleared.')
+        end
+    end
+end
+
+

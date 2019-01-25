@@ -385,36 +385,38 @@ function Visualize (PlotTitle, MI, varargin)
                     end
                     ThisMat=find(MatListNumbers==ModelMatrix(Xi,Yi,Zi));
                     if ~max(isnan(ThisColor))
+                        VList{ThisMat}=[VList{ThisMat}; P];              %OPTIM              
+                        PtStart=length(VList{ThisMat}(:,1))-length(P(:,1)); % Starting index into VList{material} of first point in this element
                         if isempty(PlotParms.TwoD)
-                            VList{ThisMat}=[VList{ThisMat}; P];              %OPTIM              
-                            PtStart=length(VList{ThisMat}(:,1))-length(P(:,1)); %OPTIM
                             ThisFace  = Face+PtStart;
                             ThisFaceC = ones(length(Face(:,1)),1) * CM(ThisColor(1),:);
                         else
-                            F=[];
+                            %F=[];
+                            ThisFace=[];
+                            ThisFaceC=[];
                             if any(strcmp(PlotParms.TwoD,'X+'))
-                                ThisFace  =  Face(5,:)+PtStart;  %OPTIM
-                                ThisFaceC =  CM(ThisColor,:);
+                                ThisFace  =  [ThisFace; Face(5,:)+PtStart];  %OPTIM
+                                ThisFaceC =  [ThisFaceC; CM(ThisColor,:)];
                             end
                             if any(strcmp(PlotParms.TwoD,'X-'))
-                                ThisFace  =  Face(2,:)+PtStart;  %OPTIM
-                                ThisFaceC = CM(ThisColor,:);
+                                ThisFace  =  [ThisFace; Face(2,:)+PtStart];  %OPTIM
+                                ThisFaceC = [ThisFaceC; CM(ThisColor,:)];
                             end
-                            if any(strcmp(PlotParms.TwoD,'Y+'))
-                                ThisFace  =  Face(6,:)+PtStart;  %OPTIM
-                                ThisFaceC = CM(ThisColor,:);
+                            if any(strcmp(PlotParms.TwoD,'Y+'))MinFeatureSize(1)
+                                ThisFace  =  [ThisFace; Face(6,:)+PtStart];  %OPTIM
+                                ThisFaceC = [ThisFaceC; CM(ThisColor,:)];
                             end
                             if any(strcmp(PlotParms.TwoD,'Y-'))
-                                ThisFace  =  Face(3,:)+PtStart;  %OPTIM
-                                ThisFaceC =  CM(ThisColor,:);
+                                ThisFace  =  [ThisFace; Face(3,:)+PtStart];  %OPTIM
+                                ThisFaceC =  [ThisFaceC; CM(ThisColor,:)];
                             end
                             if any(strcmp(PlotParms.TwoD,'Z+'))
-                                ThisFace  =  Face(4,:)+PtStart;  %OPTIM
-                                ThisFaceC =  CM(ThisColor,:);
+                                ThisFace  =  [ThisFace; Face(4,:)+PtStart];  %OPTIM
+                                ThisFaceC =  [ThisFaceC; CM(ThisColor,:)];
                             end
                             if any(strcmp(PlotParms.TwoD,'Z-'))
-                                ThisFace  =  Face(1,:)+PtStart;  %OPTIM
-                                ThisFaceC =  CM(ThisColor,:);
+                                ThisFace  =  [ThisFace; Face(1,:)+PtStart];  %OPTIM
+                                ThisFaceC =  [ThisFaceC; CM(ThisColor,:)];
                             end
                         end
                         FList{ThisMat}=[FList{ThisMat}; ThisFace];  %OPTIM
@@ -465,41 +467,39 @@ function Visualize (PlotTitle, MI, varargin)
             end
         end
     end
-%    if PlotGeom
-        for Imat=1:length(MatListNumbers) %OPTIM
-            if ~isempty(find(MatListNumbers(Imat) == PlotParms.TransMatl, 1))
-                FaceAlpha=PlotParms.Transparency;
-            end
-            EdgeColor='black';
-            if ~isempty(PlotParms.EdgeColor) 
-                EdgeColor=PlotParms.EdgeColor;
-            end
-            if ~isempty(find(MatListNumbers(Imat) == PlotParms.EdgeOnlyMatl, 1))
-                FaceColor='none';
-                EdgeColor='flat';
-                ColorList=CList{Imat};
+    for Imat=1:length(MatListNumbers) %OPTIM
+        if ~isempty(find(MatListNumbers(Imat) == PlotParms.TransMatl, 1))
+            FaceAlpha=PlotParms.Transparency;
+        end
+        EdgeColor='black';
+        if ~isempty(PlotParms.EdgeColor) 
+            EdgeColor=PlotParms.EdgeColor;
+        end
+        if ~isempty(find(MatListNumbers(Imat) == PlotParms.EdgeOnlyMatl, 1))
+            FaceColor='none';
+            EdgeColor='flat';
+            ColorList=CList{Imat};
+            ColorList=CVList{Imat};
+        else
+            if PlotParms.LinIntState
+                FaceColor='interp';
                 ColorList=CVList{Imat};
             else
-                if PlotParms.LinIntState
-                    FaceColor='interp';
-                    ColorList=CVList{Imat};
-                else
-                    FaceColor='flat';
-                    ColorList=CList{Imat};
-                end
+                FaceColor='flat';
+                ColorList=CList{Imat};
             end
-            
+        end
+
 %            ThisColor=find(ColorList==MatListNumbers(Imat));
-            F   =patch('faces',FList{Imat},'vertices',VList{Imat}, ...
-                        'facevertexcdata',ColorList, ...
-                        'facealpha',FaceAlpha, ...
-                        'edgecolor', EdgeColor, ...
-                        'facecolor',FaceColor, ...
-                        'facealpha',FAList{Imat});
-                        % 'FaceAlpha',FaceAlpha);
-            MatPatchList{Imat}=[F QFList{Imat}];
-        end %OPTIM
- %   end
+        F   =patch('faces',FList{Imat},'vertices',VList{Imat}, ...
+                    'facevertexcdata',ColorList, ...
+                    'facealpha',FaceAlpha, ...
+                    'edgecolor', EdgeColor, ...
+                    'facecolor',FaceColor, ...
+                    'facealpha',FAList{Imat});
+                    % 'FaceAlpha',FaceAlpha);
+        MatPatchList{Imat}=[F QFList{Imat}];
+    end %OPTIM
     Xrange=max(X)-min(X);
     Yrange=max(Y)-min(Y);
     Zrange=max(Z)-min(Z);
@@ -603,7 +603,7 @@ function Visualize (PlotTitle, MI, varargin)
         end
     end
     set(ThisAxis,'unit','normal')
-    CB=colorbar;    
+    CB=colorbar(ThisAxis);    
     set(CB,'userdata','REMOVE')
     if ~PlotGeom
         ylabel(CB,ColorTitle);

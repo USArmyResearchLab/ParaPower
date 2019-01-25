@@ -4,12 +4,12 @@ Enable 'stop' button on GUI
 Prettify results plots
 Add total mass output 
 Static Analysis is broken
-Reduce # of decimals on colorbars
 Save profile w/o results
-Melt fraction issues
 
 Items Completed.
 ------------------
+Melt fraction issues
+Reduce # of decimals on colorbars
 In 'visualize' click different materials 'on' and 'off'
 Double clicking on figure to load is not working right for Lauren...not valid functionality.
 Plot state on detailed visual output doesn't match GUI time step (off by 1)
