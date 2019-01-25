@@ -4,10 +4,10 @@ Enable 'stop' button on GUI
 Prettify results plots
 Add total mass output 
 Static Analysis is broken
-Save profile w/o results
 
 Items Completed.
 ------------------
+Save profile w/o results
 Melt fraction issues
 Reduce # of decimals on colorbars
 In 'visualize' click different materials 'on' and 'off'

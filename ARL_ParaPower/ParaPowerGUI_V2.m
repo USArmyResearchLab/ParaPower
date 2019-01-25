@@ -313,12 +313,16 @@ function savebutton_Callback(hObject, eventdata, handles)
         AddStatusLine('Error.',true,'error')
         AddStatusLine('Complete model cannot be saved due to errors. GUI state saved instead.')
         [fname,pathname] = uiputfile ([oldpathname '*.guistate']);
-        hgsave(gcf,[pathname fname])
+        if fname ~=0
+            hgsave(gcf,[pathname fname])
+        end
     else
         [fname,pathname] = uiputfile ([oldpathname '*.ppmodel']);
-        AddStatusLine(['Saving "' pathname fname '".,,']);
-        save([pathname fname],'TestCaseModel','Results','-mat')  
-        AddStatusLine('Done', true);
+        if fname~= 0
+            AddStatusLine(['Saving "' pathname fname '".,,']);
+            save([pathname fname],'TestCaseModel','Results','-mat')  
+            AddStatusLine('Done', true);
+        end
     end
     if fname ~= 0
         set(handles.loadbutton,'userdata',pathname);
@@ -598,6 +602,7 @@ function RunAnalysis_Callback(hObject, eventdata, handles)
        Results.Stress=Stress;
        Results.MeltFrac=MeltFrac;
        Results.Model=MI;
+       Results.TimeDate=now;
        setappdata(handles.figure1, 'Results', Results);
        GUIEnable(handles.figure1);
 end
@@ -985,6 +990,7 @@ if Confirm
     AddStatusLine('CLEARSTATUS');
     AddStatusLine('Clearing GUI...')
 end
+GUIDisable(handles.figure1)
 axes(handles.GeometryVisualization)
 cla reset;
 
@@ -1059,6 +1065,7 @@ guidata(hObject, handles);
 if Confirm
     AddStatusLine('Done.', true,handles.figure1)
 end
+GUIEnable(handles.figure1)
 end
 
 % --- Executes on button press in pushbutton18.
