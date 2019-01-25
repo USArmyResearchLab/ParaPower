@@ -528,7 +528,8 @@ function RunAnalysis_Callback(hObject, eventdata, handles)
             %not used TimeStepOutput = get(handles.slider1,'Value');
             tic
             GlobalTime=MI.GlobalTime;  %Since there is global time vector, construct one here.
-            [Tprnt, MI, MeltFrac]=ParaPowerThermal(MI);
+            S1=scPPT(MI);
+            [Tprnt, T_in, MeltFrac,MeltFrac_in]=S1();
             Etime=toc;
             AddStatusLine(sprintf('(%3.2fs)...',Etime),true)
         catch ME

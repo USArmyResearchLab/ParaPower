@@ -223,7 +223,7 @@ classdef sPPT < matlab.System & matlab.system.mixin.Propagates ...
             obj.Bj=Bj;
         end
 
-        function [Tres, PH_in, T_in, PHres] = stepImpl(obj,GlobalTime)
+        function [Tres, T_in, PHres, PH_in] = stepImpl(obj,GlobalTime)
             % Implement algorithm. 
             if nargin<2
               GlobalTime=obj.GlobalTime;  %use last stored GT
