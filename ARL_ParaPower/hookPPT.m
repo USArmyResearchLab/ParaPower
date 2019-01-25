@@ -1,4 +1,4 @@
-classdef hookPPT < sPPT
+classdef hookPPT < scPPT
     
     properties (Access = protected)%(DiscreteState)
         bdry_watts
@@ -8,7 +8,7 @@ classdef hookPPT < sPPT
         function [bdry_watts] = stepImpl(obj,GlobalTime,htcs,Ta_vec)
             obj.htcs=htcs;
             obj.Ta_vec=Ta_vec;
-            [~]=stepImpl@sPPT(obj,GlobalTime);
+            [~]=stepImpl@scPPT(obj,GlobalTime);
             bdry_watts=obj.bdry_watts;            
         end
         
@@ -37,7 +37,7 @@ classdef hookPPT < sPPT
         
         function outsz = getOutputSizeImpl(obj)
             numsteps = propagatedInputSize(obj,1);
-            outsz = [10 numsteps(2)];  %10 being the number of nodes in the input model
+            outsz = [1 numsteps(2)];  %10 being the number of nodes in the input model
         end        
         
         function outtype = isOutputFixedSizeImpl(obj)

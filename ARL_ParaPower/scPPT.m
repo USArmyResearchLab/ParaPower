@@ -8,14 +8,27 @@ classdef scPPT < sPPT
         function setupImpl(obj)
             setupImpl@sPPT(obj);
             obj.sc_mask=strcmp(obj.MI.MatLib.Type(obj.Mat(obj.Map)),'SCPCM');
-            %future: create submasks for each scPCM type to disallow
-            %propagation
+            %meltable Y/N      scPCM?   Y   N
+            %---------------------------------
+            %PCM?           Y           Y   Y
+            %               N           Y*  N
+            if nnz(obj.sc_mask)>0 && ~obj.meltable  %* handling
+                obj.meltmask=zeros(size(obj.sc_mask));  %otherwise changing is []
+                obj.meltable=true;  %we need to trigger the phasechange subroutine
+            end
+            %future: create submasks for each scPCM type to disallow propagation
+            %
         end
         
-        function [obj,changing]=ph_ch_hook(obj,changing,it)
-            sc_mask=obj.sc_mask
-            priorPH=obj.PH(:,it-1);
-            newPH=obj.PH(:,it);
+        function [obj,T,PH,changing] = ph_ch_hook(obj,T,PH,changing,it)
+            sc_mask=obj.sc_mask;
+            if nnz(sc_mask)==0
+                return
+            end
+            prop_thres=0;                   %hardcode for testing.
+            T_nuc=5;   %hardcode for testing.
+            priorPH=PH(:,it-1);
+            newPH=PH(:,it);
             %curate a list of active/triggered supercoolable elements
             %three criteria
             %1 able to melt and/or continue freezing ... PH<1
@@ -23,28 +36,42 @@ classdef scPPT < sPPT
             %3 satisfies propagation rule ... e.g. ..... any(PH_nn=0)
             state=zeros(numel(sc_mask),3);
             state(sc_mask,1)=priorPH(sc_mask)<1;  %1
-            state(sc_mask,2)=obj.T(sc_mask,it)<=T_nuc(obj.Mat(obj.Map(sc_mask))); %2
+            state(sc_mask,2)=T(sc_mask,it)<=T_nuc%(obj.Mat(obj.Map(sc_mask))); %2
+            
+            state(sc_mask,3)=priorPH(sc_mask)<=prop_thres;  %propogation threshold
+            
+            if numel(state(sc_mask,3))>0
+                state(sc_mask,3)=state(sc_mask,3) | (obj.Aj.adj(sc_mask,sc_mask)*state(sc_mask,3))>0;  %3
+                %find not only those elements changing, but those touched by changing elements
+            end
+            newtouch=state(:,3);  %initialize
             
             prop = true;
             while prop
-                state(sc_mask,3)=priorPH(sc_mask)==0;  %propogation threshold
-                state(sc_mask,3)=sc_mask & find((obj.A.adj*state(sc_mask,3))>0);  %3
-                %find not only those elements changing, but those touched by changing elements
-                
                 sc_trig=any(state,2); %if an element satisfies any of the three criteria, it is eligable for phch
                 
                 
-                [obj.T(:,it),newPH,sc_changing,obj.K,obj.CP,obj.RHO]=vec_Phase_Change(obj.T(:,it),priorPH,obj.Mat,obj.Map,sc_trig,...
+                [T(:,it),newPH,sc_changing,obj.K,obj.CP,obj.RHO]=vec_Phase_Change(T(:,it),priorPH,obj.Mat,obj.Map,sc_trig,...
                     obj.MI.MatLib.k,obj.MI.MatLib.k_l,obj.MI.MatLib.cp,obj.MI.MatLib.cp_l,obj.MI.MatLib.rho,obj.MI.MatLib.rho_l,...
                     obj.MI.MatLib.tmelt,obj.Lv,obj.K,obj.CP,obj.RHO);   %These arguments need to be restructured
+                
                 %did any new elements hit PH==0?
-                prop = any(min(state(sc_mask,3)-(newPH==0),0)); %was using xor
+                
+                newtouch(sc_mask)=newPH(sc_mask)<=prop_thres;  %propogation threshold
+                
+                if numel(newtouch(sc_mask))>0
+                    newtouch(sc_mask)=newtouch(sc_mask) | (obj.Aj.adj(sc_mask,sc_mask)*newtouch(sc_mask))>0;  %3
+                    %find not only those elements changing, but those touched by changing elements
+                end
+
+                prop = any(newtouch(sc_mask) & xor(state(sc_mask,3),newtouch(sc_mask))); %was using xor
                 if prop
                     priorPH=newPH;
+                    state(sc_mask,3)=newtouch(sc_mask);
                 end
             end
             
-            obj.PH(:,it)=newPH;
+            PH(:,it)=newPH;
             changing = sc_changing | changing; %update changing to include changing supercoolable elements
             end
     end

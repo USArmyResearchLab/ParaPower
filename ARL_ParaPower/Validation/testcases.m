@@ -75,7 +75,7 @@ for Icase=1:length(testcasefiles)
 
         tic;
         %[Tprnt, MI, MeltFrac]=ParaPowerThermal(MI);
-        S1=hookPPT;
+        S1=scPPT;
         S1.MI=MI;
         [~]=S1();
         Tprnt=cat(4,S1.T_in,S1.Tres);

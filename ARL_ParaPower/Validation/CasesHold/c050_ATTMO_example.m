@@ -34,14 +34,14 @@ Desc='Test Case Template';  %Description of the test case
     
     %rectangular channel with right angle fin unit cell
     cell_w = 0.005;
-    w_div = 4;
+    w_div = 2;
     cell_h = 0.005;
-    h_div = 6;
+    h_div = 2;
     ch_w = .004;
     ch_h = .004;
     ch_len = .1;
-    ibc_num = 10;
-    ibc_div = 2;
+    ibc_num = 1;
+    ibc_div = 1;
     ibc_h = 500;
     ibc_Ta = 20;
     
@@ -80,7 +80,7 @@ Desc='Test Case Template';  %Description of the test case
     Features(2).dx   = 1;
     Features(2).dy   = 1;
     Features(2).dz   = 1;
-    Features(2).Matl = 'PureTemp 29';
+    Features(2).Matl = 'Ga';
     Features(2).Q    = 0;  %'0.3*sin(0.25*t)+0.3';
     
     ys=[0 ch_len/ibc_num];

@@ -320,14 +320,14 @@ classdef sPPT < matlab.System & matlab.system.mixin.Propagates ...
                                                                             MI.MatLib.k,MI.MatLib.k_l,MI.MatLib.cp,MI.MatLib.cp_l,MI.MatLib.rho,MI.MatLib.rho_l,...
                                                                             MI.MatLib.tmelt,Lv,K,CP,RHO);   %These arguments need to be restructured
                     
-                   [obj,changing] = ph_ch_hook(obj,changing,it);
+                   [obj,T,PH,changing] = ph_ch_hook(obj,T,PH,changing,it);
                 end
                 
                 if ~isnan(GlobalTime(2)) %update even after last timestep
                     %was not(isnan(GlobalTime(2))) && it~=length(GlobalTime)  %Do we have timesteps to undertake?
                     
                     if meltable && any(changing)  %Have material properties changed?
-                        touched=find((abs(A)*changing)>0);  %find not only those elements changing, but those touched by changing elements
+                        touched=changing | (Aj.adj*changing)>0;  %find not only those elements changing, but those touched by changing elements
                         
                         %update capacitance (only those changing since internal to element)
                         Cap(changing)=mass(MI.X,MI.Y,MI.Z,RHO,CP,Mat,Map(changing)); %units of J/K
@@ -411,7 +411,7 @@ classdef sPPT < matlab.System & matlab.system.mixin.Propagates ...
             %derive and overload me to insert postprocessing hook
         end
         
-        function [obj,changing] = ph_ch_hook(obj,changing,it)
+        function [obj,T,PH,changing] = ph_ch_hook(obj,T,PH,changing,it);
             %derive and overload me to insert phase change modification hook
         end
         

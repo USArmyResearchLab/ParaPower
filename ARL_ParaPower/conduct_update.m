@@ -1,7 +1,7 @@
 function [Acond,Bcond,htcs] = conduct_update(Acond,Bcond,A_areas,B_areas,A_hLengths,B_hLengths,htcs,K,Mask)
 %Updates Conductance Matrices using connectivity matrices, dimensional info,
 %and material properties/convection coefficients.
-szM=length(Mask);
+szM=nnz(Mask);
 
 recip=@(x) 1./x;  %anonymous function handle
 Acond(Mask,Mask)=A_areas(Mask,Mask).* spfun(recip,A_hLengths(Mask,Mask));
