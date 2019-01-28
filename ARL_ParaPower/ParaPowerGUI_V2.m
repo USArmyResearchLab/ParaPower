@@ -303,7 +303,11 @@ function savebutton_Callback(hObject, eventdata, handles)
     if isappdata(gcf,'Results')
         Results=getappdata(gcf,'Results');
     else
-        Results=[];
+        if isappdata(gcf,'MI')
+            Results.Model=getappdata(gcf,'MI');
+        else
+            Results=[];
+        end
     end
     oldpathname=get(handles.loadbutton,'userdata');
     if isnumeric(oldpathname)
@@ -470,7 +474,7 @@ function loadbutton_Callback(hObject, eventdata, handles)
            
            setappdata(gcf,'TestCaseModel',TestCaseModel)
            setappdata(gcf,TableDataName, QData)
-           if exist('Results','var') && not(isempty(Results))
+           if exist('Results','var') && not(isfield(Results,'Tprint'))
                setappdata(gcf,'Results',Results)
                AddStatusLine('Results loaded.');
            end
