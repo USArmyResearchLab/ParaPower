@@ -59,6 +59,7 @@ Desc='Test Case Template';  %Description of the test case
         end
         cellmat{14}(end+1)=ibc_h;
         cellmat{15}(end+1)=ibc_Ta;
+        cellmat{16}=NaN;
     end
     
     %MoreMats=cell2struct(cellmat,fieldnames(Mats),1);
