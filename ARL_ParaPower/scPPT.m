@@ -38,7 +38,7 @@ classdef scPPT < sPPT
             T_nuc=obj.MI.MatLib.tmelt(obj.Mat(obj.Map(sc_mask)))-T_nuc;
             %T_nuc is a list of sc nucleation temps of size(sc_mask)
             priorPH=PH(:,it-1);
-            newPH=PH(:,it);
+            newPH=PH(:,it); %zeros
             %curate a list of active/triggered supercoolable elements
             %three criteria
             %1 able to melt and/or continue freezing ... PH<1

@@ -320,9 +320,9 @@ classdef sPPT < matlab.System & matlab.system.mixin.Propagates ...
                                                                                                MI.MatLib.tmelt,Lv,K,CP,RHO);   %These arguments need to be restructured
                      %}                                                                      
                    
-                   [T(:,it),PH(:,it),changing,K,CP,RHO]=vec_Phase_Change(T(:,it),PH(:,it-1),Mat,Map,meltmask,...
+                   [T(:,it),PH(:,it),changing,obj.K,obj.CP,obj.RHO]=vec_Phase_Change(T(:,it),PH(:,it-1),Mat,Map,meltmask,...
                                                                             MI.MatLib.k,MI.MatLib.k_l,MI.MatLib.cp,MI.MatLib.cp_l,MI.MatLib.rho,MI.MatLib.rho_l,...
-                                                                            MI.MatLib.tmelt,Lv,K,CP,RHO);   %These arguments need to be restructured
+                                                                            MI.MatLib.tmelt,Lv,obj.K,obj.CP,obj.RHO);   %These arguments need to be restructured
                     
                    [obj,T,PH,changing] = ph_ch_hook(obj,T,PH,changing,it);
                 end
@@ -334,13 +334,13 @@ classdef sPPT < matlab.System & matlab.system.mixin.Propagates ...
                         touched=changing | (Aj.adj*changing)>0;  %find not only those elements changing, but those touched by changing elements
                         
                         %update capacitance (only those changing since internal to element)
-                        Cap(changing)=mass(MI.X,MI.Y,MI.Z,RHO,CP,Mat,Map(changing)); %units of J/K
+                        Cap(changing)=mass(MI.X,MI.Y,MI.Z,obj.RHO,obj.CP,Mat,Map(changing)); %units of J/K
                         
                         %Entire Rebuild, for testing
                         %[A,B,A_areas,B_areas,A_hLengths,B_hLengths,htcs] = conduct_build(Acon,Bcon,newMap,fullheader,K,hint,h,Mat,dx,dy,dz);
                         
                         %update A and B
-                        [A,B,~] = conduct_update(A,B,Aj.areas,Bj.areas,Aj.hLengths,Bj.hLengths,obj.htcs,K(Map),touched);
+                        [A,B,~] = conduct_update(A,B,Aj.areas,Bj.areas,Aj.hLengths,Bj.hLengths,obj.htcs,obj.K(Map),touched);
                     end
                     
                     
