@@ -548,7 +548,7 @@ function RunAnalysis_Callback(hObject, eventdata, handles)
             ComputeTime=MI.GlobalTime(2:end); %extract time to compute states from MI.GlobalTime
 
             MI.GlobalTime=InitTime;  %Setup initialization
-            S1=sPPT('MI',MI); %Initialize object
+            S1=scPPT('MI',MI); %Initialize object
             [Tprnt, T_in, MeltFrac,MeltFrac_in]=S1(ComputeTime);  %Compute states at times in ComputeTime (S1 must be called with 1 arg in 2017b)
             MI.GlobalTime = [InitTime ComputeTime]; %Reassemble MI's global time to match initialization and computed states.
             Tprnt=cat(4,T_in,Tprnt);

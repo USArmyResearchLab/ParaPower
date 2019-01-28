@@ -22,6 +22,10 @@ classdef sPPT < matlab.System & matlab.system.mixin.Propagates ...
         MI %Input model information
     end
 
+    %properties(DiscreteState)
+    %    State
+    %end
+
     properties(Access = protected)%(DiscreteState)
         Tres  %4D Array corresponding to temperatures at x,y,z,t.
         PHres %4D Array Meltfraction
