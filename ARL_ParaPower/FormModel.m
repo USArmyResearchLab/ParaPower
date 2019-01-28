@@ -312,6 +312,7 @@ for Fi=1:length(Features)
      end
 end
 
+FeatureMatrix=ModelMatrix; %Retain the ability to separate features
 ModelMatrix=ModelMatrix*1i;  %Make all feature number imaginary, then replace "imaginary" feature numbers with "real" material numbers.
 for Fi=1:length(Features)
     MatNum=find(strcmpi(Features(Fi).Matl,MatLib.Material));
@@ -346,6 +347,7 @@ ModelInput.Y=DeltaCoord.Y;
 ModelInput.Z=DeltaCoord.Z;
 ModelInput.Tproc=Tproc;
 ModelInput.Model=ModelMatrix;
+ModelInput.FeatureMatrix=FeatureMatrix;
 ModelInput.Q=Q;
 ModelInput.GlobalTime=GlobalTime;
 ModelInput.Tinit=Params.Tinit;
