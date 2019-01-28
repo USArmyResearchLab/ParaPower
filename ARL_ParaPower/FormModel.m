@@ -339,6 +339,12 @@ if not(isempty(GlobalTime))
     GlobalTime = uniquetol(GlobalTime, 10*eps(max(GlobalTime)));
 end
 
+%Get Feature Names
+Fs=unique(FeatureMatrix(~isnan(FeatureMatrix)));
+for Fi=1:length(Fs)
+   Ftext{Fi}=TestCaseModel.Features(Fs(Fi)).Desc;
+end
+
 ModelInput.OriginPoint=OriginPoint; %Minimum absolute coordinates for X, Y and Z
 ModelInput.h=h;
 ModelInput.Ta=Ta;
@@ -348,6 +354,7 @@ ModelInput.Z=DeltaCoord.Z;
 ModelInput.Tproc=Tproc;
 ModelInput.Model=ModelMatrix;
 ModelInput.FeatureMatrix=FeatureMatrix;
+ModelInput.FeatureDescr=Ftext;
 ModelInput.Q=Q;
 ModelInput.GlobalTime=GlobalTime;
 ModelInput.Tinit=Params.Tinit;

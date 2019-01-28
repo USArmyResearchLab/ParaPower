@@ -605,7 +605,7 @@ function RunAnalysis_Callback(hObject, eventdata, handles)
                DoutS=[];
                Fs=unique(MI.FeatureMatrix(~isnan(MI.FeatureMatrix)));
                for Fi=1:length(Fs)
-                   Ftext{Fi}=TestCaseModel.Features(Fs(Fi)).Desc;
+                   Ftext{Fi}=MI.FeatureDescr{Fs(Fi)};
                    Fmask=ismember(MI.FeatureMatrix,Fs(Fi));
                    Fmask=repmat(Fmask,1,1,1,length(MI.GlobalTime));
                    if ~isempty(Tprnt)
