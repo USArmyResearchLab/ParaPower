@@ -26,7 +26,7 @@ function varargout = ParaPowerGUI_V2(varargin)
 
 % Edit the above text to modify the response to help ParaPowerGUI_V2
 
-% Last Modified by GUIDE v2.5 08-Jan-2019 15:42:38
+% Last Modified by GUIDE v2.5 25-Jan-2019 07:25:18
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -317,12 +317,16 @@ function savebutton_Callback(hObject, eventdata, handles)
         AddStatusLine('Error.',true,'error')
         AddStatusLine('Complete model cannot be saved due to errors. GUI state saved instead.')
         [fname,pathname] = uiputfile ([oldpathname '*.guistate']);
-        hgsave(gcf,[pathname fname])
+        if fname ~=0
+            hgsave(gcf,[pathname fname])
+        end
     else
         [fname,pathname] = uiputfile ([oldpathname '*.ppmodel']);
-        AddStatusLine(['Saving "' pathname fname '".,,']);
-        save([pathname fname],'TestCaseModel','Results','-mat')  
-        AddStatusLine('Done', true);
+        if fname~= 0
+            AddStatusLine(['Saving "' pathname fname '".,,']);
+            save([pathname fname],'TestCaseModel','Results','-mat')  
+            AddStatusLine('Done', true);
+        end
     end
     if fname ~= 0
         set(handles.loadbutton,'userdata',pathname);
@@ -495,6 +499,7 @@ function loadbutton_Callback(hObject, eventdata, handles)
            set(handles.NumTimeSteps,'String',Params.Tsteps)
            set(handles.Tprocess,'String',ExternalConditions.Tproc)
            AddStatusLine('Done', true);
+           slider1_Callback(handles.slider1, eventdata, handles)
            Initialize_Callback(hObject, eventdata, handles, true)
         end
     end
@@ -606,6 +611,7 @@ function RunAnalysis_Callback(hObject, eventdata, handles)
        Results.Stress=Stress;
        Results.MeltFrac=MeltFrac;
        Results.Model=MI;
+       Results.TimeDate=now;
        setappdata(handles.figure1, 'Results', Results);
        GUIEnable(handles.figure1);
 end
@@ -993,6 +999,7 @@ if Confirm
     AddStatusLine('CLEARSTATUS');
     AddStatusLine('Clearing GUI...')
 end
+GUIDisable(handles.figure1)
 axes(handles.GeometryVisualization)
 cla reset;
 
@@ -1067,6 +1074,7 @@ guidata(hObject, handles);
 if Confirm
     AddStatusLine('Done.', true,handles.figure1)
 end
+GUIEnable(handles.figure1)
 end
 
 % --- Executes on button press in pushbutton18.
@@ -1113,7 +1121,19 @@ function View_Callback(hObject, eventdata, handles)
 TimeString=get(handles.InterestTime,'String'); %this is empty if static analysis results found
 TimeStepString=get(handles.InterestTime,'String'); %this is empty if no results
 
-numplots = 3; 
+NumPlot = 0; 
+NumPlot=NumPlot + get(handles.VisualMelt,'Value');
+NumPlot=NumPlot + get(handles.VisualStress,'Value');
+NumPlot=NumPlot + get(handles.VisualTemp,'Value');
+Objects=findobj(0,'-depth',1,'type','figure');
+ResultFigure=find(strcmpi(get(Objects,'name'),'results'));
+if isempty(ResultFigure)
+    figure
+    set(gcf,'unit','normal','posit',[0.05 0.05 0.9 0.85],'name','Results');
+else
+    figure(Objects(ResultFigure(1)));
+end
+
 
 if isempty(TimeStepString)  %no model results
     MI=getappdata(handles.figure1,'MI');
@@ -1149,14 +1169,15 @@ if ~trans_model
         state_str=[];
     end
 end
-
+CurPlot=1;
 if get(handles.VisualTemp,'Value')==1
     if isempty(Tprnt)
         AddStatusLine('No temperature solution exists.','warning')
     else
-       numplots = numplots+1;
-       figure(numplots)
-       clf;
+       subplot(1,NumPlot,CurPlot)
+       CurPlot=CurPlot + 1;
+%       figure(numplots)
+%       clf;
        if trans_model
            Visualize(sprintf('t=%1.2f ms, State: %i of %i',MI.GlobalTime(StateN)*1000, StateN-1,length(Tprnt(1,1,1,:))-1)...
                ,MI,'state', Tprnt(:,:,:,StateN), 'RemoveMaterial',[0] ...
@@ -1170,14 +1191,15 @@ if get(handles.VisualTemp,'Value')==1
        end
     end
 end
-
 if get(handles.VisualStress,'Value')==1
     if isempty(Stress)
         AddStatusLine('No stress solution exists.','warning')
     else
        numplots =numplots+1;
-       figure(numplots)
-       clf
+       subplot(1,NumPlot,CurPlot)
+       CurPlot=CurPlot + 1;
+%        figure(numplots)
+%        clf
        if trans_model
            Visualize(sprintf('t=%1.2f ms, State: %i of %i',MI.GlobalTime(StateN)*1000, StateN-1,length(Stress(1,1,1,:))-1)...
                ,MI,'state', Stress(:,:,:,StateN), 'RemoveMaterial',[0] ...
@@ -1196,8 +1218,10 @@ if get(handles.VisualMelt,'Value')==1
     if isempty(MeltFrac)
         AddStatusLine('No melt-fraction solution exists.','warning')
     else
-       figure(numplots+1)
-       clf
+       subplot(1,NumPlot,CurPlot)
+       CurPlot=CurPlot + 1;
+%        figure(numplots+1)
+%        clf
        if trans_model
            Visualize(sprintf('t=%1.2f ms, State: %i of %i',MI.GlobalTime(StateN)*1000, StateN-1,length(MeltFrac(1,1,1,:))-1)...
                ,MI,'state', MeltFrac(:,:,:,StateN), 'RemoveMaterial',[0] ...
@@ -1965,3 +1989,21 @@ function ExtCondTable_CreateFcn(hObject, eventdata, handles)
 % handles    empty - handles not created until after all CreateFcns called
 set(hObject, 'Data', cell(2,6));
 end
+
+
+% --- Executes on button press in ClearResultsButton.
+function ClearResultsButton_Callback(hObject, eventdata, handles)
+% hObject    handle to ClearResultsButton (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+    P=questdlg('Are you sure you want to clear the current analysis results?','Confirmation','Yes','No','No');
+    if strcmpi(P,'Yes')
+        if isappdata(gcf,'Results')
+           rmappdata(gcf,'Results');
+           slider1_Callback(handles.slider1, eventdata, handles)
+           AddStatusLine('Results cleared.')
+        end
+    end
+end
+
+

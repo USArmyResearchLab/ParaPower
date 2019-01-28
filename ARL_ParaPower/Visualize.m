@@ -24,6 +24,7 @@ function Visualize (PlotTitle, MI, varargin)
 %   RemoveMaterial=[0] - Materials to remove entirely from display
 %   ShowExtent=false - Show extent of the model by a box
 %   HideBC - Do not show H/Temp boundary conditions on plot
+%   HideMatbuttons - Flag to not show material buttons
 %
 %To Do Features:
 %  X cross section
@@ -31,18 +32,7 @@ function Visualize (PlotTitle, MI, varargin)
 %  Z cross section
 %  Vectorize
 
-
-    ThisAxis=gca;
-    AxisParent=get(ThisAxis,'parent');
-    Kids=get(AxisParent,'children');
-    for i=1:length(Kids)
-        if strcmpi(get(Kids(i),'userdata'),'REMOVE');
-            delete(Kids(i))
-        end
-    end
-    cla;drawnow
-    DrawStatus=text(.5,.5,'Drawing...','fontsize',40,'userdata','REMOVE','horizontal','center','vertical','middle','unit','normal'); drawnow
-
+    
     DeltaCoord=  {MI.X MI.Y MI.Z};
     ModelMatrix=MI.Model;
 	
@@ -94,6 +84,7 @@ function Visualize (PlotTitle, MI, varargin)
     while ~isempty(PropValPairs) 
         [Prop, PropValPairs]=Pop(PropValPairs);
         if ~ischar(Prop)
+            disp(Prop)
             error('Property name must be a string.');
         end
         Pl=length(Prop);
@@ -102,6 +93,9 @@ function Visualize (PlotTitle, MI, varargin)
             case strleft('scaletitle',Pl)
                 [Value, PropValPairs]=Pop(PropValPairs); 
                 ColorTitle=Value;
+            case strleft('parent',Pl)
+                [Value, PropValPairs]=Pop(PropValPairs); 
+                Parent=Value;
             case strleft('2d',Pl)
                 [Value, PropValPairs]=Pop(PropValPairs); 
                 PlotParms.TwoD=[PlotParms.TwoD upper(Value)];
@@ -115,15 +109,20 @@ function Visualize (PlotTitle, MI, varargin)
             case strleft('edgeonlymaterial',Pl)
                 [Value, PropValPairs]=Pop(PropValPairs); 
                 PlotParms.EdgeOnlyMatl=Value;
-            case strleft('showbuttons',Pl)
+            case strleft('showbuttons',Pl) %Included for backward compatibility
                 [Value, PropValPairs]=Pop(PropValPairs); 
                 PlotParms.ShowButtons=Value;
+            case strleft('hidematbuttons',Pl)
+                PlotParms.ShowButtons=false;
             case strleft('transmaterial',Pl)
                 [Value, PropValPairs]=Pop(PropValPairs); 
                 PlotParms.TransMatl=Value;
             case strleft('transparency',Pl)
                 [Value, PropValPairs]=Pop(PropValPairs); 
                 PlotParms.Transparency=Value;
+            case strleft('position',Pl)
+                [Value, PropValPairs]=Pop(PropValPairs); 
+                PlotParms.Position=Value;
             case strleft('btnlinint',Pl)
                 PlotParms.LinIntBtn=true;
             case strleft('showq',Pl)
@@ -157,6 +156,29 @@ function Visualize (PlotTitle, MI, varargin)
         end
 
     end
+    OrigAxis=gca;
+    if exist('Parent','var')
+        PanelH=Parent;
+        ThisAxis=findobj(PanelH,'type','axes');
+    elseif strcmpi(class(get(OrigAxis,'parent')),'matlab.ui.Figure')
+        PanelH=uipanel('foregroundcolor','green','bordertype','line');
+        APosit=get(gca,'outerposit');
+        set(PanelH,'posit',APosit);
+        ThisAxis=axes(PanelH);
+    else
+        ThisAxis=OrigAxis;
+        PanelH=gcf;
+    end
+    AxisParent=get(ThisAxis,'parent');
+    Kids=get(AxisParent,'children');
+    for i=1:length(Kids)
+        if strcmpi(get(Kids(i),'userdata'),'REMOVE');
+            delete(Kids(i))
+        end
+    end
+    axes(ThisAxis)
+    cla;drawnow
+    DrawStatus=text(.5,.5,'Drawing...','fontsize',40,'userdata','REMOVE','horizontal','center','vertical','middle','unit','normal'); drawnow
     
     Direx=FormModel('GetDirex');
 
@@ -342,61 +364,83 @@ function Visualize (PlotTitle, MI, varargin)
                     else
                     	if PlotParms.LinIntState
                             if ZeroValueMaterials(ModelMatrix(Xi, Yi, Zi))
-                                ThisColor(1:8)=1;
+                                %ThisColor(1:8)=1;
+                                ThisColor(1:8)=ValMin;
                             else
-                                ThisColor(1)=floor((LPlotState(Xi  ,Yi  ,Zi  )-ValMin)/ValRange*(length(CM(:,1))-1) + 1);
-                                ThisColor(2)=floor((LPlotState(Xi  ,Yi+1,Zi  )-ValMin)/ValRange*(length(CM(:,1))-1) + 1);
-                                ThisColor(3)=floor((LPlotState(Xi+1,Yi+1,Zi  )-ValMin)/ValRange*(length(CM(:,1))-1) + 1);
-                                ThisColor(4)=floor((LPlotState(Xi+1,Yi  ,Zi  )-ValMin)/ValRange*(length(CM(:,1))-1) + 1);
-                                ThisColor(5)=floor((LPlotState(Xi  ,Yi  ,Zi+1)-ValMin)/ValRange*(length(CM(:,1))-1) + 1);
-                                ThisColor(6)=floor((LPlotState(Xi  ,Yi+1,Zi+1)-ValMin)/ValRange*(length(CM(:,1))-1) + 1);
-                                ThisColor(7)=floor((LPlotState(Xi+1,Yi+1,Zi+1)-ValMin)/ValRange*(length(CM(:,1))-1) + 1);
-                                ThisColor(8)=floor((LPlotState(Xi+1,Yi  ,Zi+1)-ValMin)/ValRange*(length(CM(:,1))-1) + 1);
+%                                 ThisColor(1)=floor((LPlotState(Xi  ,Yi  ,Zi  )-ValMin)/ValRange*(length(CM(:,1))-1) + 1);
+%                                 ThisColor(2)=floor((LPlotState(Xi  ,Yi+1,Zi  )-ValMin)/ValRange*(length(CM(:,1))-1) + 1);
+%                                 ThisColor(3)=floor((LPlotState(Xi+1,Yi+1,Zi  )-ValMin)/ValRange*(length(CM(:,1))-1) + 1);
+%                                 ThisColor(4)=floor((LPlotState(Xi+1,Yi  ,Zi  )-ValMin)/ValRange*(length(CM(:,1))-1) + 1);
+%                                 ThisColor(5)=floor((LPlotState(Xi  ,Yi  ,Zi+1)-ValMin)/ValRange*(length(CM(:,1))-1) + 1);
+%                                 ThisColor(6)=floor((LPlotState(Xi  ,Yi+1,Zi+1)-ValMin)/ValRange*(length(CM(:,1))-1) + 1);
+%                                 ThisColor(7)=floor((LPlotState(Xi+1,Yi+1,Zi+1)-ValMin)/ValRange*(length(CM(:,1))-1) + 1);
+%                                 ThisColor(8)=floor((LPlotState(Xi+1,Yi  ,Zi+1)-ValMin)/ValRange*(length(CM(:,1))-1) + 1);
+                                ThisColor(1)=LPlotState(Xi  ,Yi  ,Zi  );
+                                ThisColor(2)=LPlotState(Xi  ,Yi+1,Zi  );
+                                ThisColor(3)=LPlotState(Xi+1,Yi+1,Zi  );
+                                ThisColor(4)=LPlotState(Xi+1,Yi  ,Zi  );
+                                ThisColor(5)=LPlotState(Xi  ,Yi  ,Zi+1);
+                                ThisColor(6)=LPlotState(Xi  ,Yi+1,Zi+1);
+                                ThisColor(7)=LPlotState(Xi+1,Yi+1,Zi+1);
+                                ThisColor(8)=LPlotState(Xi+1,Yi  ,Zi+1);
                             end
+                            %ThisColor=reshape(ThisColor,[],1);
                         else
-                            ThisColor=floor((PlotState(Xi,Yi,Zi)-ValMin)/ValRange*(length(CM(:,1))-1) + 1);
+%                            ThisColor=floor((PlotState(Xi,Yi,Zi)-ValMin)/ValRange*(length(CM(:,1))-1) + 1);
+                            ThisColor=PlotState(Xi,Yi,Zi);
                         end
                         %fprintf('%i ',ThisColor)
                         if PlotParms.LinIntState
-                            for Fi=1:8
-                                ThisVertC(Fi,:) = CM(ThisColor(Fi),:);
-                            end
+%                            for Fi=1:8
+%                                ThisVertC(Fi,:) = CM(ThisColor(Fi),:);
+%                                ThisVertC(Fi) = ThisColor(Fi);
+%                            end
+                            ThisVertC(:,1) = ThisColor;
                         else
-                            ThisVertC = ones(length(P),1) * CM(ThisColor,:);
+%                            ThisVertC = ones(length(P),1) * CM(ThisColor,:);
+                            ThisVertC = ones(length(P),1) * ThisColor;
                         end
                     end
                     ThisMat=find(MatListNumbers==ModelMatrix(Xi,Yi,Zi));
                     if ~max(isnan(ThisColor))
+                        VList{ThisMat}=[VList{ThisMat}; P];              %OPTIM              
+                        PtStart=length(VList{ThisMat}(:,1))-length(P(:,1)); %OPTIM
                         if isempty(PlotParms.TwoD)
-                            VList{ThisMat}=[VList{ThisMat}; P];              %OPTIM              
-                            PtStart=length(VList{ThisMat}(:,1))-length(P(:,1)); %OPTIM
                             ThisFace  = Face+PtStart;
-                            ThisFaceC = ones(length(Face(:,1)),1) * CM(ThisColor(1),:);
+%                            ThisFaceC = ones(length(Face(:,1)),1) * CM(ThisColor(1),:);
+                            ThisFaceC = ones(length(Face(:,1)),1) * ThisColor(1);
                         else
-                            F=[];
+                            ThisFace=[];
+                            ThisFaceC=[];
                             if any(strcmp(PlotParms.TwoD,'X+'))
-                                ThisFace  =  Face(5,:)+PtStart;  %OPTIM
-                                ThisFaceC =  CM(ThisColor,:);
+                                ThisFace  =  [ThisFace; Face(5,:)+PtStart];  %OPTIM
+%                                ThisFaceC =  CM(ThisColor,:);
+                                ThisFaceC =  [ThisFaceC; ThisColor(1)];
                             end
                             if any(strcmp(PlotParms.TwoD,'X-'))
-                                ThisFace  =  Face(2,:)+PtStart;  %OPTIM
-                                ThisFaceC = CM(ThisColor,:);
+                                ThisFace  =  [ThisFace; Face(2,:)+PtStart];  %OPTIM
+%                                ThisFaceC =  CM(ThisColor,:);
+                                ThisFaceC =  [ThisFaceC; ThisColor(1)];
                             end
                             if any(strcmp(PlotParms.TwoD,'Y+'))
-                                ThisFace  =  Face(6,:)+PtStart;  %OPTIM
-                                ThisFaceC = CM(ThisColor,:);
+                                ThisFace  =  [ThisFace; Face(6,:)+PtStart];  %OPTIM
+%                                ThisFaceC =  CM(ThisColor,:);
+                                ThisFaceC =  [ThisFaceC; ThisColor(1)];
                             end
                             if any(strcmp(PlotParms.TwoD,'Y-'))
-                                ThisFace  =  Face(3,:)+PtStart;  %OPTIM
-                                ThisFaceC =  CM(ThisColor,:);
+                                ThisFace  =  [ThisFace; Face(3,:)+PtStart];  %OPTIM
+%                                ThisFaceC =  CM(ThisColor,:);
+                                ThisFaceC =  [ThisFaceC; ThisColor(1)];
                             end
                             if any(strcmp(PlotParms.TwoD,'Z+'))
-                                ThisFace  =  Face(4,:)+PtStart;  %OPTIM
-                                ThisFaceC =  CM(ThisColor,:);
+                                ThisFace  =  [ThisFace; Face(4,:)+PtStart];  %OPTIM
+%                                ThisFaceC =  CM(ThisColor,:);
+                                ThisFaceC =  [ThisFaceC; ThisColor(1)];
                             end
                             if any(strcmp(PlotParms.TwoD,'Z-'))
-                                ThisFace  =  Face(1,:)+PtStart;  %OPTIM
-                                ThisFaceC =  CM(ThisColor,:);
+                                ThisFace  =  [ThisFace; Face(1,:)+PtStart];  %OPTIM
+%                                ThisFaceC =  CM(ThisColor,:);
+                                ThisFaceC =  [ThisFaceC; ThisColor(1)];
                             end
                         end
                         FList{ThisMat}=[FList{ThisMat}; ThisFace];  %OPTIM
@@ -447,41 +491,43 @@ function Visualize (PlotTitle, MI, varargin)
             end
         end
     end
-%    if PlotGeom
-        for Imat=1:length(MatListNumbers) %OPTIM
-            if ~isempty(find(MatListNumbers(Imat) == PlotParms.TransMatl, 1))
-                FaceAlpha=PlotParms.Transparency;
-            end
-            EdgeColor='black';
-            if ~isempty(PlotParms.EdgeColor) 
-                EdgeColor=PlotParms.EdgeColor;
-            end
-            if ~isempty(find(MatListNumbers(Imat) == PlotParms.EdgeOnlyMatl, 1))
-                FaceColor='none';
-                EdgeColor='flat';
-                ColorList=CList{Imat};
+    for Imat=1:length(MatListNumbers) %OPTIM
+        if ~isempty(find(MatListNumbers(Imat) == PlotParms.TransMatl, 1))
+            FaceAlpha=PlotParms.Transparency;
+        end
+        EdgeColor='black';
+        if ~isempty(PlotParms.EdgeColor) 
+            EdgeColor=PlotParms.EdgeColor;
+        end
+        if ~isempty(find(MatListNumbers(Imat) == PlotParms.EdgeOnlyMatl, 1))
+            FaceColor='none';
+            EdgeColor='flat';
+            ColorList=CList{Imat};
+            ColorList=CVList{Imat};
+        else
+            if PlotParms.LinIntState
+                FaceColor='interp';
                 ColorList=CVList{Imat};
             else
-                if PlotParms.LinIntState
-                    FaceColor='interp';
-                    ColorList=CVList{Imat};
-                else
-                    FaceColor='flat';
-                    ColorList=CList{Imat};
-                end
+                FaceColor='flat';
+                ColorList=CList{Imat};
             end
-            
+        end
+
 %            ThisColor=find(ColorList==MatListNumbers(Imat));
-            F   =patch('faces',FList{Imat},'vertices',VList{Imat}, ...
-                        'facevertexcdata',ColorList, ...
-                        'facealpha',FaceAlpha, ...
-                        'edgecolor', EdgeColor, ...
-                        'facecolor',FaceColor, ...
-                        'facealpha',FAList{Imat});
-                        % 'FaceAlpha',FaceAlpha);
-            MatPatchList{Imat}=[F QFList{Imat}];
-        end %OPTIM
- %   end
+        if PlotGeom
+            ColorList=CM(ColorList,:);
+        end
+        %size(ColorList)
+        F   =patch('faces',FList{Imat},'vertices',VList{Imat}, ...
+                    'facevertexcdata',ColorList, ...
+                    'facealpha',FaceAlpha, ...
+                    'edgecolor', EdgeColor, ...
+                    'facecolor',FaceColor, ...
+                    'facealpha',FAList{Imat});
+                    % 'FaceAlpha',FaceAlpha);
+        MatPatchList{Imat}=[F QFList{Imat}];
+    end %OPTIM
     Xrange=max(X)-min(X);
     Yrange=max(Y)-min(Y);
     Zrange=max(Z)-min(Z);
@@ -589,18 +635,37 @@ function Visualize (PlotTitle, MI, varargin)
     set(CB,'userdata','REMOVE')
     if ~PlotGeom
         ylabel(CB,ColorTitle);
-        Scale=linspace(0,1,11);
-        set(CB,'ticks',Scale);
-        set(CB,'ticklabels',linspace(ValMin,ValMin+ValRange,length(Scale)));
+        caxis auto
+        %caxis([ValMin ValMin+ValRange]);
+        %set(CB,'limit',[0 1]);
+        %Scale=linspace(0,1,11);
+        %set(CB,'ticks',Scale);
+        %set(CB,'ticklabels',linspace(ValMin,ValMin+ValRange,length(Scale)));
+        
+        ToggleFixedDynamic('init',CB, ThisAxis, 'Vert');
+
+%         ToggleFixedDynFunc=@ToggleFixedDynamic;
+%         CB_Posit=get(CB,'posit');
+%         CB_Texts={'Dyn' 'Held'};
+%         CB_Button=uicontrol('parent',get(ThisAxis,'parent'),'style','togglebutton','units','normal','posit',[CB_Posit(1) CB_Posit(2) .1 .1],'string','Held','user',{ThisAxis CB_Texts  'B613_Command'},'callback',ToggleFixedDynFunc);
+%         Sz=size(char(CB_Texts));
+%         set(CB_Button,'string',char('M'*ones(1,Sz(2))));
+%         E=get(CB_Button,'extent');
+%         CB_Posit=get(CB_Button,'posit');
+%         DynFixedFunc=@(A,B)disp(A,B);
+%         set(CB_Button,'posit',[CB_Posit(1) CB_Posit(2)-E(4)*1.06, E(3)*1.01, E(4)*1.01],'string',CB_Texts{1});
+
+        RightMostPosition=get(CB,'posit');
+        RightMostPosition=RightMostPosition(1);
     else
         set(CB,'visible','off')
-
+        RightMostPosition=0.95;
     end
 
     if PlotParms.ShowButtons
-        DoButtons('init','Names',{matlist{MatListNumbers} 'BCs'},'position',[.75,.9, 0.0, 0],'units','normal',...
+        DoButtons('init','Names',{matlist{MatListNumbers} 'BCs'},'position',[.95,.9, 0, 0],'units','normal',...
                   'colors',[ButtonColors; .9 .9 .9], 'entities',[MatPatchList {T}],'direction','vertical',...
-                  'Parent',get(gca,'parent'));
+                  'Parent',get(gca,'parent'),'MaxRight',RightMostPosition);
     end
 
     if ~isempty(Q)
@@ -634,8 +699,8 @@ function Visualize (PlotTitle, MI, varargin)
         ButtonText='Single Valued Elements';
     end
     if PlotParms.LinIntBtn
-        LICB=@(A,B)LinIntToggle(PlotTitle, MI, varargin);
-        LIButton=uicontrol('style','togglebutton','min',0,'max',1,'value',1,'string',ButtonText,'unit','normal','posit',[0 0 .1 .1],'callback',LICB);
+        LICB=@(A,B)LinIntToggle(PlotTitle, MI, PanelH, varargin);
+        LIButton=uicontrol(PanelH,'style','togglebutton','min',0,'max',1,'value',1,'string',ButtonText,'unit','normal','posit',[0 0 .1 .1],'callback',LICB);
         set(LIButton,'units','centimeters','user',{[] [] 'B613_Command'});
         E=get(LIButton,'extent');
         if E(4) < 1
@@ -648,13 +713,57 @@ function Visualize (PlotTitle, MI, varargin)
         set(LIButton,'units','normal');
     end
     drawnow
+    axes(OrigAxis)
 end
 
-function LinIntToggle(PlotTitle, MI, varargin)
+function ToggleFixedDynamic(varargin)
+
+    if ishandle(varargin{1})
+        H=varargin{1};
+        E=varargin{2};
+        U=get(H,'user');
+        ThisAxis=U{1};
+        Texts=U{2};
+        axes(ThisAxis)
+        if get(H,'value')==1
+            caxis auto
+            set(H,'string',Texts{1})
+        else
+            CurAx=caxis;
+            caxis(CurAx)
+            set(H,'string',Texts{2})
+        end
+    elseif strcmpi(varargin{1},'init')
+        CB=varargin{2};
+        ThisAxis=varargin{3};
+        Direction=varargin{4};
+        ToggleFixedDynFunc=@ToggleFixedDynamic;
+        CB_Posit=get(CB,'posit');
+        CB_Texts={'Dyn' 'Held'};
+        CB_Button=uicontrol('parent',get(ThisAxis,'parent'),'style','togglebutton','units','normal','posit',[CB_Posit(1) CB_Posit(2) .1 .1],'string','Held','user',{ThisAxis CB_Texts  'B613_Command'},'callback',ToggleFixedDynFunc);
+        Sz=size(char(CB_Texts));
+        set(CB_Button,'string',char('M'*ones(1,Sz(2))));
+        E=get(CB_Button,'extent');
+        if strncmpi(Direction,'v',1)
+            CB_Posit=get(CB_Button,'posit');
+            DynFixedFunc=@(A,B)disp(A,B);
+            set(CB_Button,'posit',[CB_Posit(1) CB_Posit(2)-E(4)*1.25, E(3)*1.1, E(4)*1.01],'string',CB_Texts{1});
+        elseif strncmpi(Direction,'h',1)
+            CB_Posit=get(CB_Button,'posit');
+            DynFixedFunc=@(A,B)disp(A,B);
+            set(CB_Button,'posit',[CB_Posit(1)-E(3)*1.25 CB_Posit(2), E(3)*1.01, E(4)*1.01],'string',CB_Texts{1});
+        else
+            error('Unknown direction creating fixed/dynamic button')
+        end
+    end
+end
+
+function LinIntToggle(PlotTitle, MI, PanelH, varargin)
     VAI=varargin;
     while(iscell(VAI{1}))
         VAI=VAI{1};
     end
+    VAI={VAI{:} 'parent' PanelH};
     %disp('Before');disp(VAI)
     if max(strcmpi(VAI,'linint'))==1
         VAI=VAI(~strcmpi(VAI,'linint'));
@@ -664,7 +773,7 @@ function LinIntToggle(PlotTitle, MI, varargin)
     %disp('After');disp(VAI)
     [az,el]=view;
     %GetButtonStates
-    OldButtons=get(gcf,'children');
+    OldButtons=get(PanelH,'children');
     for I=1:length(OldButtons)
         U=get(OldButtons(I),'user');
         if iscell(U) && strcmpi(U{3},'B613')
@@ -673,9 +782,10 @@ function LinIntToggle(PlotTitle, MI, varargin)
             delete(OldButtons(I))
         end
     end
+    %VAI=VAI(~strcmp(VAI,'btnlinint'));
     Visualize(PlotTitle, MI, VAI)
     view(az,el)
-    OldButtons=get(gcf,'children');
+    OldButtons=get(PanelH,'children');
     for I=1:length(OldButtons)
         U=get(OldButtons(I),'user');
         if iscell(U) && strcmpi(U{3},'B613')
@@ -723,6 +833,7 @@ function DoButtons(Action,varargin)
             Color=[];
             Parent=gcf;
             Direction='horizontal';
+            MaxRight=1.0;
             while ~isempty(PropValPairs) 
                 [Prop, PropValPairs]=Pop(PropValPairs);
                 if ~ischar(Prop)
@@ -752,6 +863,9 @@ function DoButtons(Action,varargin)
                     case strleft('parent',Pl)
                         [Value, PropValPairs]=Pop(PropValPairs);
                         Parent=Value;
+                    case strleft('maxright',Pl)
+                        [Value, PropValPairs]=Pop(PropValPairs);
+                        MaxRight=Value;
                     otherwise
                         fprintf('Property "%s" is unknown.\n',Prop)
                 end
@@ -818,9 +932,15 @@ function DoButtons(Action,varargin)
                 set(BH(I),'position',[X CurY W H]);
                 E=get(BH(I),'extent');
                 if MaxWidth>Position(3)
+                %    Position(1)=Position(1)-MaxWidth-Position(3);
                     Position(3)=MaxWidth;
                 end
-                set(BH(I),'position',[X CurY Position(3) E(4)]);
+               if X + Position(3) <= MaxRight
+                    set(BH(I),'position',[X CurY Position(3) E(4)]);
+                else
+                    Delta=X+Position(3)-MaxRight;
+                    set(BH(I),'position',[X-Delta CurY Position(3) E(4)]);
+                end
                 CurY=CurY-E(4)-VGap;
             end
         end
