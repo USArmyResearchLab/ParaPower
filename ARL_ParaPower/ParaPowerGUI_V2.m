@@ -532,7 +532,7 @@ function RunAnalysis_Callback(hObject, eventdata, handles)
             %not used TimeStepOutput = get(handles.slider1,'Value');
             tic
             GlobalTime=MI.GlobalTime;  %Since there is global time vector, construct one here.
-            S1=sPPT('MI',MI);
+            S1=scPPT('MI',MI);
             [Tprnt, T_in, MeltFrac,MeltFrac_in]=S1();
             Tprnt=cat(4,T_in,Tprnt);
             MeltFrac=cat(4,MeltFrac_in,MeltFrac);
@@ -580,23 +580,20 @@ function RunAnalysis_Callback(hObject, eventdata, handles)
        if get(handles.transient,'value')==1
            %%%%Plot time dependent plots for temp, stress and melt fraction
            Dout(:,1)=GlobalTime;
-           Dout(:,2)=zeros(size(GlobalTime));
-           Dout(:,3)=zeros(size(GlobalTime));
-           Dout(:,4)=zeros(size(GlobalTime));
            
-           
-           
-           for I=1:length(GlobalTime)
-               Dout(I,2)=max(max(max(Tprnt(:,:,:,I))));
-               %Dout(I,3)=max(max(max(Stress(:,:,:,I))));
-               Dout(I,4)=max(max(max(MeltFrac(:,:,:,I))));
-           end
+           scan_mats = 5;  %temp hardcode to have solution plot only material 5
+           scan_mask=ismember(MI.Model,scan_mats);
+           scan_mask=repmat(scan_mask,1,1,1,length(GlobalTime));
+           Dout(:,2)=max(reshape(Tprnt(scan_mask),[],length(GlobalTime)),[],1);
+           %Dout(:,3)=max(Stress,[],[1 2 3]);
+           Dout(:,4)=max(reshape(MeltFrac(scan_mask),[],length(GlobalTime)),[],1);
+
            
            numplots = 1;
            figure(numplots)
            plot (Dout(:,1), Dout(:,2))
            xlabel('Time (s)')
-           ylabel('Temperature')
+           ylabel('Maximum Temperature')
            figure(handles.figure1)
            %AddStatusLine('Done.', true);
        end

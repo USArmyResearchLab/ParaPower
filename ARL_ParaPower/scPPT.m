@@ -26,7 +26,9 @@ classdef scPPT < sPPT
                 return
             end
             prop_thres=0;                   %hardcode for testing.
-            T_nuc=5;   %hardcode for testing.
+            T_nuc=obj.MI.MatLib.dT_Nucl(obj.Mat(obj.Map(sc_mask)));
+            T_nuc=obj.MI.MatLib.tmelt(obj.Mat(obj.Map(sc_mask)))-T_nuc;
+            %T_nuc is a list of sc nucleation temps of size(sc_mask)
             priorPH=PH(:,it-1);
             newPH=PH(:,it);
             %curate a list of active/triggered supercoolable elements
@@ -36,7 +38,7 @@ classdef scPPT < sPPT
             %3 satisfies propagation rule ... e.g. ..... any(PH_nn=0)
             state=zeros(numel(sc_mask),3);
             state(sc_mask,1)=priorPH(sc_mask)<1;  %1
-            state(sc_mask,2)=T(sc_mask,it)<=T_nuc%(obj.Mat(obj.Map(sc_mask))); %2
+            state(sc_mask,2)=T(sc_mask,it)<=T_nuc; %2
             
             state(sc_mask,3)=priorPH(sc_mask)<=prop_thres;  %propogation threshold
             
@@ -47,11 +49,13 @@ classdef scPPT < sPPT
             newtouch=state(:,3);  %initialize
             
             prop = true;
+            T_iter = T(:,it);
+        
             while prop
                 sc_trig=any(state,2); %if an element satisfies any of the three criteria, it is eligable for phch
                 
                 
-                [T(:,it),newPH,sc_changing,obj.K,obj.CP,obj.RHO]=vec_Phase_Change(T(:,it),priorPH,obj.Mat,obj.Map,sc_trig,...
+                [T_iter,newPH,sc_changing,obj.K,obj.CP,obj.RHO]=vec_Phase_Change(T_iter,priorPH,obj.Mat,obj.Map,sc_trig,...
                     obj.MI.MatLib.k,obj.MI.MatLib.k_l,obj.MI.MatLib.cp,obj.MI.MatLib.cp_l,obj.MI.MatLib.rho,obj.MI.MatLib.rho_l,...
                     obj.MI.MatLib.tmelt,obj.Lv,obj.K,obj.CP,obj.RHO);   %These arguments need to be restructured
                 
@@ -70,7 +74,7 @@ classdef scPPT < sPPT
                     state(sc_mask,3)=newtouch(sc_mask);
                 end
             end
-            
+            T(:,it)=T_iter;
             PH(:,it)=newPH;
             changing = sc_changing | changing; %update changing to include changing supercoolable elements
             end
