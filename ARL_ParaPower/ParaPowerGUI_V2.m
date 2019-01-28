@@ -646,6 +646,7 @@ function RunAnalysis_Callback(hObject, eventdata, handles)
                    plot(DoutT(:,1),DoutT(:,2:end));
                    xlabel('Time')
                    ylabel('Temperature')
+                   title('Max Temp in Feature')
                    legend(Ftext)
                    ThisAx=ThisAx-1;
                end
@@ -655,6 +656,7 @@ function RunAnalysis_Callback(hObject, eventdata, handles)
                    legend(Ftext)
                    xlabel('Time')
                    ylabel('Melt Fraction')
+                   title('Max Melt Fraction in Feature')
                    ThisAx=ThisAx-1;
                end
                if ~isempty(DoutS)
@@ -662,6 +664,7 @@ function RunAnalysis_Callback(hObject, eventdata, handles)
                    plot(DoutS(:,1),DoutS(:,2:end));
                    xlabel('Time')
                    ylabel('Stress')
+                   title('Max Stress in Feature')
                    legend(Ftext)
                    ThisAx=ThisAx-1;
                end
