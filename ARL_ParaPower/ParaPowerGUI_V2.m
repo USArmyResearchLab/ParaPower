@@ -597,21 +597,94 @@ function RunAnalysis_Callback(hObject, eventdata, handles)
        if get(handles.transient,'value')==1
            %%%%Plot time dependent plots for temp, stress and melt fraction
 
-           Dout(:,1)=MI.GlobalTime;
            
-           scan_mats = 5;  %temp hardcode to have solution plot only material 5
-           scan_mask=ismember(MI.Model,scan_mats);
-           scan_mask=repmat(scan_mask,1,1,1,length(MI.GlobalTime));
-           Dout(:,2)=max(reshape(Tprnt(scan_mask),[],length(MI.GlobalTime)),[],1);
-           %Dout(:,3)=max(Stress,[],[1 2 3]);
-           Dout(:,4)=max(reshape(MeltFrac(scan_mask),[],length(MI.GlobalTime)),[],1);
+           if isfield(MI,'FeatureMatrix')
+               TestCaseModel = getappdata(handles.figure1,'TestCaseModel');
+               DoutT=[];
+               DoutM=[];
+               DoutS=[];
+               Fs=unique(MI.FeatureMatrix(~isnan(MI.FeatureMatrix)));
+               for Fi=1:length(Fs)
+                   Ftext{Fi}=MI.FeatureDescr{Fs(Fi)};
+                   Fmask=ismember(MI.FeatureMatrix,Fs(Fi));
+                   Fmask=repmat(Fmask,1,1,1,length(MI.GlobalTime));
+                   if ~isempty(Tprnt)
+                        DoutT(:,1+Fi)=max(reshape(Tprnt(Fmask),[],length(MI.GlobalTime)),[],1);
+                   end
+                   if ~isempty(MeltFrac)
+                        DoutM(:,1+Fi)=max(reshape(MeltFrac(Fmask),[],length(MI.GlobalTime)),[],1);
+                   end
+                   if ~isempty(Stress)
+                        DoutS(:,1+Fi)=max(reshape(Stress(Fmask),[],length(MI.GlobalTime)),[],1);
+                   end
+               end
+               NumAx=0;
+               if ~isempty(DoutT)
+                   DoutT(:,1)=MI.GlobalTime;
+                   NumAx=NumAx+1;
+               end
+               if ~isempty(DoutM)
+                   DoutM(:,1)=MI.GlobalTime;
+                   NumAx=NumAx+1;
+               end
+               if ~isempty(DoutS)
+                   DoutS(:,1)=MI.GlobalTime;
+                   NumAx=NumAx+1;
+               end
+               MaxTitle='Max Results';
+               Figs=findobj('type','figure');
+               FigTitles=get(Figs,'name');
+               MaxResultsFig=find(strcmpi(FigTitles,MaxTitle));
+               ThisAx=NumAx;
+               if isempty(MaxResultsFig)
+                   set(figure,'name',MaxTitle')
+               else
+                   figure(Figs(MaxResultsFig))
+               end
+               if ~isempty(DoutT)
+                   subplot(1,NumAx,ThisAx)
+                   plot(DoutT(:,1),DoutT(:,2:end));
+                   xlabel('Time')
+                   ylabel('Temperature')
+                   title('Max Temp in Feature')
+                   legend(Ftext)
+                   ThisAx=ThisAx-1;
+               end
+               if ~isempty(DoutM)
+                   subplot(1,NumAx,ThisAx)
+                   plot(DoutM(:,1),DoutM(:,2:end));
+                   legend(Ftext)
+                   xlabel('Time')
+                   ylabel('Melt Fraction')
+                   title('Max Melt Fraction in Feature')
+                   ThisAx=ThisAx-1;
+               end
+               if ~isempty(DoutS)
+                   subplot(1,NumAx,ThisAx)
+                   plot(DoutS(:,1),DoutS(:,2:end));
+                   xlabel('Time')
+                   ylabel('Stress')
+                   title('Max Stress in Feature')
+                   legend(Ftext)
+                   ThisAx=ThisAx-1;
+               end
+               
+           else
+               Dout(:,1)=MI.GlobalTime;
+               scan_mats = 5;  %temp hardcode to have solution plot only material 5
+               scan_mask=ismember(MI.Model,scan_mats);
+               scan_mask=repmat(scan_mask,1,1,1,length(MI.GlobalTime));
+               Dout(:,2)=max(reshape(Tprnt(scan_mask),[],length(MI.GlobalTime)),[],1);
+               %Dout(:,3)=max(Stress,[],[1 2 3]);
+               Dout(:,4)=max(reshape(MeltFrac(scan_mask),[],length(MI.GlobalTime)),[],1);
 
-           
-           numplots = 1;
-           figure(numplots)
-           plot (Dout(:,1), Dout(:,2))
-           xlabel('Time (s)')
-           ylabel('Maximum Temperature')
+
+               numplots = 1;
+               figure(numplots)
+               plot (Dout(:,1), Dout(:,2))
+               xlabel('Time (s)')
+               ylabel('Maximum Temperature')
+           end
            figure(handles.figure1)
            %AddStatusLine('Done.', true);
        end

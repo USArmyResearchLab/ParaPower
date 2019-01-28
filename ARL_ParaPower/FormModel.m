@@ -312,6 +312,7 @@ for Fi=1:length(Features)
      end
 end
 
+FeatureMatrix=ModelMatrix; %Retain the ability to separate features
 ModelMatrix=ModelMatrix*1i;  %Make all feature number imaginary, then replace "imaginary" feature numbers with "real" material numbers.
 for Fi=1:length(Features)
     MatNum=find(strcmpi(Features(Fi).Matl,MatLib.Material));
@@ -338,6 +339,12 @@ if not(isempty(GlobalTime))
     GlobalTime = uniquetol(GlobalTime, 10*eps(max(GlobalTime)));
 end
 
+%Get Feature Names
+Fs=unique(FeatureMatrix(~isnan(FeatureMatrix)));
+for Fi=1:length(Fs)
+   Ftext{Fi}=TestCaseModel.Features(Fs(Fi)).Desc;
+end
+
 ModelInput.OriginPoint=OriginPoint; %Minimum absolute coordinates for X, Y and Z
 ModelInput.h=h;
 ModelInput.Ta=Ta;
@@ -346,6 +353,8 @@ ModelInput.Y=DeltaCoord.Y;
 ModelInput.Z=DeltaCoord.Z;
 ModelInput.Tproc=Tproc;
 ModelInput.Model=ModelMatrix;
+ModelInput.FeatureMatrix=FeatureMatrix;
+ModelInput.FeatureDescr=Ftext;
 ModelInput.Q=Q;
 ModelInput.GlobalTime=GlobalTime;
 ModelInput.Tinit=Params.Tinit;
