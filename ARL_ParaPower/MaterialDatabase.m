@@ -68,6 +68,19 @@ if NewWindow
     DefFname='DefaultMaterials';
     if exist([DefFname '.mat'],'file')==2
         load(DefFname,'MatDbase')
+        ColsInMatDbase=length(MatDbase(1,:));
+        ColsInGUI=length(get(handles.MatTable,'ColumnName'));
+        if ColsInGUI > ColsInMatDbase
+            for Ci=ColsInMatDbase+1:ColsInGUI
+                for Ri=1:length(MatDbase(:,1))
+                    MatDbase{Ri,Ci}=NaN
+                end
+            end
+            warning('Default MatDbase may be missing some material parameters, they have been filled with NaN')
+        elseif ColsInMatDbase < ColsInGUI
+            MatDbase=MatDbase(:,1:ColsInGUI);
+            warning('Default MatDbase defines material parameters that may not exist in the GUI. Extras have been stripped.')
+        end
         set(handles.MatTable,'Data',MatDbase);
         GUIColNames=get(handles.MatTable,'columnname');
         PopulateMatLib(handles.MatTable);
@@ -286,6 +299,9 @@ function Output=GetMatCol(ColName,ReturnField)
         case 't_ibc'
             C=16;
             field='T_ibc';
+        case 'dt_nucl'
+            C=17;
+            field='dT_Nucl';
         case 'del'
             C=0;
             field='';
@@ -492,7 +508,7 @@ function SortButton_Callback(hObject, eventdata, handles)
 
 function Out=MatTypes(Action, Value)
 
-    MatTypes={'Solid'; 'PCM'; 'IBC'};
+    MatTypes={'Solid'; 'PCM'; 'IBC'; 'SCPCM'};
     switch lower(Action)
         case 'enumerate'
             Out=MatTypes;
@@ -502,6 +518,8 @@ function Out=MatTypes(Action, Value)
             switch lower(Value)
                 case 'pcm'
                     Out=[4:14];
+                case 'scpcm'
+                    Out=[4:14 17];
                 case 'solid'
                     Out=[4:9];
                 case 'ibc'
@@ -563,7 +581,9 @@ function MatTable_CellEditCallback(hObject, eventdata, handles)
     MatNum=eventdata.Indices(1);
     PrpNum=eventdata.Indices(2);
     NewData=eventdata.NewData;
-    
+    MatData=get(hObject,'data');
+    MatType=MatData{MatNum,3};
+    MatCols=MatTypes('usedcols', MatType);
     if PrpNum==3
         if isempty(find(strcmpi(NewData,MatTypes('enumerate'))))
             error(['Unknown material type "' NewData '"'])
@@ -579,7 +599,7 @@ function MatTable_CellEditCallback(hObject, eventdata, handles)
             end
             set(hObject,'data',Data);
         end
-    elseif isnan(eventdata.PreviousData)
+    elseif isempty(find(MatCols==PrpNum))
         Data=get(hObject,'data');
         Data(MatNum,PrpNum)={eventdata.PreviousData};
         set(hObject,'data',Data)
