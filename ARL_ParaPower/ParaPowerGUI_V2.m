@@ -26,7 +26,7 @@ function varargout = ParaPowerGUI_V2(varargin)
 
 % Edit the above text to modify the response to help ParaPowerGUI_V2
 
-% Last Modified by GUIDE v2.5 08-Jan-2019 15:42:38
+% Last Modified by GUIDE v2.5 25-Jan-2019 07:25:18
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -107,7 +107,7 @@ function InitializeGUI(handles)
     axes(handles.PPLogo)
     imshow('ARLlogoParaPower.png')
     text(0,0,['Version ' ARLParaPowerVersion],'vertical','bott')
-    setappdata(gcf,'Version',ARLParaPowerVersion)
+    setappdata(handles.figure1,'Version',ARLParaPowerVersion)
     set(handles.GeometryVisualization,'visi','off');
 
     TimeStep_Callback(handles.TimeStep, [], handles)
@@ -124,7 +124,7 @@ function InitializeGUI(handles)
     %Set Stress Model Directory
     set(handles.StressModel,'userdata','Stress_Models')
 
-    T=uicontrol(gcf,'style','text','units','normal','posit',[0.01 0 .3 .02],'string','DISTRIBUTION C: See Help for details','horiz','left');
+    T=uicontrol(handles.figure1,'style','text','units','normal','posit',[0.01 0 .3 .02],'string','DISTRIBUTION C: See Help for details','horiz','left');
     E=get(T,'extent');
     P=get(T,'posit');
     set(T,'posit',[P(1) P(2) E(3) E(4)]);
@@ -226,6 +226,10 @@ function Out=GetResults()
     Fhandle= ParaPowerGUI_V2;
     if isappdata(Fhandle,'Results')
         Out.R=getappdata(Fhandle,'Results');
+        if ~isfield(Out.R,'Tprint')
+            Out.R=[];
+            disp('No results available from current figure.')
+        end
     else
         Out.R=[];
         disp('No results available from current figure.')
@@ -317,12 +321,16 @@ function savebutton_Callback(hObject, eventdata, handles)
         AddStatusLine('Error.',true,'error')
         AddStatusLine('Complete model cannot be saved due to errors. GUI state saved instead.')
         [fname,pathname] = uiputfile ([oldpathname '*.guistate']);
-        hgsave(gcf,[pathname fname])
+        if fname ~=0
+            hgsave(gcf,[pathname fname])
+        end
     else
         [fname,pathname] = uiputfile ([oldpathname '*.ppmodel']);
-        AddStatusLine(['Saving "' pathname fname '".,,']);
-        save([pathname fname],'TestCaseModel','Results','-mat')  
-        AddStatusLine('Done', true);
+        if fname~= 0
+            AddStatusLine(['Saving "' pathname fname '".,,']);
+            save([pathname fname],'TestCaseModel','Results','-mat')  
+            AddStatusLine('Done', true);
+        end
     end
     if fname ~= 0
         set(handles.loadbutton,'userdata',pathname);
@@ -474,9 +482,11 @@ function loadbutton_Callback(hObject, eventdata, handles)
            
            setappdata(gcf,'TestCaseModel',TestCaseModel)
            setappdata(gcf,TableDataName, QData)
-           if exist('Results','var') && not(isfield(Results,'Tprint'))
+           if exist('Results','var')
                setappdata(gcf,'Results',Results)
-               AddStatusLine('Results loaded.');
+               if (isfield(Results,'Tprint'))
+                    AddStatusLine('Results loaded.');
+               end
            end
            
            %Update Materials
@@ -495,6 +505,7 @@ function loadbutton_Callback(hObject, eventdata, handles)
            set(handles.NumTimeSteps,'String',Params.Tsteps)
            set(handles.Tprocess,'String',ExternalConditions.Tproc)
            AddStatusLine('Done', true);
+           slider1_Callback(handles.slider1, eventdata, handles)
            Initialize_Callback(hObject, eventdata, handles, true)
         end
     end
@@ -519,7 +530,7 @@ function RunAnalysis_Callback(hObject, eventdata, handles)
         StressModel=StressModel{StressModelV};
         
         AddStatusLine('Analysis running...');
-        MI = getappdata(gcf,'MI');
+        MI = getappdata(handles.figure1,'MI');
         if isempty(MI)
             AddStatusLine('Model not yet fully defined.','error')
             return
@@ -531,9 +542,16 @@ function RunAnalysis_Callback(hObject, eventdata, handles)
         try
             %not used TimeStepOutput = get(handles.slider1,'Value');
             tic
-            GlobalTime=MI.GlobalTime;  %Since there is global time vector, construct one here.
-            S1=scPPT('MI',MI);
-            [Tprnt, T_in, MeltFrac,MeltFrac_in]=S1();
+%            GlobalTime=MI.GlobalTime;  %Since there is global time vector, construct one here.
+
+            InitTime=MI.GlobalTime(1);    %Time at initializatio extracted from MI.GlobalTime
+            ComputeTime=MI.GlobalTime(2:end); %extract time to compute states from MI.GlobalTime
+
+            MI.GlobalTime=InitTime;  %Setup initialization
+            S1=scPPT('MI',MI); %Initialize object
+            [Tprnt, T_in, MeltFrac,MeltFrac_in]=S1(ComputeTime);  %Compute states at times in ComputeTime (S1 must be called with 1 arg in 2017b)
+            MI.GlobalTime = [InitTime ComputeTime]; %Reassemble MI's global time to match initialization and computed states.
+
             Tprnt=cat(4,T_in,Tprnt);
             MeltFrac=cat(4,MeltFrac_in,MeltFrac);
             Etime=toc;
@@ -563,7 +581,6 @@ function RunAnalysis_Callback(hObject, eventdata, handles)
                 AddStatusLine('');
                 Stress=[];
             end
-            slider1_Callback(handles.slider1, [], handles)
             set(handles.slider1,'value',1);
         catch ME
             AddStatusLine('Error during stress solve.')
@@ -579,14 +596,15 @@ function RunAnalysis_Callback(hObject, eventdata, handles)
        
        if get(handles.transient,'value')==1
            %%%%Plot time dependent plots for temp, stress and melt fraction
-           Dout(:,1)=GlobalTime;
+
+           Dout(:,1)=MI.GlobalTime;
            
            scan_mats = 5;  %temp hardcode to have solution plot only material 5
            scan_mask=ismember(MI.Model,scan_mats);
-           scan_mask=repmat(scan_mask,1,1,1,length(GlobalTime));
-           Dout(:,2)=max(reshape(Tprnt(scan_mask),[],length(GlobalTime)),[],1);
+           scan_mask=repmat(scan_mask,1,1,1,length(MI.GlobalTime));
+           Dout(:,2)=max(reshape(Tprnt(scan_mask),[],length(MI.GlobalTime)),[],1);
            %Dout(:,3)=max(Stress,[],[1 2 3]);
-           Dout(:,4)=max(reshape(MeltFrac(scan_mask),[],length(GlobalTime)),[],1);
+           Dout(:,4)=max(reshape(MeltFrac(scan_mask),[],length(MI.GlobalTime)),[],1);
 
            
            numplots = 1;
@@ -601,7 +619,9 @@ function RunAnalysis_Callback(hObject, eventdata, handles)
        Results.Stress=Stress;
        Results.MeltFrac=MeltFrac;
        Results.Model=MI;
+       Results.TimeDate=now;
        setappdata(handles.figure1, 'Results', Results);
+       slider1_Callback(handles.slider1, [], handles)
        GUIEnable(handles.figure1);
 end
        
@@ -639,7 +659,7 @@ function slider1_Callback(hObject, eventdata, handles)
 TimeStepOutput = get(handles.slider1,'Value'); %value between 0 and 1 from the slider
 
 Results=getappdata(handles.figure1,'Results');
-if isempty(Results)
+if not(isfield(Results,'Tprint'))
     TimeStepString = []; %create output string
     set(handles.TextTimeStep,'String',TimeStepString)   %output string to GUI
     TimeString = 'No Model Results';
@@ -916,8 +936,8 @@ else
     %    axes(handles.GeometryVisualization);
     %    Visualize ('Model Input', MI, 'modelgeom','ShowQ')
 
-        setappdata(gcf,'TestCaseModel',TestCaseModel);
-        setappdata(gcf,'MI',MI);
+        setappdata(handles.figure1,'TestCaseModel',TestCaseModel);
+        setappdata(handles.figure1,'MI',MI);
 
         MI=getappdata(handles.figure1,'MI');
         axes(handles.GeometryVisualization)
@@ -945,7 +965,7 @@ function DeleteFeature_Callback(hObject, eventdata, handles)
 data = get(handles.features, 'Data');
 
 
-QData=getappdata(gcf,TableDataName);
+QData=getappdata(handles.figure1,TableDataName);
 if length(QData)<length(data(:,1))
 	QData{length(data(:,1))}=[];
 end
@@ -988,6 +1008,7 @@ if Confirm
     AddStatusLine('CLEARSTATUS');
     AddStatusLine('Clearing GUI...')
 end
+GUIDisable(handles.figure1)
 axes(handles.GeometryVisualization)
 cla reset;
 
@@ -1024,8 +1045,8 @@ set(handles.GeometryVisualization,'visi','off')
 
 EmptyRow=EmptyFeatureRow;
 set(handles.features, 'Data',EmptyRow); 
-if isappdata(gcf,TableDataName)
-    rmappdata(gcf,TableDataName)
+if isappdata(handles.figure1,TableDataName)
+    rmappdata(handles.figure1,TableDataName)
 end
 
 RowNames=get(handles.ExtCondTable,'rowname');
@@ -1062,6 +1083,7 @@ guidata(hObject, handles);
 if Confirm
     AddStatusLine('Done.', true,handles.figure1)
 end
+GUIEnable(handles.figure1)
 end
 
 % --- Executes on button press in pushbutton18.
@@ -1108,7 +1130,19 @@ function View_Callback(hObject, eventdata, handles)
 TimeString=get(handles.InterestTime,'String'); %this is empty if static analysis results found
 TimeStepString=get(handles.InterestTime,'String'); %this is empty if no results
 
-numplots = 3; 
+NumPlot = 0; 
+NumPlot=NumPlot + get(handles.VisualMelt,'Value');
+NumPlot=NumPlot + get(handles.VisualStress,'Value');
+NumPlot=NumPlot + get(handles.VisualTemp,'Value');
+Objects=findobj(0,'-depth',1,'type','figure');
+ResultFigure=find(strcmpi(get(Objects,'name'),'results'));
+if isempty(ResultFigure)
+    figure
+    set(gcf,'unit','normal','posit',[0.05 0.05 0.9 0.85],'name','Results');
+else
+    figure(Objects(ResultFigure(1)));
+end
+
 
 if isempty(TimeStepString)  %no model results
     MI=getappdata(handles.figure1,'MI');
@@ -1144,14 +1178,15 @@ if ~trans_model
         state_str=[];
     end
 end
-
+CurPlot=1;
 if get(handles.VisualTemp,'Value')==1
     if isempty(Tprnt)
         AddStatusLine('No temperature solution exists.','warning')
     else
-       numplots = numplots+1;
-       figure(numplots)
-       clf;
+       subplot(1,NumPlot,CurPlot)
+       CurPlot=CurPlot + 1;
+%       figure(numplots)
+%       clf;
        if trans_model
            Visualize(sprintf('t=%1.2f ms, State: %i of %i',MI.GlobalTime(StateN)*1000, StateN-1,length(Tprnt(1,1,1,:))-1)...
                ,MI,'state', Tprnt(:,:,:,StateN), 'RemoveMaterial',[0] ...
@@ -1165,14 +1200,15 @@ if get(handles.VisualTemp,'Value')==1
        end
     end
 end
-
 if get(handles.VisualStress,'Value')==1
     if isempty(Stress)
         AddStatusLine('No stress solution exists.','warning')
     else
        numplots =numplots+1;
-       figure(numplots)
-       clf
+       subplot(1,NumPlot,CurPlot)
+       CurPlot=CurPlot + 1;
+%        figure(numplots)
+%        clf
        if trans_model
            Visualize(sprintf('t=%1.2f ms, State: %i of %i',MI.GlobalTime(StateN)*1000, StateN-1,length(Stress(1,1,1,:))-1)...
                ,MI,'state', Stress(:,:,:,StateN), 'RemoveMaterial',[0] ...
@@ -1191,8 +1227,10 @@ if get(handles.VisualMelt,'Value')==1
     if isempty(MeltFrac)
         AddStatusLine('No melt-fraction solution exists.','warning')
     else
-       figure(numplots+1)
-       clf
+       subplot(1,NumPlot,CurPlot)
+       CurPlot=CurPlot + 1;
+%        figure(numplots+1)
+%        clf
        if trans_model
            Visualize(sprintf('t=%1.2f ms, State: %i of %i',MI.GlobalTime(StateN)*1000, StateN-1,length(MeltFrac(1,1,1,:))-1)...
                ,MI,'state', MeltFrac(:,:,:,StateN), 'RemoveMaterial',[0] ...
@@ -1758,7 +1796,7 @@ function MoveUp_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
     TableData = get(handles.features,'Data');
     NumRows=length(TableData(:,1));
-    QData=getappdata(gcf,TableDataName);
+    QData=getappdata(handles.figure1,TableDataName);
     if length(QData)<NumRows
         QData{NumRows}=[];
     end
@@ -1780,7 +1818,7 @@ function MoveUp_Callback(hObject, eventdata, handles)
         end
     end
     set(handles.features,'Data',TableData)
-    setappdata(gcf,TableDataName,QData);
+    setappdata(handles.figure1,TableDataName,QData);
 
     VisUpdateStatus(handles,true);
 end
@@ -1792,7 +1830,7 @@ function MoveDown_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
     TableData = get(handles.features,'Data');
     NumRows=length(TableData(:,1));
-    QData=getappdata(gcf,TableDataName);
+    QData=getappdata(handles.figure1,TableDataName);
     if length(QData)<NumRows
         QData{NumRows}=[];
     end
@@ -1814,7 +1852,7 @@ function MoveDown_Callback(hObject, eventdata, handles)
         end
     end
     set(handles.features,'Data',TableData)
-    setappdata(gcf,TableDataName,QData);
+    setappdata(handles.figure1,TableDataName,QData);
 
     VisUpdateStatus(handles,true);
 end
@@ -1933,10 +1971,23 @@ function GUIDisable(GUIHandle)
 end
 
 function GUIEnable(GUIHandle)
-    ObjectsToChange=getappdata(GUIHandle,'DisabledObjects');
-    if ~isempty(ObjectsToChange)
-        set(ObjectsToChange(isvalid(ObjectsToChange)),'enable','on')
-        setappdata(GUIHandle,'DisabledObjects', []);
+    if ~exist('GUIHandle','var')
+        GUIHandle=[];
+        Fi=findall(0,'type','figure');
+        for I=1:length(Fi)
+            if strncmpi(get(Fi(I),'name'),'ParaPowerGUI',length('ParaPowerGUI'))
+                GUIHandle=Fi(I);
+            end
+        end
+    end
+    if ~isempty(GUIHandle)
+        ObjectsToChange=getappdata(GUIHandle,'DisabledObjects');
+        if ~isempty(ObjectsToChange)
+            set(ObjectsToChange(isvalid(ObjectsToChange)),'enable','on')
+            setappdata(GUIHandle,'DisabledObjects', []);
+        end
+    else
+        disp('Cannot find an active ParaPowerGUI to enable.')
     end
 end
 
@@ -1947,3 +1998,21 @@ function ExtCondTable_CreateFcn(hObject, eventdata, handles)
 % handles    empty - handles not created until after all CreateFcns called
 set(hObject, 'Data', cell(2,6));
 end
+
+
+% --- Executes on button press in ClearResultsButton.
+function ClearResultsButton_Callback(hObject, eventdata, handles)
+% hObject    handle to ClearResultsButton (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+    P=questdlg('Are you sure you want to clear the current analysis results?','Confirmation','Yes','No','No');
+    if strcmpi(P,'Yes')
+        if isappdata(gcf,'Results')
+           rmappdata(gcf,'Results');
+           slider1_Callback(handles.slider1, eventdata, handles)
+           AddStatusLine('Results cleared.')
+        end
+    end
+end
+
+

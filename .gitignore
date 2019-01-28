@@ -3,3 +3,6 @@
 *.bak
 *.asv
 thumbs.db
+deleteme.*
+deleteme
+deleteme*

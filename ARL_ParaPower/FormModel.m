@@ -72,7 +72,7 @@ Z0=[]; %Z coordinates with zero thickness
 %Go through features list and determine if it's a zero thickness in any
 %direction. Build up X, Y, Z list of coordinates and X0, Y0, Z0 which is
 %the special list that covers zero thickness features.
-
+MinFeatureSize=[1 1 1]*inf;
 for i=1:length(Features)
     Fd=Features(i).x;
     if isscalar(Fd)
@@ -99,19 +99,25 @@ for i=1:length(Features)
         X0=[X0 Features(i).x(1)];
         X=[X Features(i).x(1)];
     else
-        X=[X linspace(Features(i).x(1), Features(i).x(2), 1+Features(i).dx)];
+        Coords=linspace(Features(i).x(1), Features(i).x(2), 1+Features(i).dx);
+        MinFeatureSize(1)=min(MinFeatureSize(1),min(Coords(2:end)-Coords(1:end-1)));
+        X=[X Coords];
     end
     if Features(i).y(1)==Features(i).y(2) %Acount for special case of zero height layer
         Y0=[Y0 Features(i).y(1)];
         Y=[Y Features(i).y(1)];
     else
-        Y=[Y linspace(Features(i).y(1), Features(i).y(2), 1+Features(i).dy)];
+        Coords=linspace(Features(i).y(1), Features(i).y(2), 1+Features(i).dy);
+        MinFeatureSize(2)=min(MinFeatureSize(2),min(Coords(2:end)-Coords(1:end-1)));
+        Y=[Y Coords];
     end
     if Features(i).z(1)==Features(i).z(2) %Acount for special case of zero height layer
         Z0=[Z0 Features(i).z(1)];
         Z=[Z Features(i).z(1)];
     else
-        Z=[Z linspace(Features(i).z(1), Features(i).z(2), 1+Features(i).dz)];
+        Coords=linspace(Features(i).z(1), Features(i).z(2), 1+Features(i).dz);  
+        MinFeatureSize(3)=min(MinFeatureSize(3),min(Coords(2:end)-Coords(1:end-1)));
+        Z=[Z Coords];
     end
 end
 
@@ -127,9 +133,17 @@ end
 if ~isempty(Z0)
     Z0=unique(round(Z0,floor(abs(log10(100*eps(max(Z0)))))));
 end
-X=unique(round(X,floor(abs(log10(100*eps(max(X)))))));
-Y=unique(round(Y,floor(abs(log10(100*eps(max(Y)))))));
-Z=unique(round(Z,floor(abs(log10(100*eps(max(Z)))))));
+
+%Set the tolerance to be two orders of magnitude less than min individ
+%features size
+MinFeatureSize=2+floor(abs(floor(min(0,log10(MinFeatureSize)))));
+
+X=unique(round(X,MinFeatureSize(1)));
+Y=unique(round(Y,MinFeatureSize(2)));
+Z=unique(round(Z,MinFeatureSize(3)));
+% X=unique(round(X,floor(abs(log10(100*eps(max(X)))))));
+% Y=unique(round(Y,floor(abs(log10(100*eps(max(Y)))))));
+% Z=unique(round(Z,floor(abs(log10(100*eps(max(Z)))))));
 
 X=sort([X X0]); 
 Y=sort([Y Y0]); 
@@ -189,9 +203,9 @@ end
 %Apply Feature number for non-zero thickness elements
 for Fii=1:length(NonZeroThickness) 
     Fi=NonZeroThickness(Fii);
-    InX=GetInXYZ(Features(Fi).x, X);
-    InY=GetInXYZ(Features(Fi).y, Y);
-    InZ=GetInXYZ(Features(Fi).z, Z);
+    InX=GetInXYZ(Features(Fi).x, X, MinFeatureSize(1));
+    InY=GetInXYZ(Features(Fi).y, Y, MinFeatureSize(2));
+    InZ=GetInXYZ(Features(Fi).z, Z, MinFeatureSize(3));
     
     AllNaN=all(isnan(reshape(ModelMatrix(InX,InY,InZ),1,[])));
 %     if not(AllNaN)
@@ -351,8 +365,12 @@ function UseLayer=GetZeroLayer(Coords, FeatureCoords)
     end
 return
 
-function In=GetInXYZ(FeatureExtent, Coords)
-    E=100*eps(max(abs(Coords)));
+function In=GetInXYZ(FeatureExtent, Coords, Precision)
+    if exist('Precision')
+        E=10^(-1*Precision);
+    else
+        E=100*eps(max(abs(Coords)));
+    end
     %eps tolerancing implemented to combat precision issues.
     if FeatureExtent(1)==FeatureExtent(2)
         In=find(abs(FeatureExtent(1)-Coords)<eps);

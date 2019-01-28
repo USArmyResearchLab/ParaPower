@@ -4,6 +4,14 @@ classdef scPPT < sPPT
         sc_mask
     end
     
+    methods
+        % Constructor
+        function obj = scPPT(varargin)
+            % Support name-value pair arguments when constructing object
+            setProperties(obj,nargin,varargin{:})
+        end
+    end
+
     methods (Access = protected)
         function setupImpl(obj)
             setupImpl@sPPT(obj);
@@ -39,7 +47,7 @@ classdef scPPT < sPPT
             state=zeros(numel(sc_mask),3);
             state(sc_mask,1)=priorPH(sc_mask)<1;  %1
             state(sc_mask,2)=T(sc_mask,it)<=T_nuc; %2
-            
+           
             state(sc_mask,3)=priorPH(sc_mask)<=prop_thres;  %propogation threshold
             
             if numel(state(sc_mask,3))>0
