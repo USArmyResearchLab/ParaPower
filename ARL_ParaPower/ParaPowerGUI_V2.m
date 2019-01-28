@@ -226,6 +226,10 @@ function Out=GetResults()
     Fhandle= ParaPowerGUI_V2;
     if isappdata(Fhandle,'Results')
         Out.R=getappdata(Fhandle,'Results');
+        if ~isfield(Out.R,'Tprint')
+            Out.R=[];
+            disp('No results available from current figure.')
+        end
     else
         Out.R=[];
         disp('No results available from current figure.')
@@ -478,9 +482,11 @@ function loadbutton_Callback(hObject, eventdata, handles)
            
            setappdata(gcf,'TestCaseModel',TestCaseModel)
            setappdata(gcf,TableDataName, QData)
-           if exist('Results','var') && not(isfield(Results,'Tprint'))
+           if exist('Results','var')
                setappdata(gcf,'Results',Results)
-               AddStatusLine('Results loaded.');
+               if (isfield(Results,'Tprint'))
+                    AddStatusLine('Results loaded.');
+               end
            end
            
            %Update Materials
@@ -536,11 +542,15 @@ function RunAnalysis_Callback(hObject, eventdata, handles)
         try
             %not used TimeStepOutput = get(handles.slider1,'Value');
             tic
-            GlobalTime=MI.GlobalTime;  %Since there is global time vector, construct one here.
-            MI.GlobalTime=GlobalTime(1);  %Split global time from initialization state (globaltime(1))
-            GlobalTime=GlobalTime(2:end); %and time to compute state (globaltime(2:end))
-            S1=sPPT('MI',MI);
-            [Tprnt, T_in, MeltFrac,MeltFrac_in]=S1(GlobalTime);
+%            GlobalTime=MI.GlobalTime;  %Since there is global time vector, construct one here.
+
+            InitTime=MI.GlobalTime(1);    %Time at initializatio extracted from MI.GlobalTime
+            ComputeTime=MI.GlobalTime(2:end); %extract time to compute states from MI.GlobalTime
+
+            MI.GlobalTime=InitTime;  %Setup initialization
+            S1=sPPT('MI',MI); %Initialize object
+            [Tprnt, T_in, MeltFrac,MeltFrac_in]=S1(ComputeTime);  %Compute states at times in ComputeTime (S1 must be called with 1 arg in 2017b)
+            MI.GlobalTime = [InitTime ComputeTime]; %Reassemble MI's global time to match initialization and computed states.
             Tprnt=cat(4,T_in,Tprnt);
             MeltFrac=cat(4,MeltFrac_in,MeltFrac);
             Etime=toc;
@@ -570,7 +580,6 @@ function RunAnalysis_Callback(hObject, eventdata, handles)
                 AddStatusLine('');
                 Stress=[];
             end
-            slider1_Callback(handles.slider1, [], handles)
             set(handles.slider1,'value',1);
         catch ME
             AddStatusLine('Error during stress solve.')
@@ -586,14 +595,14 @@ function RunAnalysis_Callback(hObject, eventdata, handles)
        
        if get(handles.transient,'value')==1
            %%%%Plot time dependent plots for temp, stress and melt fraction
-           Dout(:,1)=GlobalTime;
-           Dout(:,2)=zeros(size(GlobalTime));
-           Dout(:,3)=zeros(size(GlobalTime));
-           Dout(:,4)=zeros(size(GlobalTime));
+           Dout(:,1)=MI.GlobalTime;
+           Dout(:,2)=zeros(size(MI.GlobalTime));
+           Dout(:,3)=zeros(size(MI.GlobalTime));
+           Dout(:,4)=zeros(size(MI.GlobalTime));
            
            
            
-           for I=1:length(GlobalTime)
+           for I=1:length(MI.GlobalTime)
                Dout(I,2)=max(max(max(Tprnt(:,:,:,I))));
                %Dout(I,3)=max(max(max(Stress(:,:,:,I))));
                Dout(I,4)=max(max(max(MeltFrac(:,:,:,I))));
@@ -613,6 +622,7 @@ function RunAnalysis_Callback(hObject, eventdata, handles)
        Results.Model=MI;
        Results.TimeDate=now;
        setappdata(handles.figure1, 'Results', Results);
+       slider1_Callback(handles.slider1, [], handles)
        GUIEnable(handles.figure1);
 end
        
@@ -650,7 +660,7 @@ function slider1_Callback(hObject, eventdata, handles)
 TimeStepOutput = get(handles.slider1,'Value'); %value between 0 and 1 from the slider
 
 Results=getappdata(handles.figure1,'Results');
-if isempty(Results)
+if not(isfield(Results,'Tprint'))
     TimeStepString = []; %create output string
     set(handles.TextTimeStep,'String',TimeStepString)   %output string to GUI
     TimeString = 'No Model Results';
