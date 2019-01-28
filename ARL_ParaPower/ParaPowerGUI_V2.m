@@ -107,7 +107,7 @@ function InitializeGUI(handles)
     axes(handles.PPLogo)
     imshow('ARLlogoParaPower.png')
     text(0,0,['Version ' ARLParaPowerVersion],'vertical','bott')
-    setappdata(gcf,'Version',ARLParaPowerVersion)
+    setappdata(handles.figure1,'Version',ARLParaPowerVersion)
     set(handles.GeometryVisualization,'visi','off');
 
     TimeStep_Callback(handles.TimeStep, [], handles)
@@ -124,7 +124,7 @@ function InitializeGUI(handles)
     %Set Stress Model Directory
     set(handles.StressModel,'userdata','Stress_Models')
 
-    T=uicontrol(gcf,'style','text','units','normal','posit',[0.01 0 .3 .02],'string','DISTRIBUTION C: See Help for details','horiz','left');
+    T=uicontrol(handles.figure1,'style','text','units','normal','posit',[0.01 0 .3 .02],'string','DISTRIBUTION C: See Help for details','horiz','left');
     E=get(T,'extent');
     P=get(T,'posit');
     set(T,'posit',[P(1) P(2) E(3) E(4)]);
@@ -519,7 +519,7 @@ function RunAnalysis_Callback(hObject, eventdata, handles)
         StressModel=StressModel{StressModelV};
         
         AddStatusLine('Analysis running...');
-        MI = getappdata(gcf,'MI');
+        MI = getappdata(handles.figure1,'MI');
         if isempty(MI)
             AddStatusLine('Model not yet fully defined.','error')
             return
@@ -532,8 +532,10 @@ function RunAnalysis_Callback(hObject, eventdata, handles)
             %not used TimeStepOutput = get(handles.slider1,'Value');
             tic
             GlobalTime=MI.GlobalTime;  %Since there is global time vector, construct one here.
+            MI.GlobalTime=GlobalTime(1);  %Split global time from initialization state (globaltime(1))
+            GlobalTime=GlobalTime(2:end); %and time to compute state (globaltime(2:end))
             S1=sPPT('MI',MI);
-            [Tprnt, T_in, MeltFrac,MeltFrac_in]=S1();
+            [Tprnt, T_in, MeltFrac,MeltFrac_in]=S1(GlobalTime);
             Tprnt=cat(4,T_in,Tprnt);
             MeltFrac=cat(4,MeltFrac_in,MeltFrac);
             Etime=toc;
@@ -919,8 +921,8 @@ else
     %    axes(handles.GeometryVisualization);
     %    Visualize ('Model Input', MI, 'modelgeom','ShowQ')
 
-        setappdata(gcf,'TestCaseModel',TestCaseModel);
-        setappdata(gcf,'MI',MI);
+        setappdata(handles.figure1,'TestCaseModel',TestCaseModel);
+        setappdata(handles.figure1,'MI',MI);
 
         MI=getappdata(handles.figure1,'MI');
         axes(handles.GeometryVisualization)
@@ -948,7 +950,7 @@ function DeleteFeature_Callback(hObject, eventdata, handles)
 data = get(handles.features, 'Data');
 
 
-QData=getappdata(gcf,TableDataName);
+QData=getappdata(handles.figure1,TableDataName);
 if length(QData)<length(data(:,1))
 	QData{length(data(:,1))}=[];
 end
@@ -1027,8 +1029,8 @@ set(handles.GeometryVisualization,'visi','off')
 
 EmptyRow=EmptyFeatureRow;
 set(handles.features, 'Data',EmptyRow); 
-if isappdata(gcf,TableDataName)
-    rmappdata(gcf,TableDataName)
+if isappdata(handles.figure1,TableDataName)
+    rmappdata(handles.figure1,TableDataName)
 end
 
 RowNames=get(handles.ExtCondTable,'rowname');
@@ -1761,7 +1763,7 @@ function MoveUp_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
     TableData = get(handles.features,'Data');
     NumRows=length(TableData(:,1));
-    QData=getappdata(gcf,TableDataName);
+    QData=getappdata(handles.figure1,TableDataName);
     if length(QData)<NumRows
         QData{NumRows}=[];
     end
@@ -1783,7 +1785,7 @@ function MoveUp_Callback(hObject, eventdata, handles)
         end
     end
     set(handles.features,'Data',TableData)
-    setappdata(gcf,TableDataName,QData);
+    setappdata(handles.figure1,TableDataName,QData);
 
     VisUpdateStatus(handles,true);
 end
@@ -1795,7 +1797,7 @@ function MoveDown_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
     TableData = get(handles.features,'Data');
     NumRows=length(TableData(:,1));
-    QData=getappdata(gcf,TableDataName);
+    QData=getappdata(handles.figure1,TableDataName);
     if length(QData)<NumRows
         QData{NumRows}=[];
     end
@@ -1817,7 +1819,7 @@ function MoveDown_Callback(hObject, eventdata, handles)
         end
     end
     set(handles.features,'Data',TableData)
-    setappdata(gcf,TableDataName,QData);
+    setappdata(handles.figure1,TableDataName,QData);
 
     VisUpdateStatus(handles,true);
 end
@@ -1936,10 +1938,23 @@ function GUIDisable(GUIHandle)
 end
 
 function GUIEnable(GUIHandle)
-    ObjectsToChange=getappdata(GUIHandle,'DisabledObjects');
-    if ~isempty(ObjectsToChange)
-        set(ObjectsToChange(isvalid(ObjectsToChange)),'enable','on')
-        setappdata(GUIHandle,'DisabledObjects', []);
+    if ~exist('GUIHandle','var')
+        GUIHandle=[];
+        Fi=findall(0,'type','figure');
+        for I=1:length(Fi)
+            if strncmpi(get(Fi(I),'name'),'ParaPowerGUI',length('ParaPowerGUI'))
+                GUIHandle=Fi(I);
+            end
+        end
+    end
+    if ~isempty(GUIHandle)
+        ObjectsToChange=getappdata(GUIHandle,'DisabledObjects');
+        if ~isempty(ObjectsToChange)
+            set(ObjectsToChange(isvalid(ObjectsToChange)),'enable','on')
+            setappdata(GUIHandle,'DisabledObjects', []);
+        end
+    else
+        disp('Cannot find an active ParaPowerGUI to enable.')
     end
 end
 
