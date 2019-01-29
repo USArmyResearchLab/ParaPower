@@ -1201,7 +1201,7 @@ if get(handles.VisualStress,'Value')==1
     if isempty(Stress)
         AddStatusLine('No stress solution exists.','warning')
     else
-       numplots =numplots+1;
+       %numplots =numplots+1;
        subplot(1,NumPlot,CurPlot)
        CurPlot=CurPlot + 1;
 %        figure(numplots)
