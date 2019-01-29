@@ -1124,14 +1124,16 @@ if isempty(ResultFigure)
 else
     figure(Objects(ResultFigure(1)));
 end
+clf
+Results=getappdata(handles.figure1,'Results');
 
-
-if isempty(TimeStepString)  %no model results
+if ~isfield(Results,'Tprint')  %no model results
     MI=getappdata(handles.figure1,'MI');
-    if ~isempty('MI')
+    if ~isempty('MI') 
+        AddStatusLine(' ')
         AddStatusLine('No Results Exist. Displaying Detailed Geometry','warning')
-        numplots=numplots+1;
-        figure(numplots)
+        %numplots=numplots+1;
+        %figure(numplots)
         pause(.001)      
         Visualize ('', MI, 'modelgeom','ShowQ','ShowExtent')
     else
@@ -1140,12 +1142,15 @@ if isempty(TimeStepString)  %no model results
     return
 end
     
-Results=getappdata(handles.figure1,'Results');
+
 MI = Results.Model;
 Tprnt = Results.Tprint;
 Stress = Results.Stress;
 MeltFrac = Results.MeltFrac;
 GlobalTime=MI.GlobalTime;
+
+IBCs=find(strcmpi(Results.Model.MatLib.Type,'IBC'));
+IBCs=reshape(IBCs,1,[]);
 
 StateN=getappdata(handles.figure1,'step');
 
@@ -1171,12 +1176,12 @@ if get(handles.VisualTemp,'Value')==1
 %       clf;
        if trans_model
            Visualize(sprintf('t=%1.2f ms, State: %i of %i',MI.GlobalTime(StateN)*1000, StateN-1,length(Tprnt(1,1,1,:))-1)...
-               ,MI,'state', Tprnt(:,:,:,StateN), 'RemoveMaterial',[0] ...
+               ,MI,'state', Tprnt(:,:,:,StateN), 'RemoveMaterial',[0 IBCs] ...
                ,'scaletitle', 'Temperature', 'BtnLinInt' ...
                )
        else
            Visualize(sprintf(state_str)...
-               ,MI,'state', Tprnt(:,:,:,StateN), 'RemoveMaterial',[0] ...
+               ,MI,'state', Tprnt(:,:,:,StateN), 'RemoveMaterial',[0 IBCs] ...
                ,'scaletitle', 'Temperature', 'BtnLinInt' ...
                )
        end
@@ -1193,12 +1198,12 @@ if get(handles.VisualStress,'Value')==1
 %        clf
        if trans_model
            Visualize(sprintf('t=%1.2f ms, State: %i of %i',MI.GlobalTime(StateN)*1000, StateN-1,length(Stress(1,1,1,:))-1)...
-               ,MI,'state', Stress(:,:,:,StateN), 'RemoveMaterial',[0] ...
+               ,MI,'state', Stress(:,:,:,StateN), 'RemoveMaterial',[0 IBCs] ...
                ,'scaletitle', 'Stress', 'BtnLinInt' ...
                )
        else
            Visualize(sprintf(state_str)...
-               ,MI,'state', Stress(:,:,:,StateN), 'RemoveMaterial',[0] ...
+               ,MI,'state', Stress(:,:,:,StateN), 'RemoveMaterial',[0 IBCs] ...
                ,'scaletitle', 'Stress', 'BtnLinInt' ...
                )
        end                   
@@ -1215,12 +1220,12 @@ if get(handles.VisualMelt,'Value')==1
 %        clf
        if trans_model
            Visualize(sprintf('t=%1.2f ms, State: %i of %i',MI.GlobalTime(StateN)*1000, StateN-1,length(MeltFrac(1,1,1,:))-1)...
-               ,MI,'state', MeltFrac(:,:,:,StateN), 'RemoveMaterial',[0] ...
+               ,MI,'state', MeltFrac(:,:,:,StateN), 'RemoveMaterial',[0 IBCs] ...
                ,'scaletitle', 'Melt Fraction', 'BtnLinInt' ...
                )
        else
            Visualize(sprintf(state_str)...
-               ,MI,'state', MeltFrac(:,:,:,StateN), 'RemoveMaterial',[0] ...
+               ,MI,'state', MeltFrac(:,:,:,StateN), 'RemoveMaterial',[0 IBCs] ...
                ,'scaletitle', 'Melt Fraction', 'BtnLinInt' ...
                )
        end                           
@@ -1286,13 +1291,21 @@ function LogoAxes_CreateFcn(hObject, eventdata, handles)
 % Hint: place code in OpeningFcn to populate LogoAxes
 end
 
+function FigHandle=GetPPGUI()
+    NameText='ParaPowerGUI_V2';
+    Objects=findall(0,'type','figure');
+    Names=get(Objects,'name');
+    FigI=find(strncmpi(Names,NameText,length(NameText)));
+    FigHandle=Objects(FigI(1));
+end
+    
 function AddStatusLine(textline,varargin)% Optional args are AddToLastLine,Flag, ThisFig)
 %AddStatusLine(TextLine, boolean) OR AddStatusLine(TextLine, figure) or
 %AddSTatusLine(TextLine, boolean, figure) OR AddStatusLine(TextLine,boolean, Flag, figure)
 
     AddToLastLine=false;
     Flag='';
-    ThisFig=gcf;
+    ThisFig=GetPPGUI;
     
     if nargin==2
         if ishandle(varargin{1})
@@ -1325,9 +1338,9 @@ function AddStatusLine(textline,varargin)% Optional args are AddToLastLine,Flag,
             disp(['Unrecognized flag value in AddStatusLine: ' Flag])
     end
     
-    if not(exist('ThisFig','var'))
-        ThisFig=findobj(0,'-depth',1,'tag','figure1')
-    end
+%    if not(exist('ThisFig','var'))
+%        ThisFig=findobj(0,'-depth',1,'tag','figure1');
+%    end
     handles=guihandles(ThisFig);
     Hstat=handles.StatusWindow;
     

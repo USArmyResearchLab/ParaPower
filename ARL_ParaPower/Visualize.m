@@ -740,21 +740,24 @@ function ToggleFixedDynamic(varargin)
         ToggleFixedDynFunc=@ToggleFixedDynamic;
         CB_Posit=get(CB,'posit');
         CB_Texts={'Dyn' 'Held'};
-        CB_Button=uicontrol('parent',get(ThisAxis,'parent'),'style','togglebutton','units','normal','posit',[CB_Posit(1) CB_Posit(2) .1 .1],'string','Held','user',{ThisAxis CB_Texts  'B613_Command'},'callback',ToggleFixedDynFunc);
+        CB_Button=uicontrol('parent',get(ThisAxis,'parent'),'style','togglebutton','units','normal', ...
+                            'posit',[CB_Posit(1) CB_Posit(2) .1 .1], ...
+                            'user',{ThisAxis CB_Texts  'B613_Command'},'callback',ToggleFixedDynFunc);
         Sz=size(char(CB_Texts));
         set(CB_Button,'string',char('M'*ones(1,Sz(2))));
         E=get(CB_Button,'extent');
         if strncmpi(Direction,'v',1)
             CB_Posit=get(CB_Button,'posit');
             DynFixedFunc=@(A,B)disp(A,B);
-            set(CB_Button,'posit',[CB_Posit(1) CB_Posit(2)-E(4)*1.25, E(3)*1.1, E(4)*1.01],'string',CB_Texts{1});
+            set(CB_Button,'posit',[CB_Posit(1) CB_Posit(2)-E(4)*1.25, E(3)*1.1, E(4)*1.01]);
         elseif strncmpi(Direction,'h',1)
             CB_Posit=get(CB_Button,'posit');
             DynFixedFunc=@(A,B)disp(A,B);
-            set(CB_Button,'posit',[CB_Posit(1)-E(3)*1.25 CB_Posit(2), E(3)*1.01, E(4)*1.01],'string',CB_Texts{1});
+            set(CB_Button,'posit',[CB_Posit(1)-E(3)*1.25 CB_Posit(2), E(3)*1.01, E(4)*1.01]);
         else
             error('Unknown direction creating fixed/dynamic button')
         end
+        set(CB_Button,'string',CB_Texts{1}, 'value', 1)
     end
 end
 
