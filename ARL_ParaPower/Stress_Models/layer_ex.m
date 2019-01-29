@@ -7,6 +7,8 @@ if lay == nlsub+1
 else
     z=sum(dz(nlsub+1:lay-1))+dz(lay)/2;
 end
+%fprintf(' MAT(%.0f, %.0f, %.0f) = %.0f\n',row,col,nlsub, Mat(row,col,nlsub))
+
 Ebs=E(Mat(row,col,nlsub))/(1-nu(Mat(row,col,nlsub)));
 dTs=mean(dT(row,col,1:nlsub));
 ts=sum(dz(1:nlsub));

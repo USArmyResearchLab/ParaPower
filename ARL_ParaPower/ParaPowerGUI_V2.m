@@ -146,6 +146,9 @@ function InitializeGUI(handles)
     set(handles.StressModel,'string',StressModelFunctions);
     setappdata(handles.figure1,'Initialized',true);
     ClearGUI_Callback(handles.ClearGUI, [], handles, false)
+    set(handles.StressModel,'value',length(StressModelFunctions)) %Set default stress model to none.
+    set(handles.StressModel,'enable','on')  %Turn stress modeling on or off
+    
     GUIEnable(handles.figure1)
 
 end
@@ -523,6 +526,7 @@ function RunAnalysis_Callback(hObject, eventdata, handles)
         MI = getappdata(gcf,'MI');
         if isempty(MI)
             AddStatusLine('Model not yet fully defined.','error')
+            GUIEnable(handles.figure1);
             return
         end
 
@@ -565,9 +569,15 @@ function RunAnalysis_Callback(hObject, eventdata, handles)
             set(handles.slider1,'value',1);
         catch ME
             AddStatusLine('Error during stress solve.')
-            AddStatusLine('')
+            AddStatusLine(Stress.Msg)
             disp(ME.getReport)
             Stress=[];
+        end
+        if ischar(Stress)
+            AddStatusLine('Error during stress solve.')
+            AddStatusLine(Stress)
+            Stress=[];
+            AddStatusLine(' ');
         end
         AddStatusLine('Complete.',true)
        

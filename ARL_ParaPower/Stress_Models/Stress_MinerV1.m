@@ -9,6 +9,7 @@
         
 function [Stress] = Stress_V1(ModelInput,Tres)
 
+
 dx=ModelInput.X;
 dy=ModelInput.Y;
 dz=ModelInput.Z;
@@ -25,10 +26,17 @@ nu = ModelInput.MatLib.rho;
 NL=Num_Lay;
 
 nlsub=1; % # layers that are substrate material
+disp('Stress model assumes that layer 1 is substrate.')
 
 Stress=zeros(size(Mat)); % Nodal thermal stress results
 Strprnt=zeros(size(Mat)); % Nodal stress results realigned to match mesh layout
 
+if min(Mat(:,:,nlsub)) <= 0
+    Msg=sprintf('Invalid layer 1 assumption of substrate in stress model (%s).',mfilename);
+    warning(Msg);
+    Stress=Msg;
+    return
+end
 for it=1:length(GlobalTime)
     % Calculate the difference between the operating temp and the processing
     % temp for thermal stress calc
@@ -39,6 +47,9 @@ for it=1:length(GlobalTime)
             for jj=1:Num_Col
                 % Calculate the thermal stress
                 % Skip locations that have no material
+                %if ii==1 && jj==1 & kk==2
+                %    fprintf('SM MAT(%.0f, %.0f, %.0f) = %.0f\n',ii,jj,kk, Mat(ii,jj,kk))
+                %end
                 if Mat(ii,jj,kk) <= 0
                     Stress(ii,jj,kk,it)=0;
                 elseif kk <= nlsub
