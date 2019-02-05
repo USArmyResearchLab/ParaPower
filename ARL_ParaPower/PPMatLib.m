@@ -52,7 +52,7 @@ classdef PPMatLib < handle
         function varargout=subsref(obj,s)
            switch s(1).type
               case '.'
-                 if length(s) == 1
+                 if length(s) == 1 & ~isprop(obj,s.subs)
                     % Implement obj.PropertyName
                      varargout{1}=obj.GetParam(s.subs);
                  %elseif length(s) == 2 && strcmp(s(2).type,'()')

@@ -40,8 +40,10 @@ classdef PPMatPCM < PPMatSolid
             if nargin == 1 & ~iscell(varargin{1})
                 Name=varargin{1};
                 varargin={'name' Name};
+            elseif nargin == 1 & iscell(varargin{1})
+                varargin=varargin{1};
             end
-            obj=obj@PPMatSolid([varargin 'type' Type]);
+            obj=obj@PPMatSolid([ 'type' Type varargin]);
             
             PropValPairs=obj.PropValPairs;
             obj.PropValPairs={};

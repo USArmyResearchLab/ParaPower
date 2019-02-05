@@ -1,7 +1,7 @@
 classdef PPMatSCPCM < PPMatPCM
     
     properties (Access=public)
-        dT_Nucl     {mustBeNumeric(k_l), mustBeReal(k_l)}   = NaN
+        dT_Nucl     {mustBeNumeric(dT_Nucl), mustBeReal(dT_Nucl)}   = NaN
     end
     
     
@@ -16,7 +16,7 @@ classdef PPMatSCPCM < PPMatPCM
             end
         end
         
-        function [obj]=PPMatPCM(varargin)
+        function [obj]=PPMatSCPCM(varargin)
             %Default Values
             Type='SCPCM';
             dT_Nucl=nan;
@@ -24,8 +24,10 @@ classdef PPMatSCPCM < PPMatPCM
             if nargin == 1 & ~iscell(varargin{1})
                 Name=varargin{1};
                 varargin={'name' Name};
+            elseif nargin == 1 & iscell(varargin{1})
+                varargin=varargin{1};
             end
-            obj=obj@PPMatSolid([varargin 'type' Type]);
+            obj=obj@PPMatPCM([ 'type' Type varargin]);
             
             PropValPairs=obj.PropValPairs;
             obj.PropValPairs={};
@@ -40,9 +42,9 @@ classdef PPMatSCPCM < PPMatPCM
 %                     case obj.strleft('name',Pl)
 %                         [Value, PropValPairs]=obj.Pop(PropValPairs); 
 %                         Name=Value;
-                    case obj.strleft('dt_nicl',Pl)
+                    case obj.strleft('dt_nucl',Pl)
                         [Value, PropValPairs]=obj.Pop(PropValPairs); 
-                        k_l=Value;
+                        dT_Nucl=Value;
                     otherwise
                         [Value, PropValPairs]=obj.Pop(PropValPairs); 
                         obj.PropValPairs=[Prop Value obj.PropValPairs ];
