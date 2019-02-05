@@ -203,8 +203,65 @@ oldpathname=get(handles.loadbutton,'userdata');
 [fname,pathname]=uigetfile([oldpathname '*.mat'],'Load Material Database');
 if fname ~= 0
     set(handles.loadbutton,'userdata',pathname);
-    load([pathname fname],'MatDbase');  
-    MatDbase=SetNaNData(MatDbase);
+    load([pathname fname],'MatLib');
+    if ~strcmpi(class(MatLib),'PPMatLib')
+        %load([pathname fname],'MatDbase');  
+        disp('Converting from structure based MatLib to object based MatLib.')
+        disp('The array MatDbase is NO LONGER utilized. Information is extracted MatLib structure.')
+        NewMatLib=PPMatLib();
+        for Mi=1:length(MatLib.Material)
+            switch lower(MatLib.Type{Mi})
+                case 'solid'
+                    Mat=PPMatSolid('Name', MatLib.Material{Mi} ...
+                                  ,'cte',  MatLib.cte(Mi) ...
+                                  ,'E',    MatLib.e(Mi) ...
+                                  ,'nu',   MatLib.nu(Mi) ...
+                                  ,'k',    MatLib.k(Mi) ...
+                                  ,'rho',  MatLib.rho(Mi) ...
+                                  ,'cp',   MatLib.cp(Mi) ...
+                              );
+                case 'pcm'
+                    Mat=PPMatPCM  ('Name',  MatLib.Material{Mi} ...
+                                  ,'cte',   MatLib.cte(Mi) ...
+                                  ,'E',     MatLib.e(Mi) ...
+                                  ,'nu',    MatLib.nu(Mi) ...
+                                  ,'k',     MatLib.k(Mi) ...
+                                  ,'rho',   MatLib.rho(Mi) ...
+                                  ,'cp',    MatLib.cp(Mi) ...
+                                  ,'k_l',   MatLib.k_l(Mi) ...
+                                  ,'rho_l', MatLib.rho_l(Mi) ...
+                                  ,'cp_l',  MatLib.cp_l(Mi) ...
+                                  ,'lf',    MatLib.lf(Mi) ...
+                                  ,'tmelt', MatLib.tmelt(Mi) ...
+                              );
+                case 'scpcm'
+                    Mat=PPMatSCPCM('Name',    MatLib.Material{Mi} ...
+                                  ,'cte',     MatLib.cte(Mi) ...
+                                  ,'E',       MatLib.e(Mi) ...
+                                  ,'nu',      MatLib.nu(Mi) ...
+                                  ,'k',       MatLib.k(Mi) ...
+                                  ,'rho',     MatLib.rho(Mi) ...
+                                  ,'cp',      MatLib.cp(Mi) ...
+                                  ,'k_l',     MatLib.k_l(Mi) ...
+                                  ,'rho_l',   MatLib.rho_l(Mi) ...
+                                  ,'cp_l',    MatLib.cp_l(Mi) ...
+                                  ,'lf',      MatLib.lf(Mi) ...
+                                  ,'tmelt',   MatLib.tmelt(Mi) ...
+                                  ,'dT_Nucl', MatLib.dT_Nucl(Mi) ...
+                              );
+                case 'ibc'
+                    Mat=PPMatPCM  ('Name',  MatLib.Material{Mi} ...
+                                  ,'T_ibc', MatLib.cte(Mi) ...
+                                  ,'h_ibc', MatLib.e(Mi) ...
+                              );
+                otherwise
+                    warning('Unknown material type %s.',MatLib.Type(Mi))
+            end
+            NewMatLib.AddMatl(Mat);            
+        end
+        MatLib=NewMatLib;
+    end
+    MatDbase=PopulateMatDbase(handles.MatTable, MatLib);
     set(handles.MatTable,'Data',MatDbase);
 end
 
@@ -219,9 +276,9 @@ if fname ~= 0
     set(handles.loadbutton,'userdata',pathname);
     MatLib=PopulateMatLib(handles.MatTable);
     MatDbase=get(handles.MatTable,'Data');  
-    README={'"MatDbase" is inserted directly into the table data (internal use)'; ...
-            '"MatLib" stored in userdata and used in FormModel (external use).'};
-    save([pathname fname],'MatDbase','MatLib','README');
+    README={'"MatLib" has been converted to an object to enable new material models.'; ...
+            '"PPMat" is the base class for materials.  PPMatLib is the library class.'};
+    save([pathname fname],'MatLib','README');
 end
 
 % --- Executes when user attempts to close MatDbaseFigure.
@@ -235,13 +292,14 @@ MatClose_Callback(hObject, eventdata, handles)
 set(hObject,'visible','off');
 
 function Output=GetMatCol(ColName,ReturnField)
+%This needs to be made dynamic but for now it'll just be static
     if not(exist('ReturnField','var'))
         ReturnField=false;
     end
     switch lower(ColName)
         case 'material'
             C=2;
-            field='Material';
+            field='Name';
         case 'type'
             C=3;
             field='Type';
@@ -250,7 +308,7 @@ function Output=GetMatCol(ColName,ReturnField)
             field='cte';
         case 'e'
             C=5;
-            field='e';
+            field='E';
         case 'nu'
             C=6;
             field='nu';
@@ -315,39 +373,39 @@ function Output=GetMatCol(ColName,ReturnField)
         Output=C;
     end
     
-function MatDbaseHandle=ExtractMatLib(MatDbaseHandle, MatLib)
-    FieldNames=fieldnames(MatLib);
-    handles=guihandles(MatDbaseHandle);
-    Table=get(handles.MatTable,'data');
-    Table=Table(1,:);
-    NumMats=[];
-    for Fi=1:length(FieldNames)
-        %fprintf('Setting %s...',FieldNames{Fi});
-        if strcmp('TypeList',FieldNames(Fi))
-            TypeList=get(handles.MatTable,'columnformat');
-            TypeList{GetMatCol('type')}=reshape(MatLib.TypeList,1,[]);
-            set(handles.MatTable,'columnformat',TypeList);
-        elseif isempty(GetMatCol(FieldNames{Fi}))
-            warning(['Unknown field name "' FieldNames(Fi) '" in MatLib.']);
-        else
-            NumMatsThisParm=length(getfield(MatLib,FieldNames{Fi}));
-            MatDbaseCol=GetMatCol(FieldNames{Fi});
-            if isempty(NumMats)
-                NumMats=NumMatsThisParm;
-            elseif NumMats ~= NumMatsThisParm
-                warning(['All material parameters must exist for all materials.  Parameter "' FieldNames(Fi) '" only has ' num2str(NumMatsThisParm) ' parameters.']);
-            end
-            if isnumeric(Table{1,MatDbaseCol})
-                Table(1:NumMats,MatDbaseCol)=num2cell(MatLib.(FieldNames{Fi}));
-            else
-                Table(1:NumMats,MatDbaseCol)=MatLib.(FieldNames{Fi});
-            end
-            %fprintf('column %2.0d\n',GetMatCol(FieldNames{Fi}))
-        end
-    end
-    Table(:,1)={false};
-    set(handles.MatTable,'data',Table);
-    setappdata(MatDbaseHandle,'Materials',MatLib)
+% function MatDbaseHandle=ExtractMatLib(MatDbaseHandle, MatLib)
+%     FieldNames=fieldnames(MatLib);
+%     handles=guihandles(MatDbaseHandle);
+%     Table=get(handles.MatTable,'data');
+%     Table=Table(1,:);
+%     NumMats=[];
+%     for Fi=1:length(FieldNames)
+%         %fprintf('Setting %s...',FieldNames{Fi});
+%         if strcmp('TypeList',FieldNames(Fi))
+%             TypeList=get(handles.MatTable,'columnformat');
+%             TypeList{GetMatCol('type')}=reshape(MatLib.TypeList,1,[]);
+%             set(handles.MatTable,'columnformat',TypeList);
+%         elseif isempty(GetMatCol(FieldNames{Fi}))
+%             warning(['Unknown field name "' FieldNames(Fi) '" in MatLib.']);
+%         else
+%             NumMatsThisParm=length(getfield(MatLib,FieldNames{Fi}));
+%             MatDbaseCol=GetMatCol(FieldNames{Fi});
+%             if isempty(NumMats)
+%                 NumMats=NumMatsThisParm;
+%             elseif NumMats ~= NumMatsThisParm
+%                 warning(['All material parameters must exist for all materials.  Parameter "' FieldNames(Fi) '" only has ' num2str(NumMatsThisParm) ' parameters.']);
+%             end
+%             if isnumeric(Table{1,MatDbaseCol})
+%                 Table(1:NumMats,MatDbaseCol)=num2cell(MatLib.(FieldNames{Fi}));
+%             else
+%                 Table(1:NumMats,MatDbaseCol)=MatLib.(FieldNames{Fi});
+%             end
+%             %fprintf('column %2.0d\n',GetMatCol(FieldNames{Fi}))
+%         end
+%     end
+%     Table(:,1)={false};
+%     set(handles.MatTable,'data',Table);
+%     setappdata(MatDbaseHandle,'Materials',MatLib)
 
 function MatLib=PopulateMatLib(MatTableHandle)
 
@@ -361,34 +419,76 @@ function MatLib=PopulateMatLib(MatTableHandle)
         MatDbase=get(MatTableHandle,'data');
         GUIColNames=strip(GUIColNames); %Remove extra spaces from the names of the GUI columns
         MatCol=find(strcmpi(GUIColNames,'Material')); %Determine which column holds the name
-        TypCol=find(strcmpi(GUIColNames,'Type'));
+        TypeCol=find(strcmpi(GUIColNames,'Type'));
         AvailMats=find(not(strcmpi('',MatDbase(:,MatCol)))); %List of populated materials
         MatDbase=MatDbase(AvailMats,:);
-        MatLib=[];
+        MatLib=PPMatLib;
 
+        for Row=1:length(MatDbase(:,1))
+            %Create Material Type
+            try
+                eval(sprintf('NewMat=PPMat%s;',MatDbase{Row,TypeCol}))
+            catch
+                warning('Unknown material type %s',MatDbase{Row,TypeCol})
+                return
+            end
+            for Col=1:length(GUIColNames)
+                ColName=lower(strtrim(GUIColNames{Col}));
+                FindSpace=strfind(ColName,' ');
+                if ~isempty(FindSpace)
+                    ColName=ColName(1:FindSpace-1);
+                end
+                if ~strcmpi(ColName,'type')
+                    ColNum=GetMatCol(ColName);
+                    if ColNum>0
+                        if ~isnan(MatDbase{Row,ColNum})
+                            NewMat.(GetMatCol(ColName,true))=MatDbase{Row,ColNum};
+                        end
+                    end
+                end
+            end
+            MatLib.AddMatl(NewMat);
+        end
+        %TypeList=get(MatTableHandle,'columnformat');
+        %TypeList=TypeList{GetMatCol('type')};
+        %MatLib.TypeList=TypeList';
+        setappdata(F,'Materials',MatLib);
+    end
+
+function MatDbase=PopulateMatDbase(MatTableHandle, MatLib)
+
+    F=get(get(MatTableHandle,'parent'),'parent');
+    GUIColNames=get(MatTableHandle,'columnname');
+    MatDbase=get(MatTableHandle,'data');
+    GUIColNames=strip(GUIColNames); %Remove extra spaces from the names of the GUI columns
+    MatCol=find(strcmpi(GUIColNames,'Material')); %Determine which column holds the name
+    TypeCol=find(strcmpi(GUIColNames,'Type'));
+
+    for iMat=1:MatLib.NumMat
+        ThisMat=MatLib.GetMatNum(iMat);
         for Col=1:length(GUIColNames)
             ColName=lower(strtrim(GUIColNames{Col}));
             FindSpace=strfind(ColName,' ');
             if ~isempty(FindSpace)
                 ColName=ColName(1:FindSpace-1);
             end
-            ColNum=GetMatCol(ColName);
-            if ColNum>0
-                if ischar(MatDbase{1,ColNum})
-                    MatLib=setfield(MatLib,GetMatCol(ColName,true),MatDbase(:,ColNum));
-                elseif isnumeric(MatDbase{1,ColNum})
-                    MatLib=setfield(MatLib,GetMatCol(ColName,true),cell2mat(MatDbase(:,ColNum)));
-                else
-                    warning('Unknown field type.')
+            if strcmpi(ColName,'type')
+                MatDbase{iMat,Col}=ThisMat.Type;
+            else
+                ColNum=GetMatCol(ColName);
+                if ColNum>0
+                    try
+                        MatDbase{iMat, ColNum}=ThisMat.(GetMatCol(ColName, true));
+                    catch
+                        MatDbase{iMat, ColNum}=NaN;
+                    end
                 end
             end
         end
-        TypeList=get(MatTableHandle,'columnformat');
-        TypeList=TypeList{GetMatCol('type')};
-        MatLib.TypeList=TypeList';
-        setappdata(F,'Materials',MatLib);
     end
-
+    %TypeList=get(MatTableHandle,'columnformat');
+    %TypeList=TypeList{GetMatCol('type')};
+    %MatLib.TypeList=TypeList';
 
 % --- Executes on button press in helpbutton.
 function helpbutton_Callback(hObject, eventdata, handles)
@@ -508,7 +608,7 @@ function SortButton_Callback(hObject, eventdata, handles)
 
 function Out=MatTypes(Action, Value)
 
-    MatTypes={'Solid'; 'PCM'; 'IBC'; 'SCPCM'};
+    MatTypes=PPMatLib.GetMatTypesAvail();
     switch lower(Action)
         case 'enumerate'
             Out=MatTypes;
