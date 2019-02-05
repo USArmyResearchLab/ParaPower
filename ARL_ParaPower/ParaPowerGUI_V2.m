@@ -268,6 +268,10 @@ function E=EmptyFeatureRow
     E{FTC('QVal')}='0';
     E{FTC('QType')}='Scalar';
     E{FTC('Desc')}='';
+    E{FTC('DivX')}=1;
+    E{FTC('DivY')}=1;
+    E{FTC('DivZ')}=1;
+    
 end
 
 % --- Executes during object creation, after setting all properties.
@@ -533,6 +537,7 @@ function RunAnalysis_Callback(hObject, eventdata, handles)
         MI = getappdata(handles.figure1,'MI');
         if isempty(MI)
             AddStatusLine('Model not yet fully defined.','error')
+            GUIEnable(handles.figure1)
             return
         end
 
@@ -1215,7 +1220,7 @@ if isempty(ResultFigure)
 else
     figure(Objects(ResultFigure(1)));
 end
-
+clf
 
 if isempty(TimeStepString)  %no model results
     MI=getappdata(handles.figure1,'MI');
@@ -1223,7 +1228,6 @@ if isempty(TimeStepString)  %no model results
         AddStatusLine('No Results Exist. Displaying Detailed Geometry','warning')
         numplots=numplots+1;
         figure(numplots)
-        pause(.001)      
         Visualize ('', MI, 'modelgeom','ShowQ','ShowExtent')
     else
         AddStatusLine('No Existing Results or Model Info.','warning')
@@ -1383,7 +1387,7 @@ function AddStatusLine(textline,varargin)% Optional args are AddToLastLine,Flag,
 
     AddToLastLine=false;
     Flag='';
-    ThisFig=gcf;
+    ThisFig=findobj(0,'-depth',1,'tag','figure1');
     
     if nargin==2
         if ishandle(varargin{1})
@@ -1417,7 +1421,7 @@ function AddStatusLine(textline,varargin)% Optional args are AddToLastLine,Flag,
     end
     
     if not(exist('ThisFig','var'))
-        ThisFig=findobj(0,'-depth',1,'tag','figure1')
+        ThisFig=findobj(0,'-depth',1,'tag','figure1');
     end
     handles=guihandles(ThisFig);
     Hstat=handles.StatusWindow;
@@ -2029,6 +2033,7 @@ function HelpButton_Callback(hObject, eventdata, handles)
                     'for this document shall be referred to US Army Research Laboratory, Power Conditioning Branch (RDRL-SED-P). '];
     HelpText{end+1}='';
     set(T,'string',HelpText)
+    GUIEnable;
 end
 
 function GUIDisable(GUIHandle)
@@ -2036,10 +2041,12 @@ function GUIDisable(GUIHandle)
     if isempty(CurObjects)
         ObjectsToChange=findobj(GUIHandle,'enable','on','-property','callback','type','uicontrol');
         ObjectsToChange=[ObjectsToChange; findobj(GUIHandle,'enable','on','-property','celleditcallback','type','uitable')];
+        
         %ObjectsToChange=[ObjectsToChange; findobj(GUIHandle,'enable','on','type','uicontrol','style','popupmenu')];
         %ObjectsToChange=[ObjectsToChange; findobj(GUIHandle,'enable','on','type','uicontrol','style','checkbox')];
         setappdata(GUIHandle,'DisabledObjects', ObjectsToChange);
         set(ObjectsToChange,'enable','off')
+        set(findobj(ObjectsToChange,'tag','HelpButton'),'enable','on');
     end
 end
 

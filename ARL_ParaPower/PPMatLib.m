@@ -55,9 +55,10 @@ classdef PPMatLib < handle
                  if length(s) == 1 & ~isprop(obj,s.subs)
                     % Implement obj.PropertyName
                      varargout{1}=obj.GetParam(s.subs);
-                 %elseif length(s) == 2 && strcmp(s(2).type,'()')
-                 %   % Implement obj.PropertyName(indices)
-                 %   ...
+                 elseif length(s) == 2 && strcmp(s(2).type,'()') && any(strcmpi(obj.iParamList,s(1).subs)) 
+                    % Implement obj.PropertyName(indices)
+                      List=obj.GetParam(s(1).subs);
+                      varargout{1}=List(s(2).subs{1});
                  else
                     [varargout{1:nargout}] = builtin('subsref',obj,s);
                  end

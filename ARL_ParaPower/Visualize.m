@@ -49,7 +49,7 @@ function Visualize (PlotTitle, MI, varargin)
     PlotGeom=true; %If no other parameters are called, then plot the model geom
     h=MI.h;
     Ta=MI.Ta;
-    matlist=MI.MatLib.Material;
+    matlist=MI.MatLib.Name;
 
     
     %Note that any PlotParms field ending in 'Matl' will have negative
@@ -149,7 +149,7 @@ function Visualize (PlotTitle, MI, varargin)
             case strleft('modelgeometry',Pl)
                 h=MI.h;
                 Ta=MI.Ta;
-                matlist=MI.MatLib.Material;
+                matlist=MI.MatLib.Name;
                 PlotGeom=true;
             otherwise
                 fprintf('Property "%s" is unknown.\n',Prop)

@@ -183,27 +183,7 @@ if strcmpi(Response,YES)
 end
     
 
-% ToRetain=find(not(cell2mat(MatDbase(:,IsIBCCol))));
-% YES='Yes';
-% Response=questdlg('Are you sure want to delete all checked materials?','Confirm',YES,'No','No');
-% if strcmpi(Response,YES)
-% %     for i=IBCs'
-% %         MatDbase(i,:)=MatDbase(end,:);
-% %     end
-%     MatDbase=MatDbase(ToRetain,:);
-%     set(handles.MatTable,'Data',MatDbase);
-% end
-%     
-% --- Executes on button press in loadbutton.
-function loadbutton_Callback(hObject, eventdata, handles)
-% hObject    handle to loadbutton (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-oldpathname=get(handles.loadbutton,'userdata');
-[fname,pathname]=uigetfile([oldpathname '*.mat'],'Load Material Database');
-if fname ~= 0
-    set(handles.loadbutton,'userdata',pathname);
-    load([pathname fname],'MatLib');
+function NewMatLib=ConvertOldMatLib(MatLib)
     if ~strcmpi(class(MatLib),'PPMatLib')
         %load([pathname fname],'MatDbase');  
         disp('Converting from structure based MatLib to object based MatLib.')
@@ -261,6 +241,30 @@ if fname ~= 0
         end
         MatLib=NewMatLib;
     end
+
+
+% ToRetain=find(not(cell2mat(MatDbase(:,IsIBCCol))));
+% YES='Yes';
+% Response=questdlg('Are you sure want to delete all checked materials?','Confirm',YES,'No','No');
+% if strcmpi(Response,YES)
+% %     for i=IBCs'
+% %         MatDbase(i,:)=MatDbase(end,:);
+% %     end
+%     MatDbase=MatDbase(ToRetain,:);
+%     set(handles.MatTable,'Data',MatDbase);
+% end
+%     
+% --- Executes on button press in loadbutton.
+function loadbutton_Callback(hObject, eventdata, handles)
+% hObject    handle to loadbutton (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+oldpathname=get(handles.loadbutton,'userdata');
+[fname,pathname]=uigetfile([oldpathname '*.mat'],'Load Material Database');
+if fname ~= 0
+    set(handles.loadbutton,'userdata',pathname);
+    load([pathname fname],'MatLib');
+    MatLib=ConvertOldMatLib(MatLib);
     MatDbase=PopulateMatDbase(handles.MatTable, MatLib);
     set(handles.MatTable,'Data',MatDbase);
 end

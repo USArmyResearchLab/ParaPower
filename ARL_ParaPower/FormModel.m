@@ -315,7 +315,7 @@ end
 FeatureMatrix=ModelMatrix; %Retain the ability to separate features
 ModelMatrix=ModelMatrix*1i;  %Make all feature number imaginary, then replace "imaginary" feature numbers with "real" material numbers.
 for Fi=1:length(Features)
-    MatNum=find(strcmpi(Features(Fi).Matl,MatLib.Material));
+    MatNum=find(strcmpi(Features(Fi).Matl,MatLib.Name));
     if isempty(MatNum)
         MatNum=NaN;
         fprintf('Feature %2.0f material %s is unknown',Fi,MatNum);
