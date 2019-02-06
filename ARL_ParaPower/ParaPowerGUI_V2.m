@@ -565,17 +565,18 @@ function RunAnalysis_Callback(hObject, eventdata, handles)
             
             if 1 %Time Estimate
                 [Tprnt, T_in, MeltFrac,MeltFrac_in]=S1(ComputeTime);  %Compute states at times in ComputeTime (S1 must be called with 1 arg in 2017b)
-                Tprnt=cat(4,T_in,Tprnt);
-                MeltFrac=cat(4,MeltFrac_in,MeltFrac);
-            else
+                Tprnt   =cat(4, T_in        , Tprnt   );
+                MeltFrac=cat(4, MeltFrac_in , MeltFrac);
+            else  %THERE IS CURRENTLY  A PROBLEM WHERE STEP 4 HERE IS NOT THE SAME AS ABOVE
+                StepsToEstimate=2;
                 tic
-                [Tprnt, T_in, MeltFrac,MeltFrac_in]=S1(ComputeTime(1:min(2,length(ComputeTime))));  %Compute states at times in ComputeTime (S1 must be called with 1 arg in 2017b)
-                EstTime=toc;
-                if length(ComputeTime)>2
+                [Tprnt, T_in, MeltFrac,MeltFrac_in]=S1(ComputeTime(1:min(StepsToEstimate,length(ComputeTime))));  %Compute states at times in ComputeTime (S1 must be called with 1 arg in 2017b)
+                EstTime=toc
+                if length(ComputeTime)>StepsToEstimate
                     AddStatusLine(sprintf('(Est. %.1s)',EstTime*(length(ComputeTime)-2)))
-                    [Tprnt2, Tprnt, MeltFrac2,MeltFrac]=S1(ComputeTime(3:end));  %Compute states at times in ComputeTime (S1 must be called with 1 arg in 2017b)
-                    Tprnt=cat(4,T_in,Tprnt, Tprnt2);
-                    MeltFrac=cat(4,MeltFrac_in,MeltFrac, MeltFrac2);
+                    [Tprnt2, T_in2, MeltFrac2,MeltFrac_in2]=S1(ComputeTime(3:end));  %Compute states at times in ComputeTime (S1 must be called with 1 arg in 2017b)
+                    Tprnt   =cat(4, T_in        , Tprnt   ,  Tprnt2   );
+                    MeltFrac=cat(4, MeltFrac_in , MeltFrac,  MeltFrac2);
                 else
                     Tprnt=cat(4,T_in,Tprnt);
                     MeltFrac=cat(4,MeltFrac_in,MeltFrac);
@@ -588,7 +589,8 @@ function RunAnalysis_Callback(hObject, eventdata, handles)
             AddStatusLine(sprintf('(%3.2fs)...',Etime),true)
         catch ME
             AddStatusLine('Error during thermal solve.')
-            AddStatusLine('')
+            AddStatusLine(ME.message,'err')
+            AddStatusLine(' ');
             disp(ME.getReport)
             Tprnt=[];
         end
@@ -614,13 +616,17 @@ function RunAnalysis_Callback(hObject, eventdata, handles)
             set(handles.slider1,'value',1);
         catch ME
             AddStatusLine('Error during stress solve.')
-            AddStatusLine('')
+            AddStatusLine(ME.message,'err')
+            AddStatusLine('');
             disp(ME.getReport)
             Stress=[];
         end
         AddStatusLine('Complete.',true)
        
-
+        if exist('ME')
+            GUIEnable()
+            return
+        end
        
        %not used StateN=round(length(GlobalTime)*TimeStepOutput,0);
        
@@ -1195,7 +1201,7 @@ for I=1:length(DataToRemove)
         rmappdata(handles.figure1,DataToRemove{I});
     end
 end
-
+set(handles.StressModel,'value',find(strcmpi(get(handles.StressModel,'string'),'None')))
 guidata(hObject, handles);
 if Confirm
     AddStatusLine('Done.', true,handles.figure1)
@@ -1541,8 +1547,9 @@ function VisUpdateStatus(handles, NeedsUpdate)
             'unit','normal',...
             'horizon','center',...
             'vis','off',...
-            'color','white',...
-            'background','red',...
+            'color','red',...
+            'background','white',...
+            'edgecolor','red',...
             'fontweight','bold');
         guidata(AxisHandle,handles);
     end

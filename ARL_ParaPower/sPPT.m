@@ -142,12 +142,18 @@ classdef sPPT < matlab.System & matlab.system.mixin.Propagates ...
             %% Phase Change Setup Hook
             %PHres=Tres;
             %[isPCM,kondl,rhol,sphtl,Lw,Tm,PH,PH_init] = PCM_init(Mat,matprops,Num_Row,Num_Col,Num_Lay,steps);
-            [~,rhol,~,Lw,~,~,PH_init] = PCM_init(MI,Mat);
+
+            meltable=any(strcmp(MI.MatLib.Type(rollcall),'PCM') | strcmp(MI.MatLib.Type(rollcall),'SCPCM'));
             PH=zeros(nnz(Mat>0),1);
-            PH(:,1)=PH_init;
-            obj.Lv=(rho+rhol)/2 .* Lw;  %generate volumetric latent heat of vap using average density
+            
+            if any(meltable)
+                [~,rhol,~,Lw,~,~,PH_init] = PCM_init(MI,Mat);
+                PH(:,1)=PH_init;
+                obj.Lv=(rho+rhol)/2 .* Lw;  %generate volumetric latent heat of vap using average density
+            else
+                obj.Lv=rho*0;
+            end
             %should we have a PH_init?
-            meltable=any(strcmp(MI.MatLib.Type(rollcall),'PCM'));
 
 
             %% Build Adjacency and Conductance Matrices

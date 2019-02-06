@@ -315,12 +315,14 @@ end
 FeatureMatrix=ModelMatrix; %Retain the ability to separate features
 ModelMatrix=ModelMatrix*1i;  %Make all feature number imaginary, then replace "imaginary" feature numbers with "real" material numbers.
 
+%Reduce materials to include only those in use in MI
 MatsInUse=zeros(MatLib.NumMat,1);
 for Fi=1:length(Features)
     MatsInUse=strcmpi(Features(Fi).Matl,MatLib.Name) | MatsInUse;
 end
 MatsInUse=find(MatsInUse);
-MatLib=MatLib(MatsInUse);
+%MatLib=MatLib(MatsInUse);  %Uncomment this line to limit the number of
+%materials include in MI
 
 for Fi=1:length(Features)
     MatNum=find(strcmpi(Features(Fi).Matl,MatLib.Name));
