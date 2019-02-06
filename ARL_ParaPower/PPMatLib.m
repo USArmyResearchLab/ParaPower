@@ -66,14 +66,14 @@ classdef PPMatLib < handle
                  if length(s) == 1
                     % Implement obj(indices)
                     TempOut=PPMatLib;
-                    for Mi=s.subs{1}
+                    for Mi=reshape(s.subs{1},1,[])
                         TempOut.AddMatl(obj.iMatObjList{Mi})
                     end
                     varargout{1}=TempOut;
                  elseif length(s) == 2 && strcmp(s(2).type,'.')
                     % Implement obj(ind).PropertyName
                     TempLib=PPMatLib;
-                    for Mi=s(1).subs{1}
+                    for Mi=reshape(s(1).subs{1},1,[])
                         TempLib.AddMatl(obj.iMatObjList{Mi});
                     end
                     varargout{1}=TempLib.GetParam(s(2).subs);

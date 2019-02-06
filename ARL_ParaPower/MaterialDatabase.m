@@ -304,6 +304,9 @@ function Output=GetMatCol(ColName,ReturnField)
         case 'material'
             C=2;
             field='Name';
+        case 'name'
+            C=2;
+            field='Name';
         case 'type'
             C=3;
             field='Type';
@@ -377,39 +380,38 @@ function Output=GetMatCol(ColName,ReturnField)
         Output=C;
     end
     
-% function MatDbaseHandle=ExtractMatLib(MatDbaseHandle, MatLib)
-%     FieldNames=fieldnames(MatLib);
-%     handles=guihandles(MatDbaseHandle);
-%     Table=get(handles.MatTable,'data');
-%     Table=Table(1,:);
-%     NumMats=[];
-%     for Fi=1:length(FieldNames)
-%         %fprintf('Setting %s...',FieldNames{Fi});
-%         if strcmp('TypeList',FieldNames(Fi))
-%             TypeList=get(handles.MatTable,'columnformat');
-%             TypeList{GetMatCol('type')}=reshape(MatLib.TypeList,1,[]);
-%             set(handles.MatTable,'columnformat',TypeList);
-%         elseif isempty(GetMatCol(FieldNames{Fi}))
-%             warning(['Unknown field name "' FieldNames(Fi) '" in MatLib.']);
-%         else
-%             NumMatsThisParm=length(getfield(MatLib,FieldNames{Fi}));
-%             MatDbaseCol=GetMatCol(FieldNames{Fi});
+function MatDbaseHandle=ExtractMatLib(MatDbaseHandle, MatLib)
+    FieldNames=MatLib.Params;
+    handles=guihandles(MatDbaseHandle);
+    Table=get(handles.MatTable,'data');
+    Table=Table(1,:);
+    NumMats=MatLib.NumMat;
+    TypeList=get(handles.MatTable,'columnformat');
+    TypeList{GetMatCol('type')}=reshape(MatLib.GetMatTypesAvail(),1,[]);
+    set(handles.MatTable,'columnformat',TypeList);
+    for Fi=1:length(FieldNames)
+        %fprintf('Setting %s...',FieldNames{Fi});
+        if isempty(GetMatCol(FieldNames{Fi}))
+            warning(['Unknown field name "' FieldNames(Fi) '" in MatLib.']);
+        else
+            NumMatsThisParm=length(MatLib.(FieldNames{Fi}));
+            MatDbaseCol=GetMatCol(FieldNames{Fi});
 %             if isempty(NumMats)
 %                 NumMats=NumMatsThisParm;
 %             elseif NumMats ~= NumMatsThisParm
 %                 warning(['All material parameters must exist for all materials.  Parameter "' FieldNames(Fi) '" only has ' num2str(NumMatsThisParm) ' parameters.']);
 %             end
-%             if isnumeric(Table{1,MatDbaseCol})
-%                 Table(1:NumMats,MatDbaseCol)=num2cell(MatLib.(FieldNames{Fi}));
-%             else
-%                 Table(1:NumMats,MatDbaseCol)=MatLib.(FieldNames{Fi});
-%             end
-%             %fprintf('column %2.0d\n',GetMatCol(FieldNames{Fi}))
-%         end
-%     end
-%     Table(:,1)={false};
-%     set(handles.MatTable,'data',Table);
-%     setappdata(MatDbaseHandle,'Materials',MatLib)
+            if isnumeric(Table{1,MatDbaseCol})
+                Table(1:NumMats,MatDbaseCol)=num2cell(MatLib.(FieldNames{Fi}));
+            else
+                Table(1:NumMats,MatDbaseCol)=MatLib.(FieldNames{Fi});
+            end
+            %fprintf('column %2.0d\n',GetMatCol(FieldNames{Fi}))
+        end
+    end
+    Table(:,1)={false};
+    set(handles.MatTable,'data',Table);
+    setappdata(MatDbaseHandle,'Materials',MatLib)
 
 function MatLib=PopulateMatLib(MatTableHandle)
 
@@ -628,6 +630,8 @@ function Out=MatTypes(Action, Value)
                     Out=[4:9];
                 case 'ibc'
                     Out=[15 16];
+                case ''
+                    Out=[];
                 otherwise
                     error(['Unknown material type "' Value '"'])
             end

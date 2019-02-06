@@ -39,7 +39,7 @@ gui_State = struct('gui_Name',       mfilename, ...
 if nargin && ischar(varargin{1})
     gui_State.gui_Callback = str2func(varargin{1});
 end
-
+ErrorStatus()
 if nargout
     [varargout{1:nargout}] = gui_mainfcn(gui_State, varargin{:});
 else
@@ -119,7 +119,7 @@ function InitializeGUI(handles)
     set(handles.VisualStress,'enable','on');
     disp('stop button functionality is not implemented in this GUI yet.')
     set(handles.pushbutton18,'enable','off')
-
+    ErrorStatus()
 
     %Set Stress Model Directory
     set(handles.StressModel,'userdata','Stress_Models')
@@ -146,6 +146,7 @@ function InitializeGUI(handles)
     set(handles.StressModel,'string',StressModelFunctions);
     setappdata(handles.figure1,'Initialized',true);
     ClearGUI_Callback(handles.ClearGUI, [], handles, false)
+    ErrorStatus('')
     GUIEnable(handles.figure1)
 
 end
@@ -386,9 +387,14 @@ function loadbutton_Callback(hObject, eventdata, handles)
                 AddStatusLine(['Loading GUISTATE from "' pathname filename '"...']);
                 set(gcf,'name',CurTitle);
             end
+            GUIStateLoaded=true;
         catch ME
             load ([pathname filename],'-mat');
-%        end
+            GUIStateLoaded=false;
+        end
+        if GUIStateLoaded
+            return
+        else
 %        if not(strncmpi('etatsiug.',filename(end:-1:1),8)) %If filename is not .guistate, then load model into the GUI
             AddStatusLine(['Loading model "' pathname filename '"...']);
     %        TestCaseModel = uiimport([pathname filename]);
@@ -495,7 +501,9 @@ function loadbutton_Callback(hObject, eventdata, handles)
            
            %Update Materials
            if isfield(TestCaseModel,'MatLib')
+               %Is this working properly?  Materials database isn't getting reloaded.
                UpdateMatList('LoadMatLib',handles.features, FTC('mat'), TestCaseModel.MatLib)
+               
            else
                AddStatusLine('Materials database not included in this model.');
                AddStatusLine('It is likely an old model. ');
@@ -537,7 +545,7 @@ function RunAnalysis_Callback(hObject, eventdata, handles)
         MI = getappdata(handles.figure1,'MI');
         if isempty(MI)
             AddStatusLine('Model not yet fully defined.','error')
-            GUIEnable(handles.figure1)
+            GUIEnable
             return
         end
 
@@ -554,11 +562,28 @@ function RunAnalysis_Callback(hObject, eventdata, handles)
 
             MI.GlobalTime=InitTime;  %Setup initialization
             S1=scPPT('MI',MI); %Initialize object
-            [Tprnt, T_in, MeltFrac,MeltFrac_in]=S1(ComputeTime);  %Compute states at times in ComputeTime (S1 must be called with 1 arg in 2017b)
+            
+            if 1 %Time Estimate
+                [Tprnt, T_in, MeltFrac,MeltFrac_in]=S1(ComputeTime);  %Compute states at times in ComputeTime (S1 must be called with 1 arg in 2017b)
+                Tprnt=cat(4,T_in,Tprnt);
+                MeltFrac=cat(4,MeltFrac_in,MeltFrac);
+            else
+                tic
+                [Tprnt, T_in, MeltFrac,MeltFrac_in]=S1(ComputeTime(1:min(2,length(ComputeTime))));  %Compute states at times in ComputeTime (S1 must be called with 1 arg in 2017b)
+                EstTime=toc;
+                if length(ComputeTime)>2
+                    AddStatusLine(sprintf('(Est. %.1s)',EstTime*(length(ComputeTime)-2)))
+                    [Tprnt2, Tprnt, MeltFrac2,MeltFrac]=S1(ComputeTime(3:end));  %Compute states at times in ComputeTime (S1 must be called with 1 arg in 2017b)
+                    Tprnt=cat(4,T_in,Tprnt, Tprnt2);
+                    MeltFrac=cat(4,MeltFrac_in,MeltFrac, MeltFrac2);
+                else
+                    Tprnt=cat(4,T_in,Tprnt);
+                    MeltFrac=cat(4,MeltFrac_in,MeltFrac);
+                end
+            end
+
             MI.GlobalTime = [InitTime ComputeTime]; %Reassemble MI's global time to match initialization and computed states.
 
-            Tprnt=cat(4,T_in,Tprnt);
-            MeltFrac=cat(4,MeltFrac_in,MeltFrac);
             Etime=toc;
             AddStatusLine(sprintf('(%3.2fs)...',Etime),true)
         catch ME
@@ -800,6 +825,7 @@ if not(exist('DrawModel'))
     DrawModel=true;
 end
 GUIDisable(handles.figure1)
+ErrorStatus()
 KillInit=0;
 AddStatusLine('Initializing...',handles.figure1)
 clear Features ExternalConditions Params PottingMaterial Descr
@@ -823,7 +849,8 @@ ExtBoundMatrix = get(handles.ExtCondTable,'Data');
 for K=1:length(ExtBoundMatrix(:))
     if isempty(ExtBoundMatrix{K})
         AddStatusLine('Error.',true,'error');
-        AddStatusLine('Env. parameters must be fully populated');
+        AddStatusLine('Env. parameters must be fully populated','err');
+        GUIEnable
         return
     end
 end
@@ -873,8 +900,6 @@ end
 %overlapping features is not defined.
  %Layer 1 is at bottom
 
-
-
 [rows,cols]=size(FeaturesMatrix);
 if rows==0
     AddStatusLine('No features to initialize.','warning')
@@ -883,7 +908,13 @@ else
     for K=1:length(CheckMatrix(:))
         if isempty(CheckMatrix{K})
             AddStatusLine('Error.',true,'error');
-            AddStatusLine('Features table is not fully defined.')
+            if ischar(CheckMatrix{K})
+                EmptyPart='Material empty.';
+            else
+                EmptyPart='X, Y or Z coordinates or divisions Empty.';
+            end
+            AddStatusLine(['Features table is not fully defined. ' EmptyPart],'err')
+            GUIEnable
             return
         end
     end
@@ -1008,7 +1039,15 @@ else
         AddStatusLine('Unable to execute model due to errors.','error')
     else
         AddStatusLine('forming...',true)
-        MI=FormModel(TestCaseModel);
+        try
+            MI=FormModel(TestCaseModel);
+        catch ME
+            disp(ME.getReport)
+            AddStatusLine('Error running forming model','Err')
+            AddStatusLine(ME.message)
+            GUIEnable
+            return
+        end
         AddStatusLine('storing...',true)
 
     %    axes(handles.GeometryVisualization);
@@ -1392,8 +1431,10 @@ function AddStatusLine(textline,varargin)% Optional args are AddToLastLine,Flag,
     if nargin==2
         if ishandle(varargin{1})
             ThisFig=varargin{1};
-        else
+        elseif islogical(varargin{1})
             AddToLastLine=varargin{1};
+        else
+            Flag=varargin{1};
         end
     elseif nargin==3
         AddToLastLine=varargin{1};
@@ -1412,8 +1453,10 @@ function AddStatusLine(textline,varargin)% Optional args are AddToLastLine,Flag,
     switch lower(Flag(1:3))
         case 'war'
             sound([wf wf],8192)
+            ErrorStatus('warning')
         case 'err'
             sound([wf wf wf wf],8192)
+            ErrorStatus('error')
         case 'inf'
         case '   '
         otherwise
@@ -1439,12 +1482,13 @@ function AddStatusLine(textline,varargin)% Optional args are AddToLastLine,Flag,
         MaxChar=floor(Pos(3));
         MaxWidth=Pos(3)+1;
         set(Hstat,'max',10);
+        Indent='   ';
         if strcmpi(textline,'ClearStatus')
             set(Hstat,'string','')
             set(Hstat,'value',1)
         else
             OldText=get(Hstat,'string');
-            textline=textline(1:min([MaxChar length(textline)]));
+            %textline=textline(1:min([MaxChar length(textline)]));
             if isempty(OldText)
                 NewText=textline;
             else
@@ -1455,10 +1499,19 @@ function AddStatusLine(textline,varargin)% Optional args are AddToLastLine,Flag,
                 end
             end
             if strcmpi(NewText,'CLEARSTATUS')
-                NewText='';
+                NewText={''};
             end
             if ischar(NewText)
                 NewText={NewText};
+            end
+            while length(NewText{end}) > MaxChar
+                SpacePos=strfind(NewText{end},' ');
+                SpacePos=max(SpacePos(SpacePos<=MaxChar));
+                if SpacePos >= MaxChar | SpacePos <= length(Indent)
+                    SpacePos=MaxChar;
+                end
+                NewText{end+1}=[Indent NewText{end}(SpacePos+1:end)];
+                NewText{end-1}=NewText{end-1}(1:SpacePos-1);
             end
             E=MaxWidth;  %The following while ensure that lines don't wrap around.
 %             while E>Pos(3)  %This was need to ensure lines in an edit box didn't wrap around.
@@ -1499,6 +1552,39 @@ function VisUpdateStatus(handles, NeedsUpdate)
     else
         set(handles.VisualUpdateText,'vis','off');
     end
+end
+
+function ErrorStatus(ErrorFlag)
+    %handles=guidata(gcf);
+    if ~exist('ErrorFlag','var')
+        ErrorFlag='';
+    end
+    ThisFig=findobj(0,'-depth',1,'tag','figure1');
+    if ~isempty(ThisFig) 
+        handles=guidata(ThisFig);
+        if isfield(handles,'GeometryVisualization')
+            AxisHandle=handles.GeometryVisualization;
+            if not(isfield(handles,'ErrorStatus')) || not(isvalid(handles.ErrorStatus))
+                handles.ErrorStatus=text(AxisHandle,0.5,0.65,'ErrorStatus',...
+                    'unit','normal',...
+                    'horizon','center',...
+                    'vis','off',...
+                    'color','white',...
+                    'background','red',...
+                    'fontweight','bold');
+                guidata(AxisHandle,handles);
+            end
+
+            if strncmpi(ErrorFlag,'war',3)
+                set(handles.ErrorStatus,'vis','on','string','Warning: Check status box.','background','yellow');
+            elseif strncmpi(ErrorFlag,'err',3)
+                set(handles.ErrorStatus,'vis','on','string','Error: Check status box.','background','red');
+            elseif isempty(ErrorFlag)
+                set(handles.ErrorStatus,'vis','off');
+            end
+        end
+    end
+        
 end
     
 % --- Executes during object creation, after setting all properties.
