@@ -89,6 +89,8 @@ if NewWindow
         disp(['No default material database loaded. (' DefFname '.mat)'])
         %PopulateMatLib(handles, MatDbase, GUIColNames);
     end
+    MatTable=get(handles.MatTable,'Data');
+    setappdata(handles.MatDbaseFigure,'OldData',MatTable);
 end
 GUIColNames=strtrim(get(handles.MatTable,'columnname'));
 set(handles.SortByMenu,'string',GUIColNames,'value',2)
@@ -140,6 +142,8 @@ if length(ErrorText) > 0
     end        
 else
     set(handles.MatDbaseFigure,'visible','off')
+    MatTable=get(handles.MatTable,'Data');
+    setappdata(handles.MatDbaseFigure,'OldData',MatTable);
     %set(handles.MatDbaseFigure,'windowstyle','normal');
     uiresume
 end
@@ -724,6 +728,8 @@ function cancelbutton_Callback(hObject, eventdata, handles)
 P=questdlg('Are you sure you want to discard changes to material data?','Confirmation','Yes','No','No');
 
 if strcmpi(P,'Yes')
+    MatTable=getappdata(handles.MatDbaseFigure,'OldData');
+    set(handles.MatTable,'Data',MatTable);
     set(handles.MatDbaseFigure,'visible','off')
     %set(handles.MatDbaseFigure,'windowstyle','normal');
     uiresume    
