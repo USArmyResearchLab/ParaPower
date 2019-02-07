@@ -318,7 +318,7 @@ function Visualize (PlotTitle, MI, varargin)
     end
 
     hold on
-    drawnow nocallbacks limitrate
+    %drawnow nocallbacks limitrate
     for Xi=1:length(X)-1
         for Yi=1:length(Y)-1
             for Zi=1:length(Z)-1
@@ -715,7 +715,7 @@ function Visualize (PlotTitle, MI, varargin)
         set(LIButton,'position',[P(1) P(2) E(3)*1.1 Hgt]);
         set(LIButton,'units','normal');
     end
-    drawnow
+    %drawnow
     axes(OrigAxis)
 end
 

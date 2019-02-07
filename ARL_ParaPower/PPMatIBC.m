@@ -51,7 +51,7 @@ classdef PPMatIBC < PPMat
                         h_ibc=Value;
                     case obj.strleft('t_ibc',Pl)
                         [Value, PropValPairs]=obj.Pop(PropValPairs); 
-                        t_ibc=Value;
+                        T_ibc=Value;
                     otherwise
                         [Value, PropValPairs]=obj.Pop(PropValPairs); 
                         obj.PropValPairs=[Prop Value obj.PropValPairs ];
