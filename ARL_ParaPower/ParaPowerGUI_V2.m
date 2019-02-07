@@ -389,7 +389,7 @@ function loadbutton_Callback(hObject, eventdata, handles)
             end
             GUIStateLoaded=true;
         catch ME
-            load ([pathname filename],'-mat');
+            load([pathname filename],'-mat');
             GUIStateLoaded=false;
         end
         if GUIStateLoaded
@@ -550,7 +550,7 @@ function RunAnalysis_Callback(hObject, eventdata, handles)
         end
 
         drawnow
-        AddStatusLine('Thermal...',true)
+        AddStatusLine('Thermal ',true)
         
         try
             %not used TimeStepOutput = get(handles.slider1,'Value');
@@ -563,7 +563,7 @@ function RunAnalysis_Callback(hObject, eventdata, handles)
             MI.GlobalTime=InitTime;  %Setup initialization
             S1=scPPT('MI',MI); %Initialize object
             
-            if 1 %Time Estimate
+            if 0 %Time Estimate
                 [Tprnt, T_in, MeltFrac,MeltFrac_in]=S1(ComputeTime);  %Compute states at times in ComputeTime (S1 must be called with 1 arg in 2017b)
                 Tprnt   =cat(4, T_in        , Tprnt   );
                 MeltFrac=cat(4, MeltFrac_in , MeltFrac);
@@ -573,7 +573,7 @@ function RunAnalysis_Callback(hObject, eventdata, handles)
                 [Tprnt, T_in, MeltFrac,MeltFrac_in]=S1(ComputeTime(1:min(StepsToEstimate,length(ComputeTime))));  %Compute states at times in ComputeTime (S1 must be called with 1 arg in 2017b)
                 EstTime=toc
                 if length(ComputeTime)>StepsToEstimate
-                    AddStatusLine(sprintf('(Est. %.1s)',EstTime*(length(ComputeTime)-2)))
+                    AddStatusLine(sprintf('(est. %.1fs)... ',EstTime*(length(ComputeTime)-StepsToEstimate)/StepsToEstimate), true)
                     [Tprnt2, T_in2, MeltFrac2,MeltFrac_in2]=S1(ComputeTime(3:end));  %Compute states at times in ComputeTime (S1 must be called with 1 arg in 2017b)
                     Tprnt   =cat(4, T_in        , Tprnt   ,  Tprnt2   );
                     MeltFrac=cat(4, MeltFrac_in , MeltFrac,  MeltFrac2);
@@ -594,7 +594,7 @@ function RunAnalysis_Callback(hObject, eventdata, handles)
             disp(ME.getReport)
             Tprnt=[];
         end
-        AddStatusLine(['Stress (' StressModel ')...'],true);
+        AddStatusLine(['Stress (' StressModel ')...']);
         try
             if strcmpi(StressModel,'none')
                 Stress=[];

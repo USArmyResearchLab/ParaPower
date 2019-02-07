@@ -37,7 +37,7 @@ if nargin && ischar(varargin{1})
 end
 
 if nargout
-    [varargout{1:nargout}] = gui_mainfcn(gui_State, varargin{:});
+     [varargout{1:nargout}] = gui_mainfcn(gui_State, varargin{:});
 else
     gui_mainfcn(gui_State, varargin{:});
 end
@@ -67,30 +67,33 @@ NewWindow=not(isappdata(handles.MatDbaseFigure,'ExistingFigure'));
 if NewWindow
     DefFname='DefaultMaterials';
     if exist([DefFname '.mat'],'file')==2
-        load(DefFname,'MatDbase')
-        ColsInMatDbase=length(MatDbase(1,:));
-        ColsInGUI=length(get(handles.MatTable,'ColumnName'));
-        if ColsInGUI > ColsInMatDbase
+        load(DefFname,'MatLib')
+        ColsInMatDbase=length(MatLib.GetParamAvail());
+        ColsInGUI=length(get(handles.MatTable,'ColumnName'))-1; %Column 1 is the checkmark column
+        if ColsInGUI > ColsInMatDbase  
             for Ci=ColsInMatDbase+1:ColsInGUI
-                for Ri=1:length(MatDbase(:,1))
-                    MatDbase{Ri,Ci}=NaN
+                for Ri=1:MatLib.NumMat
+                    MatDbase{Ri,Ci+1}=NaN;
                 end
             end
             warning('Default MatDbase may be missing some material parameters, they have been filled with NaN')
         elseif ColsInMatDbase < ColsInGUI
-            MatDbase=MatDbase(:,1:ColsInGUI);
+            %MatDbase=MatDbase(:,1:ColsInGUI);
             warning('Default MatDbase defines material parameters that may not exist in the GUI. Extras have been stripped.')
         end
+        GUIColNames=MatLib.GetParamAvail();
+        MatDbase=PopulateMatDbase(handles.MatTable, MatLib);
         set(handles.MatTable,'Data',MatDbase);
-        GUIColNames=get(handles.MatTable,'columnname');
-        PopulateMatLib(handles.MatTable);
+        %PopulateMatLib(handles.MatTable);
         setappdata(handles.MatDbaseFigure,'ExistingFigure',true);
     else
         disp(['No default material database loaded. (' DefFname '.mat)'])
+        MatLib=PPMatLib;
         %PopulateMatLib(handles, MatDbase, GUIColNames);
     end
     MatTable=get(handles.MatTable,'Data');
     setappdata(handles.MatDbaseFigure,'OldData',MatTable);
+    setappdata(handles.MatDbaseFigure,'Materials',MatLib);
 end
 GUIColNames=strtrim(get(handles.MatTable,'columnname'));
 set(handles.SortByMenu,'string',GUIColNames,'value',2)

@@ -67,7 +67,7 @@ function UpdateMatList(Action, FeatureTableHandle, MatListCol, varargin)
             Data{I,MatListCol}=ThisMat;
         end
     end
-    ColFormat{MatListCol}=NewMatList;
+    %ColFormat{MatListCol}=['No Matl' NewMatList];
     set(FeatureTableHandle,'columnformat',ColFormat);
     set(FeatureTableHandle,'data',Data);
     figure(CurrentFig)

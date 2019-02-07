@@ -9,6 +9,8 @@ Back  = 4; %Y+ Face
 Bottom= 5; %Z- Face
 Top   = 6; %Z+ Face
 
+No_Matl='No Matl';
+
 if ischar(TestCaseModel) 
     if strcmpi('GetDirex',TestCaseModel) %this argument will return the directional index definitions
         ModelInput.Left=Left;
@@ -36,6 +38,9 @@ end
 %Material Properties
 if isfield(TestCaseModel,'MatLib')
     MatLib=TestCaseModel.MatLib;
+    if isempty(find(strcmp(MatLib.MatList,No_Matl), 1))
+        MatLib.AddMatl(PPMatNull('Name',No_Matl));
+    end
 else
     warning('MatLib needs to be included in the TestCaseModel structure')
     msgbox('MatLib needs to be included in the TestCaseModel structure','Warning');

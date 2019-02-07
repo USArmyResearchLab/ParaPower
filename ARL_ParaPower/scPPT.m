@@ -85,7 +85,7 @@ classdef scPPT < sPPT
             T(:,it)=T_iter;
             PH(:,it)=newPH;
             changing = sc_changing | changing; %update changing to include changing supercoolable elements
-            end
+        end
     end
         
 end

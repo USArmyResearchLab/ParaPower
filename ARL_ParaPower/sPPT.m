@@ -396,6 +396,7 @@ classdef sPPT < matlab.System & matlab.system.mixin.Propagates ...
             obj.K=K;
             obj.CP=CP;
             obj.RHO=RHO;
+
             %obj.LV handled above
             %obj.Map=Map;
             %obj.fullheader=fullheader;

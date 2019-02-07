@@ -1,5 +1,37 @@
 classdef PPMatLib < handle
-    
+%classdef PPMatLib < handle
+%This object is used as a collection of materials objects.  To add a new
+%material object it must have the filename PPMatXXXX where XXXX is the
+%specific formulation of the material and it must have PPMat as its super
+%class.
+%
+%Usage of PPMatLib
+%
+%Properties:
+%   NumMat     - Number of materials currently in the library
+%   ParamsCur  - List of all parameters of the material types currently in the
+%                library
+%   MatList    - List of materials currently in the library
+%
+%Access Methods:
+%   MatLib(index)  - Returns a new MatLib comprised of materials identified
+%                    in index
+%   MatLib.Param   - Same as GetParam method below
+%
+%Methods:
+%   GetParam (Param)   - Return vector of parameter values for all materials.
+%                        material that do not define that parameter will have 
+%                        NaN
+%   GetMatName (Name)  - Returns the material object that matches that name
+%   GetMatNum (Number) - Returns the material object that matches that
+%                        index into the library
+%   ParamDesc (Param)  - Returns description of that parameter
+%   AddMatl (MatObj)   - Adds the material defined in MatObj to the library
+%   DefineNewMaterial()- Not yet implemented
+%   GetMatTypesAvail() - Returns a list of all known material types
+%   GetParamAvail()    - Returns list of all parameters in all known
+%                        material types
+
 %    properties (Access=public)
 %        Name    {mustBeChar(Name)} 
 %    end
@@ -45,6 +77,21 @@ classdef PPMatLib < handle
                     Types{end+1}=TempMat.Type;
                 end
             end
+        end
+        
+        function Params=GetParamAvail
+            Params={};
+            MatTypes=PPMatLib.GetMatTypesAvail();
+            for I=1:length(MatTypes)
+                eval(['Mat=PPMat' MatTypes{I} '();']);
+                Params=[Params; fields(Mat)];
+            end
+            Params=unique(Params);
+            AbstractFields=fields(PPMat);
+            for I=1:length(AbstractFields)
+                Params=Params(~strcmpi(Params,AbstractFields(I)));
+            end
+            Params=[AbstractFields; Params];            
         end
     end
     
