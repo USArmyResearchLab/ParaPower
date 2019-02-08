@@ -231,6 +231,25 @@ classdef PPMatLib < handle
             obj.iMatTypeList={};
             obj.iNameList={};
             obj.iMatObjList={};
+            if nargin>=1 && (any(strcmp(superclasses(varargin{1}),'PPMat')))
+                for Ai=1:nargin
+                    if any(strcmp(superclasses(varargin{Ai}),'PPMat'))
+                        obj.AddMatl(varargin{Ai})
+                    else
+                        obj.AddError('For PPMatLib(Mat1, Mat2, Mat3) form all arguments must be a material class.')
+                        obj.AddError(sprintf('Argument %.0f is of type',class(varargin{Ai})))
+                    end
+                end
+            elseif nargin==1 && strcmp(class(varargin{1}),'PPMatLib')
+                OldLib=varargin{1};
+                for I=1:OldLib.NumMat
+                    obj.AddMatl(OldLib.GetMatNum(I));
+                end
+            elseif nargin>=1
+                obj.AddError('Unknown constructor argument.')
+                disp(varargin);
+            end
+            obj.ShowErrorText;
             %if nargin=1 & 
         end
         

@@ -48,10 +48,10 @@ classdef PPMatIBC < PPMat
 %                         Name=Value;
                     case obj.strleft('h_ibc',Pl)
                         [Value, PropValPairs]=obj.Pop(PropValPairs); 
-                        h_ibc=Value;
+                        obj.h_ibc=Value;
                     case obj.strleft('t_ibc',Pl)
                         [Value, PropValPairs]=obj.Pop(PropValPairs); 
-                        T_ibc=Value;
+                        obj.T_ibc=Value;
                     otherwise
                         [Value, PropValPairs]=obj.Pop(PropValPairs); 
                         obj.PropValPairs=[Prop Value obj.PropValPairs ];
@@ -59,8 +59,8 @@ classdef PPMatIBC < PPMat
             end
             obj.CheckProperties(mfilename('class'));  %Checks for left over properties.
 
-            obj.h_ibc=h_ibc;
-            obj.T_ibc=T_ibc;
+%            obj.h_ibc=h_ibc;
+%            obj.T_ibc=T_ibc;
         end
     end
 end
