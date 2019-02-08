@@ -105,11 +105,20 @@ function InitializeGUI(handles)
 
     %Draw Logo
     axes(handles.PPLogo)
-    imshow('ARLlogoParaPower.png')
+    BkgColor=get(handles.figure1,'color');
+    Logo=imread('CCDC_RGB_Positive_RLB.lg.png','backgrou',BkgColor);
+    image(Logo)
+    set(handles.PPLogo,'visi','off')
+    Tx=text(0,0,'ParaPower','unit','normal','fontsize',18,'horiz','center');
+    E=get(Tx,'extent');
+    set(Tx,'posit',[.5 -1*E(4)*0.25])
+    set(handles.text9,'background',BkgColor,'enable','on')
+    %imshow('ARLlogoParaPower.png')
     text(0,0,['Version ' ARLParaPowerVersion],'vertical','bott')
     setappdata(handles.figure1,'Version',ARLParaPowerVersion)
     set(handles.GeometryVisualization,'visi','off');
-
+    AxPosit=get(handles.PPLogo,'posit');
+    set(handles.PPLogo,'posit',AxPosit+[0 .5 0 0 ])
     TimeStep_Callback(handles.TimeStep, [], handles)
 
     TableHandle=handles.features;
