@@ -105,11 +105,20 @@ function InitializeGUI(handles)
 
     %Draw Logo
     axes(handles.PPLogo)
-    imshow('ARLlogoParaPower.png')
+    BkgColor=get(handles.figure1,'color');
+    Logo=imread('CCDC_RGB_Positive_RLB.lg.png','backgrou',BkgColor);
+    image(Logo)
+    set(handles.PPLogo,'visi','off')
+    Tx=text(0,0,'ParaPower','unit','normal','fontsize',18,'horiz','center');
+    E=get(Tx,'extent');
+    set(Tx,'posit',[.5 -1*E(4)*0.25])
+    set(handles.text9,'background',BkgColor,'enable','on')
+    %imshow('ARLlogoParaPower.png')
     text(0,0,['Version ' ARLParaPowerVersion],'vertical','bott')
     setappdata(handles.figure1,'Version',ARLParaPowerVersion)
     set(handles.GeometryVisualization,'visi','off');
-
+    AxPosit=get(handles.PPLogo,'posit');
+    set(handles.PPLogo,'posit',AxPosit+[0 .5 0 0 ])
     TimeStep_Callback(handles.TimeStep, [], handles)
 
     TableHandle=handles.features;
@@ -528,7 +537,7 @@ function RunAnalysis_Callback(hObject, eventdata, handles)
 % hObject    handle to RunAnalysis (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-
+        clc
         if handles.InitComplete == 0 %Code modified so that draw does NOT automatically occur on run
             Initialize_Callback(hObject, eventdata, handles, false)
         else
@@ -1030,7 +1039,7 @@ else
     MatHandle=get(handles.features,'userdata');
     MatLib=getappdata(MatHandle,'Materials');
     figure(handles.figure1)
-
+    
     %Assemble the above definitions into a single variablel that will be used
     %to run the analysis.  This is the only variable that is used from this M-file.
 

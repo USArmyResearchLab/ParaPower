@@ -1,10 +1,10 @@
 classdef PPMat
-%classdef PPMat - Abstract class that is not used directly but from which
-%new materials must be derived.
-%
-%To derive a new material use the following template.  Lines with a %ADD
-%need to be modified for the new material.
-%
+%%classdef PPMat - Abstract class that is not used directly but from which
+%%new materials must be derived.
+%% 
+%%To derive a new material use the following template.  Lines with a %ADD
+%%need to be modified for the new material.
+%%
 %classdef PPMatNew < PPMatOld %ADD (PPMatNew is the new material name 
 %                             %which must start with PPMat. PPMatOld is the 
 %                             %materal from which the new one is being derived)
@@ -42,7 +42,7 @@ classdef PPMat
 %             elseif nargin == 1 & iscell(varargin{1})
 %                 varargin=varargin{1};
 %             end
-%             obj=obj@PPMat([ 'type' Type varargin]);
+%             obj=obj@PPMatOld([ 'type' Type varargin]); %ADD this must be updated to an immediate superclass constructor
 %             
 %             PropValPairs=obj.PropValPairs;
 %             obj.PropValPairs={};
