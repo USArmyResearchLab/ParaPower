@@ -528,7 +528,7 @@ function RunAnalysis_Callback(hObject, eventdata, handles)
 % hObject    handle to RunAnalysis (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-
+        clc
         if handles.InitComplete == 0 %Code modified so that draw does NOT automatically occur on run
             Initialize_Callback(hObject, eventdata, handles, false)
         else
@@ -1030,7 +1030,7 @@ else
     MatHandle=get(handles.features,'userdata');
     MatLib=getappdata(MatHandle,'Materials');
     figure(handles.figure1)
-
+    
     %Assemble the above definitions into a single variablel that will be used
     %to run the analysis.  This is the only variable that is used from this M-file.
 

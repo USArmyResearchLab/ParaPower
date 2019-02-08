@@ -52,7 +52,11 @@ function UpdateMatList(Action, FeatureTableHandle, MatListCol, varargin)
         MatLib=MaterialDatabase('ConvertOldMatLib',MatLib);
     end
     NewMatList=reshape(MatLib.Name,[],length(MatLib.Name));
-
+    
+    if isempty(find(strcmpi(NewMatList,'No Matl')))
+        NewMatList=['No Matl' NewMatList];
+    end
+    
     ColFormat=get(FeatureTableHandle,'columnformat');
     OldMatList=ColFormat{MatListCol};
     Data=get(FeatureTableHandle,'data');
@@ -67,7 +71,7 @@ function UpdateMatList(Action, FeatureTableHandle, MatListCol, varargin)
             Data{I,MatListCol}=ThisMat;
         end
     end
-    %ColFormat{MatListCol}=['No Matl' NewMatList];
+    ColFormat{MatListCol}=NewMatList;
     set(FeatureTableHandle,'columnformat',ColFormat);
     set(FeatureTableHandle,'data',Data);
     figure(CurrentFig)
