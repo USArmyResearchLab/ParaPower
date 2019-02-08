@@ -266,9 +266,9 @@ classdef sPPT < matlab.System & matlab.system.mixin.Propagates ...
             Qmask=obj.Qmask;
             meltmask=obj.meltmask;
             meltable=obj.meltable;
-            K=obj.K;
-            CP=obj.CP;
-            RHO=obj.RHO;
+            %K=obj.K;  fully object oriented
+            %CP=obj.CP;
+            %RHO=obj.RHO;
             Lv=obj.Lv;
             Map=obj.Map;
             fullheader=obj.fullheader;
@@ -300,7 +300,7 @@ classdef sPPT < matlab.System & matlab.system.mixin.Propagates ...
                 delta_t=GlobalTime(2:end)-GlobalTime(1:end-1);
                 % Calculate the capacitance term associated with each node and adjust the 
                 % A matrix (implicit end - future) and C vector (explicit - present) to include the transient effects
-                [Cap,vol]=mass(MI.X,MI.Y,MI.Z,RHO,CP,Mat); %units of J/K
+                [Cap,vol]=mass(MI.X,MI.Y,MI.Z,obj.RHO,obj.CP,Mat); %units of J/K
                 vol=reshape(vol,size(Mat));
                 Atrans=-spdiags(Cap,0,size(A,1),size(A,2))./delta_t(1);  %Save Transient term for the diagonal of A matrix, units W/K
                 C=-Cap./delta_t(1).*T(:,1); %units of watts
@@ -393,9 +393,10 @@ classdef sPPT < matlab.System & matlab.system.mixin.Propagates ...
             %obj.Qmask=Qmask;
             %obj.meltmask=meltmask;
             %obj.meltable=meltable;
-            obj.K=K;
-            obj.CP=CP;
-            obj.RHO=RHO;
+            
+            %obj.K=K;   these should be fully obj oriented
+            %obj.CP=CP;
+            %obj.RHO=RHO;
 
             %obj.LV handled above
             %obj.Map=Map;
@@ -411,7 +412,7 @@ classdef sPPT < matlab.System & matlab.system.mixin.Propagates ...
             obj.C=C;
             %obj.Aj=Aj;
             %obj.Bj=Bj;
-            
+
         end
 
         function obj = pre_step_hook(obj)
@@ -460,7 +461,7 @@ classdef sPPT < matlab.System & matlab.system.mixin.Propagates ...
         function flag = isInputSizeMutableImpl(obj,index)
             % Return false if input size cannot change
             % between calls to the System object
-            flag = false;
+            flag = true;
         end
 
         function out = getOutputSizeImpl(obj)
