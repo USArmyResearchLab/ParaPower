@@ -9,6 +9,8 @@ Back  = 4; %Y+ Face
 Bottom= 5; %Z- Face
 Top   = 6; %Z+ Face
 
+No_Matl='No Matl';
+
 if ischar(TestCaseModel) 
     if strcmpi('GetDirex',TestCaseModel) %this argument will return the directional index definitions
         ModelInput.Left=Left;
@@ -312,15 +314,17 @@ for Fi=1:length(Features)
      end
 end
 
+FeatureMatrix=ModelMatrix; %Retain the ability to separate features
 ModelMatrix=ModelMatrix*1i;  %Make all feature number imaginary, then replace "imaginary" feature numbers with "real" material numbers.
-for Fi=1:length(Features)
+
+ for Fi=1:length(Features)
     MatNum=find(strcmpi(Features(Fi).Matl,MatLib.Material));
-    if isempty(MatNum)
+     if isempty(MatNum)
         MatNum=NaN;
         fprintf('Feature %2.0f material %s is unknown',Fi,MatNum);
-    end
-    ModelMatrix(ModelMatrix==Fi*1i)=MatNum;
-end
+     end
+     ModelMatrix(ModelMatrix==Fi*1i)=MatNum;
+ end
      
 if ischar(PottingMaterial)
     MatNum=find(strcmpi(PottingMaterial,lower(MatLib.Material)));
@@ -338,6 +342,12 @@ if not(isempty(GlobalTime))
     GlobalTime = uniquetol(GlobalTime, 10*eps(max(GlobalTime)));
 end
 
+%Get Feature Names
+Fs=unique(FeatureMatrix(~isnan(FeatureMatrix)));
+for Fi=1:length(Fs)
+   Ftext{Fi}=TestCaseModel.Features(Fs(Fi)).Desc;
+end
+
 ModelInput.OriginPoint=OriginPoint; %Minimum absolute coordinates for X, Y and Z
 ModelInput.h=h;
 ModelInput.Ta=Ta;
@@ -346,6 +356,8 @@ ModelInput.Y=DeltaCoord.Y;
 ModelInput.Z=DeltaCoord.Z;
 ModelInput.Tproc=Tproc;
 ModelInput.Model=ModelMatrix;
+ModelInput.FeatureMatrix=FeatureMatrix;
+ModelInput.FeatureDescr=Ftext;
 ModelInput.Q=Q;
 ModelInput.GlobalTime=GlobalTime;
 ModelInput.Tinit=Params.Tinit;
