@@ -39,7 +39,7 @@ gui_State = struct('gui_Name',       mfilename, ...
 if nargin && ischar(varargin{1})
     gui_State.gui_Callback = str2func(varargin{1});
 end
-
+ErrorStatus()
 if nargout
     [varargout{1:nargout}] = gui_mainfcn(gui_State, varargin{:});
 else
@@ -107,7 +107,7 @@ function InitializeGUI(handles)
     axes(handles.PPLogo)
     imshow('ARLlogoParaPower.png')
     text(0,0,['Version ' ARLParaPowerVersion],'vertical','bott')
-    setappdata(gcf,'Version',ARLParaPowerVersion)
+    setappdata(handles.figure1,'Version',ARLParaPowerVersion)
     set(handles.GeometryVisualization,'visi','off');
 
     TimeStep_Callback(handles.TimeStep, [], handles)
@@ -119,12 +119,12 @@ function InitializeGUI(handles)
     set(handles.VisualStress,'enable','on');
     disp('stop button functionality is not implemented in this GUI yet.')
     set(handles.pushbutton18,'enable','off')
-
+    ErrorStatus()
 
     %Set Stress Model Directory
     set(handles.StressModel,'userdata','Stress_Models')
 
-    T=uicontrol(gcf,'style','text','units','normal','posit',[0.01 0 .3 .02],'string','DISTRIBUTION C: See Help for details','horiz','left');
+    T=uicontrol(handles.figure1,'style','text','units','normal','posit',[0.01 0 .3 .02],'string','DISTRIBUTION C: See Help for details','horiz','left');
     E=get(T,'extent');
     P=get(T,'posit');
     set(T,'posit',[P(1) P(2) E(3) E(4)]);
@@ -146,9 +146,7 @@ function InitializeGUI(handles)
     set(handles.StressModel,'string',StressModelFunctions);
     setappdata(handles.figure1,'Initialized',true);
     ClearGUI_Callback(handles.ClearGUI, [], handles, false)
-    set(handles.StressModel,'value',length(StressModelFunctions)) %Set default stress model to none.
-    set(handles.StressModel,'enable','on')  %Turn stress modeling on or off
-    
+    ErrorStatus('')
     GUIEnable(handles.figure1)
 
 end
@@ -229,6 +227,10 @@ function Out=GetResults()
     Fhandle= ParaPowerGUI_V2;
     if isappdata(Fhandle,'Results')
         Out.R=getappdata(Fhandle,'Results');
+        if ~isfield(Out.R,'Tprint')
+            Out.R=[];
+            disp('No results available from current figure.')
+        end
     else
         Out.R=[];
         disp('No results available from current figure.')
@@ -267,6 +269,10 @@ function E=EmptyFeatureRow
     E{FTC('QVal')}='0';
     E{FTC('QType')}='Scalar';
     E{FTC('Desc')}='';
+    E{FTC('DivX')}=1;
+    E{FTC('DivY')}=1;
+    E{FTC('DivZ')}=1;
+    
 end
 
 % --- Executes during object creation, after setting all properties.
@@ -306,7 +312,11 @@ function savebutton_Callback(hObject, eventdata, handles)
     if isappdata(gcf,'Results')
         Results=getappdata(gcf,'Results');
     else
-        Results=[];
+        if isappdata(gcf,'MI')
+            Results.Model=getappdata(gcf,'MI');
+        else
+            Results=[];
+        end
     end
     oldpathname=get(handles.loadbutton,'userdata');
     if isnumeric(oldpathname)
@@ -377,9 +387,14 @@ function loadbutton_Callback(hObject, eventdata, handles)
                 AddStatusLine(['Loading GUISTATE from "' pathname filename '"...']);
                 set(gcf,'name',CurTitle);
             end
+            GUIStateLoaded=true;
         catch ME
-            load ([pathname filename],'-mat');
-%        end
+            load([pathname filename],'-mat');
+            GUIStateLoaded=false;
+        end
+        if GUIStateLoaded
+            return
+        else
 %        if not(strncmpi('etatsiug.',filename(end:-1:1),8)) %If filename is not .guistate, then load model into the GUI
             AddStatusLine(['Loading model "' pathname filename '"...']);
     %        TestCaseModel = uiimport([pathname filename]);
@@ -477,14 +492,18 @@ function loadbutton_Callback(hObject, eventdata, handles)
            
            setappdata(gcf,'TestCaseModel',TestCaseModel)
            setappdata(gcf,TableDataName, QData)
-           if exist('Results','var') && not(isempty(Results))
+           if exist('Results','var')
                setappdata(gcf,'Results',Results)
-               AddStatusLine('Results loaded.');
+               if (isfield(Results,'Tprint'))
+                    AddStatusLine('Results loaded.');
+               end
            end
            
            %Update Materials
            if isfield(TestCaseModel,'MatLib')
+               %Is this working properly?  Materials database isn't getting reloaded.
                UpdateMatList('LoadMatLib',handles.features, FTC('mat'), TestCaseModel.MatLib)
+               
            else
                AddStatusLine('Materials database not included in this model.');
                AddStatusLine('It is likely an old model. ');
@@ -523,10 +542,10 @@ function RunAnalysis_Callback(hObject, eventdata, handles)
         StressModel=StressModel{StressModelV};
         
         AddStatusLine('Analysis running...');
-        MI = getappdata(gcf,'MI');
+        MI = getappdata(handles.figure1,'MI');
         if isempty(MI)
             AddStatusLine('Model not yet fully defined.','error')
-            GUIEnable(handles.figure1);
+            GUIEnable
             return
         end
 
@@ -538,15 +557,17 @@ function RunAnalysis_Callback(hObject, eventdata, handles)
             tic
             GlobalTime=MI.GlobalTime;  %Since there is global time vector, construct one here.
             [Tprnt, MI, MeltFrac]=ParaPowerThermal(MI);
+
             Etime=toc;
             AddStatusLine(sprintf('(%3.2fs)...',Etime),true)
         catch ME
             AddStatusLine('Error during thermal solve.')
-            AddStatusLine('')
+            AddStatusLine(ME.message,'err')
+            AddStatusLine(' ');
             disp(ME.getReport)
             Tprnt=[];
         end
-        AddStatusLine(['Stress (' StressModel ')...'],true);
+        AddStatusLine(['Stress (' StressModel ')...']);
         try
             if strcmpi(StressModel,'none')
                 Stress=[];
@@ -565,11 +586,11 @@ function RunAnalysis_Callback(hObject, eventdata, handles)
                 AddStatusLine('');
                 Stress=[];
             end
-            slider1_Callback(handles.slider1, [], handles)
             set(handles.slider1,'value',1);
         catch ME
             AddStatusLine('Error during stress solve.')
-            AddStatusLine(Stress.Msg)
+            AddStatusLine(ME.message,'err')
+            AddStatusLine('');
             disp(ME.getReport)
             Stress=[];
         end
@@ -581,30 +602,111 @@ function RunAnalysis_Callback(hObject, eventdata, handles)
         end
         AddStatusLine('Complete.',true)
        
-
+        if exist('ME')
+            GUIEnable()
+            return
+        end
        
        %not used StateN=round(length(GlobalTime)*TimeStepOutput,0);
        
        if get(handles.transient,'value')==1
            %%%%Plot time dependent plots for temp, stress and melt fraction
-           Dout(:,1)=GlobalTime;
-           Dout(:,2)=zeros(size(GlobalTime));
-           Dout(:,3)=zeros(size(GlobalTime));
-           Dout(:,4)=zeros(size(GlobalTime));
+
            
-           
-           
-           for I=1:length(GlobalTime)
-               Dout(I,2)=max(max(max(Tprnt(:,:,:,I))));
-               %Dout(I,3)=max(max(max(Stress(:,:,:,I))));
-               Dout(I,4)=max(max(max(MeltFrac(:,:,:,I))));
+           if isfield(MI,'FeatureMatrix')
+               TestCaseModel = getappdata(handles.figure1,'TestCaseModel');
+               DoutT=[];
+               DoutM=[];
+               DoutS=[];
+               Fs=unique(MI.FeatureMatrix(~isnan(MI.FeatureMatrix)));
+               for Fi=1:length(Fs)
+                   Ftext{Fi}=MI.FeatureDescr{Fs(Fi)};
+                   Fmask=ismember(MI.FeatureMatrix,Fs(Fi));
+                   Fmask=repmat(Fmask,1,1,1,length(MI.GlobalTime));
+                   if ~isempty(Tprnt)
+                        DoutT(:,1+Fi)=max(reshape(Tprnt(Fmask),[],length(MI.GlobalTime)),[],1);
+                   end
+                   if ~isempty(MeltFrac)
+                        DoutM(:,1+Fi)=max(reshape(MeltFrac(Fmask),[],length(MI.GlobalTime)),[],1);
+                   end
+                   if ~isempty(Stress)
+                        DoutS(:,1+Fi)=max(reshape(Stress(Fmask),[],length(MI.GlobalTime)),[],1);
+                   end
+               end
+               NumAx=0;
+               if ~isempty(DoutT)
+                   DoutT(:,1)=MI.GlobalTime;
+                   NumAx=NumAx+1;
+               end
+               if ~isempty(DoutM)
+                   DoutM(:,1)=MI.GlobalTime;
+                   NumAx=NumAx+1;
+               end
+               if ~isempty(DoutS)
+                   DoutS(:,1)=MI.GlobalTime;
+                   NumAx=NumAx+1;
+               end
+               MaxTitle='Max Results';
+               Figs=findobj('type','figure');
+               FigTitles=get(Figs,'name');
+               MaxResultsFig=find(strcmpi(FigTitles,MaxTitle));
+               ThisAx=NumAx;
+               if isempty(MaxResultsFig)
+                   set(figure,'name',MaxTitle')
+               else
+                   figure(Figs(MaxResultsFig))
+               end
+               if ~isempty(DoutT)
+                   subplot(1,NumAx,ThisAx)
+                   plot(DoutT(:,1),DoutT(:,2:end));
+                   xlabel('Time')
+                   ylabel('Temperature')
+                   title('Max Temp in Feature')
+                   legend(Ftext)
+                   ThisAx=ThisAx-1;
+               end
+               if ~isempty(DoutM)
+                   subplot(1,NumAx,ThisAx)
+                   plot(DoutM(:,1),DoutM(:,2:end));
+                   legend(Ftext)
+                   xlabel('Time')
+                   ylabel('Melt Fraction')
+                   title('Max Melt Fraction in Feature')
+                   ThisAx=ThisAx-1;
+               end
+               if ~isempty(DoutS)
+                   subplot(1,NumAx,ThisAx)
+                   plot(DoutS(:,1),DoutS(:,2:end));
+                   xlabel('Time')
+                   ylabel('Stress')
+                   title('Max Stress in Feature')
+                   legend(Ftext)
+                   ThisAx=ThisAx-1;
+               end
+               
+           else
+               Dout(:,1)=MI.GlobalTime;
+               scan_mats = find(strcmp(MI.MatLib.Type,'PCM'));  %Select only PCM materials
+               scan_mask=ismember(MI.Model,scan_mats);
+               scan_mask=repmat(scan_mask,1,1,1,length(MI.GlobalTime));
+               Dout(:,2)=max(reshape(Tprnt,[],length(MI.GlobalTime)),[],1);
+               %Dout(:,3)=max(Stress,[],[1 2 3]);
+               Dout(:,4)=max(reshape(MeltFrac(scan_mask),[],length(MI.GlobalTime)),[],1);
+
+
+               numplots = 1;
+               figure(numplots)
+               subplot(1,2,1)
+               plot (Dout(:,1), Dout(:,2))
+               xlabel('Time (s)')
+               ylabel('Temperature')
+               title('Max Temperature Across All Model')
+               subplot(1,2,2)
+               plot (Dout(:,1), Dout(:,4))
+               xlabel('Time (s)')
+               ylabel('Melt Fraction')
+               title('Max Melt Fraction All PCM Materials')
            end
-           
-           numplots = 1;
-           figure(numplots)
-           plot (Dout(:,1), Dout(:,2))
-           xlabel('Time (s)')
-           ylabel('Temperature')
            figure(handles.figure1)
            %AddStatusLine('Done.', true);
        end
@@ -614,6 +716,7 @@ function RunAnalysis_Callback(hObject, eventdata, handles)
        Results.Model=MI;
        Results.TimeDate=now;
        setappdata(handles.figure1, 'Results', Results);
+       slider1_Callback(handles.slider1, [], handles)
        GUIEnable(handles.figure1);
 end
        
@@ -651,7 +754,7 @@ function slider1_Callback(hObject, eventdata, handles)
 TimeStepOutput = get(handles.slider1,'Value'); %value between 0 and 1 from the slider
 
 Results=getappdata(handles.figure1,'Results');
-if isempty(Results)
+if not(isfield(Results,'Tprint'))
     TimeStepString = []; %create output string
     set(handles.TextTimeStep,'String',TimeStepString)   %output string to GUI
     TimeString = 'No Model Results';
@@ -714,6 +817,7 @@ if not(exist('DrawModel'))
     DrawModel=true;
 end
 GUIDisable(handles.figure1)
+ErrorStatus()
 KillInit=0;
 AddStatusLine('Initializing...',handles.figure1)
 clear Features ExternalConditions Params PottingMaterial Descr
@@ -737,7 +841,8 @@ ExtBoundMatrix = get(handles.ExtCondTable,'Data');
 for K=1:length(ExtBoundMatrix(:))
     if isempty(ExtBoundMatrix{K})
         AddStatusLine('Error.',true,'error');
-        AddStatusLine('Env. parameters must be fully populated');
+        AddStatusLine('Env. parameters must be fully populated','err');
+        GUIEnable
         return
     end
 end
@@ -787,8 +892,6 @@ end
 %overlapping features is not defined.
  %Layer 1 is at bottom
 
-
-
 [rows,cols]=size(FeaturesMatrix);
 if rows==0
     AddStatusLine('No features to initialize.','warning')
@@ -797,7 +900,13 @@ else
     for K=1:length(CheckMatrix(:))
         if isempty(CheckMatrix{K})
             AddStatusLine('Error.',true,'error');
-            AddStatusLine('Features table is not fully defined.')
+            if ischar(CheckMatrix{K})
+                EmptyPart='Material empty.';
+            else
+                EmptyPart='X, Y or Z coordinates or divisions Empty.';
+            end
+            AddStatusLine(['Features table is not fully defined. ' EmptyPart],'err')
+            GUIEnable
             return
         end
     end
@@ -922,14 +1031,22 @@ else
         AddStatusLine('Unable to execute model due to errors.','error')
     else
         AddStatusLine('forming...',true)
-        MI=FormModel(TestCaseModel);
+        try
+            MI=FormModel(TestCaseModel);
+        catch ME
+            disp(ME.getReport)
+            AddStatusLine('Error running forming model','Err')
+            AddStatusLine(ME.message)
+            GUIEnable
+            return
+        end
         AddStatusLine('storing...',true)
 
     %    axes(handles.GeometryVisualization);
     %    Visualize ('Model Input', MI, 'modelgeom','ShowQ')
 
-        setappdata(gcf,'TestCaseModel',TestCaseModel);
-        setappdata(gcf,'MI',MI);
+        setappdata(handles.figure1,'TestCaseModel',TestCaseModel);
+        setappdata(handles.figure1,'MI',MI);
 
         MI=getappdata(handles.figure1,'MI');
         axes(handles.GeometryVisualization)
@@ -957,7 +1074,7 @@ function DeleteFeature_Callback(hObject, eventdata, handles)
 data = get(handles.features, 'Data');
 
 
-QData=getappdata(gcf,TableDataName);
+QData=getappdata(handles.figure1,TableDataName);
 if length(QData)<length(data(:,1))
 	QData{length(data(:,1))}=[];
 end
@@ -1037,8 +1154,8 @@ set(handles.GeometryVisualization,'visi','off')
 
 EmptyRow=EmptyFeatureRow;
 set(handles.features, 'Data',EmptyRow); 
-if isappdata(gcf,TableDataName)
-    rmappdata(gcf,TableDataName)
+if isappdata(handles.figure1,TableDataName)
+    rmappdata(handles.figure1,TableDataName)
 end
 
 RowNames=get(handles.ExtCondTable,'rowname');
@@ -1070,7 +1187,7 @@ for I=1:length(DataToRemove)
         rmappdata(handles.figure1,DataToRemove{I});
     end
 end
-
+set(handles.StressModel,'value',find(strcmpi(get(handles.StressModel,'string'),'None')))
 guidata(hObject, handles);
 if Confirm
     AddStatusLine('Done.', true,handles.figure1)
@@ -1135,16 +1252,13 @@ else
     figure(Objects(ResultFigure(1)));
 end
 clf
-Results=getappdata(handles.figure1,'Results');
 
-if ~isfield(Results,'Tprint')  %no model results
+if isempty(TimeStepString)  %no model results
     MI=getappdata(handles.figure1,'MI');
-    if ~isempty('MI') 
-        AddStatusLine(' ')
+    if ~isempty('MI')
         AddStatusLine('No Results Exist. Displaying Detailed Geometry','warning')
-        %numplots=numplots+1;
-        %figure(numplots)
-        pause(.001)      
+        numplots=numplots+1;
+        figure(numplots)
         Visualize ('', MI, 'modelgeom','ShowQ','ShowExtent')
     else
         AddStatusLine('No Existing Results or Model Info.','warning')
@@ -1152,15 +1266,12 @@ if ~isfield(Results,'Tprint')  %no model results
     return
 end
     
-
+Results=getappdata(handles.figure1,'Results');
 MI = Results.Model;
 Tprnt = Results.Tprint;
 Stress = Results.Stress;
 MeltFrac = Results.MeltFrac;
 GlobalTime=MI.GlobalTime;
-
-IBCs=find(strcmpi(Results.Model.MatLib.Type,'IBC'));
-IBCs=reshape(IBCs,1,[]);
 
 StateN=getappdata(handles.figure1,'step');
 
@@ -1186,12 +1297,12 @@ if get(handles.VisualTemp,'Value')==1
 %       clf;
        if trans_model
            Visualize(sprintf('t=%1.2f ms, State: %i of %i',MI.GlobalTime(StateN)*1000, StateN-1,length(Tprnt(1,1,1,:))-1)...
-               ,MI,'state', Tprnt(:,:,:,StateN), 'RemoveMaterial',[0 IBCs] ...
+               ,MI,'state', Tprnt(:,:,:,StateN), 'RemoveMaterial',[0] ...
                ,'scaletitle', 'Temperature', 'BtnLinInt' ...
                )
        else
            Visualize(sprintf(state_str)...
-               ,MI,'state', Tprnt(:,:,:,StateN), 'RemoveMaterial',[0 IBCs] ...
+               ,MI,'state', Tprnt(:,:,:,StateN), 'RemoveMaterial',[0] ...
                ,'scaletitle', 'Temperature', 'BtnLinInt' ...
                )
        end
@@ -1208,12 +1319,12 @@ if get(handles.VisualStress,'Value')==1
 %        clf
        if trans_model
            Visualize(sprintf('t=%1.2f ms, State: %i of %i',MI.GlobalTime(StateN)*1000, StateN-1,length(Stress(1,1,1,:))-1)...
-               ,MI,'state', Stress(:,:,:,StateN), 'RemoveMaterial',[0 IBCs] ...
+               ,MI,'state', Stress(:,:,:,StateN), 'RemoveMaterial',[0] ...
                ,'scaletitle', 'Stress', 'BtnLinInt' ...
                )
        else
            Visualize(sprintf(state_str)...
-               ,MI,'state', Stress(:,:,:,StateN), 'RemoveMaterial',[0 IBCs] ...
+               ,MI,'state', Stress(:,:,:,StateN), 'RemoveMaterial',[0] ...
                ,'scaletitle', 'Stress', 'BtnLinInt' ...
                )
        end                   
@@ -1230,12 +1341,12 @@ if get(handles.VisualMelt,'Value')==1
 %        clf
        if trans_model
            Visualize(sprintf('t=%1.2f ms, State: %i of %i',MI.GlobalTime(StateN)*1000, StateN-1,length(MeltFrac(1,1,1,:))-1)...
-               ,MI,'state', MeltFrac(:,:,:,StateN), 'RemoveMaterial',[0 IBCs] ...
+               ,MI,'state', MeltFrac(:,:,:,StateN), 'RemoveMaterial',[0] ...
                ,'scaletitle', 'Melt Fraction', 'BtnLinInt' ...
                )
        else
            Visualize(sprintf(state_str)...
-               ,MI,'state', MeltFrac(:,:,:,StateN), 'RemoveMaterial',[0 IBCs] ...
+               ,MI,'state', MeltFrac(:,:,:,StateN), 'RemoveMaterial',[0] ...
                ,'scaletitle', 'Melt Fraction', 'BtnLinInt' ...
                )
        end                           
@@ -1301,27 +1412,21 @@ function LogoAxes_CreateFcn(hObject, eventdata, handles)
 % Hint: place code in OpeningFcn to populate LogoAxes
 end
 
-function FigHandle=GetPPGUI()
-    NameText='ParaPowerGUI_V2';
-    Objects=findall(0,'type','figure');
-    Names=get(Objects,'name');
-    FigI=find(strncmpi(Names,NameText,length(NameText)));
-    FigHandle=Objects(FigI(1));
-end
-    
 function AddStatusLine(textline,varargin)% Optional args are AddToLastLine,Flag, ThisFig)
 %AddStatusLine(TextLine, boolean) OR AddStatusLine(TextLine, figure) or
 %AddSTatusLine(TextLine, boolean, figure) OR AddStatusLine(TextLine,boolean, Flag, figure)
 
     AddToLastLine=false;
     Flag='';
-    ThisFig=GetPPGUI;
+    ThisFig=findobj(0,'-depth',1,'tag','figure1');
     
     if nargin==2
         if ishandle(varargin{1})
             ThisFig=varargin{1};
-        else
+        elseif islogical(varargin{1})
             AddToLastLine=varargin{1};
+        else
+            Flag=varargin{1};
         end
     elseif nargin==3
         AddToLastLine=varargin{1};
@@ -1340,17 +1445,19 @@ function AddStatusLine(textline,varargin)% Optional args are AddToLastLine,Flag,
     switch lower(Flag(1:3))
         case 'war'
             sound([wf wf],8192)
+            ErrorStatus('warning')
         case 'err'
             sound([wf wf wf wf],8192)
+            ErrorStatus('error')
         case 'inf'
         case '   '
         otherwise
             disp(['Unrecognized flag value in AddStatusLine: ' Flag])
     end
     
-%    if not(exist('ThisFig','var'))
-%        ThisFig=findobj(0,'-depth',1,'tag','figure1');
-%    end
+    if not(exist('ThisFig','var'))
+        ThisFig=findobj(0,'-depth',1,'tag','figure1');
+    end
     handles=guihandles(ThisFig);
     Hstat=handles.StatusWindow;
     
@@ -1367,12 +1474,13 @@ function AddStatusLine(textline,varargin)% Optional args are AddToLastLine,Flag,
         MaxChar=floor(Pos(3));
         MaxWidth=Pos(3)+1;
         set(Hstat,'max',10);
+        Indent='   ';
         if strcmpi(textline,'ClearStatus')
             set(Hstat,'string','')
             set(Hstat,'value',1)
         else
             OldText=get(Hstat,'string');
-            textline=textline(1:min([MaxChar length(textline)]));
+            %textline=textline(1:min([MaxChar length(textline)]));
             if isempty(OldText)
                 NewText=textline;
             else
@@ -1383,10 +1491,19 @@ function AddStatusLine(textline,varargin)% Optional args are AddToLastLine,Flag,
                 end
             end
             if strcmpi(NewText,'CLEARSTATUS')
-                NewText='';
+                NewText={''};
             end
             if ischar(NewText)
                 NewText={NewText};
+            end
+            while length(NewText{end}) > MaxChar
+                SpacePos=strfind(NewText{end},' ');
+                SpacePos=max(SpacePos(SpacePos<=MaxChar));
+                if SpacePos >= MaxChar | SpacePos <= length(Indent)
+                    SpacePos=MaxChar;
+                end
+                NewText{end+1}=[Indent NewText{end}(SpacePos+1:end)];
+                NewText{end-1}=NewText{end-1}(1:SpacePos-1);
             end
             E=MaxWidth;  %The following while ensure that lines don't wrap around.
 %             while E>Pos(3)  %This was need to ensure lines in an edit box didn't wrap around.
@@ -1416,8 +1533,9 @@ function VisUpdateStatus(handles, NeedsUpdate)
             'unit','normal',...
             'horizon','center',...
             'vis','off',...
-            'color','white',...
-            'background','red',...
+            'color','red',...
+            'background','white',...
+            'edgecolor','red',...
             'fontweight','bold');
         guidata(AxisHandle,handles);
     end
@@ -1427,6 +1545,39 @@ function VisUpdateStatus(handles, NeedsUpdate)
     else
         set(handles.VisualUpdateText,'vis','off');
     end
+end
+
+function ErrorStatus(ErrorFlag)
+    %handles=guidata(gcf);
+    if ~exist('ErrorFlag','var')
+        ErrorFlag='';
+    end
+    ThisFig=findobj(0,'-depth',1,'tag','figure1');
+    if ~isempty(ThisFig) 
+        handles=guidata(ThisFig);
+        if isfield(handles,'GeometryVisualization')
+            AxisHandle=handles.GeometryVisualization;
+            if not(isfield(handles,'ErrorStatus')) || not(isvalid(handles.ErrorStatus))
+                handles.ErrorStatus=text(AxisHandle,0.5,0.65,'ErrorStatus',...
+                    'unit','normal',...
+                    'horizon','center',...
+                    'vis','off',...
+                    'color','white',...
+                    'background','red',...
+                    'fontweight','bold');
+                guidata(AxisHandle,handles);
+            end
+
+            if strncmpi(ErrorFlag,'war',3)
+                set(handles.ErrorStatus,'vis','on','string','Warning: Check status box.','background','yellow');
+            elseif strncmpi(ErrorFlag,'err',3)
+                set(handles.ErrorStatus,'vis','on','string','Error: Check status box.','background','red');
+            elseif isempty(ErrorFlag)
+                set(handles.ErrorStatus,'vis','off');
+            end
+        end
+    end
+        
 end
     
 % --- Executes during object creation, after setting all properties.
@@ -1801,7 +1952,7 @@ function MoveUp_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
     TableData = get(handles.features,'Data');
     NumRows=length(TableData(:,1));
-    QData=getappdata(gcf,TableDataName);
+    QData=getappdata(handles.figure1,TableDataName);
     if length(QData)<NumRows
         QData{NumRows}=[];
     end
@@ -1823,7 +1974,7 @@ function MoveUp_Callback(hObject, eventdata, handles)
         end
     end
     set(handles.features,'Data',TableData)
-    setappdata(gcf,TableDataName,QData);
+    setappdata(handles.figure1,TableDataName,QData);
 
     VisUpdateStatus(handles,true);
 end
@@ -1835,7 +1986,7 @@ function MoveDown_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
     TableData = get(handles.features,'Data');
     NumRows=length(TableData(:,1));
-    QData=getappdata(gcf,TableDataName);
+    QData=getappdata(handles.figure1,TableDataName);
     if length(QData)<NumRows
         QData{NumRows}=[];
     end
@@ -1857,7 +2008,7 @@ function MoveDown_Callback(hObject, eventdata, handles)
         end
     end
     set(handles.features,'Data',TableData)
-    setappdata(gcf,TableDataName,QData);
+    setappdata(handles.figure1,TableDataName,QData);
 
     VisUpdateStatus(handles,true);
 end
@@ -1961,6 +2112,7 @@ function HelpButton_Callback(hObject, eventdata, handles)
                     'for this document shall be referred to US Army Research Laboratory, Power Conditioning Branch (RDRL-SED-P). '];
     HelpText{end+1}='';
     set(T,'string',HelpText)
+    GUIEnable;
 end
 
 function GUIDisable(GUIHandle)
@@ -1968,18 +2120,33 @@ function GUIDisable(GUIHandle)
     if isempty(CurObjects)
         ObjectsToChange=findobj(GUIHandle,'enable','on','-property','callback','type','uicontrol');
         ObjectsToChange=[ObjectsToChange; findobj(GUIHandle,'enable','on','-property','celleditcallback','type','uitable')];
+        
         %ObjectsToChange=[ObjectsToChange; findobj(GUIHandle,'enable','on','type','uicontrol','style','popupmenu')];
         %ObjectsToChange=[ObjectsToChange; findobj(GUIHandle,'enable','on','type','uicontrol','style','checkbox')];
         setappdata(GUIHandle,'DisabledObjects', ObjectsToChange);
         set(ObjectsToChange,'enable','off')
+        set(findobj(ObjectsToChange,'tag','HelpButton'),'enable','on');
     end
 end
 
 function GUIEnable(GUIHandle)
-    ObjectsToChange=getappdata(GUIHandle,'DisabledObjects');
-    if ~isempty(ObjectsToChange)
-        set(ObjectsToChange(isvalid(ObjectsToChange)),'enable','on')
-        setappdata(GUIHandle,'DisabledObjects', []);
+    if ~exist('GUIHandle','var')
+        GUIHandle=[];
+        Fi=findall(0,'type','figure');
+        for I=1:length(Fi)
+            if strncmpi(get(Fi(I),'name'),'ParaPowerGUI',length('ParaPowerGUI'))
+                GUIHandle=Fi(I);
+            end
+        end
+    end
+    if ~isempty(GUIHandle)
+        ObjectsToChange=getappdata(GUIHandle,'DisabledObjects');
+        if ~isempty(ObjectsToChange)
+            set(ObjectsToChange(isvalid(ObjectsToChange)),'enable','on')
+            setappdata(GUIHandle,'DisabledObjects', []);
+        end
+    else
+        disp('Cannot find an active ParaPowerGUI to enable.')
     end
 end
 
