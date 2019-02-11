@@ -12,6 +12,7 @@ classdef PPMatPCM < PPMatSolid
     methods
         function OutText=ParamDesc(obj, Param)
             OutText='';
+            %fprintf('%s sees %s: Sclass is %s\n',mfilename, class(obj), obj.SClass)
             switch lower(Param)
                 case 'k_l'
                     OutText='Conductivity (liq)';
@@ -24,7 +25,7 @@ classdef PPMatPCM < PPMatSolid
                 case 'tmelt'
                     OutText='Melt Temp';
                 otherwise
-                    OutText=ParamDesc@PPMat(obj, Param);
+                    OutText=ParamDesc@PPMatSolid(obj, Param);
             end
         end
         

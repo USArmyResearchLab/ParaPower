@@ -1,4 +1,15 @@
 classdef PPMat
+%classdef PPMat
+%  Properties
+%     Name - name of the material
+%     Type - material type (neadonly)
+%
+%  Methods
+%     ParamList - List parameter of this material (w/o name/type)
+%     ParamDesc(Param) - Descriptor for Param
+%
+%------ Below information is for adding a new material -----
+%
 %%classdef PPMat - Abstract class that is not used directly but from which
 %%new materials must be derived.
 %% 
@@ -24,7 +35,7 @@ classdef PPMat
 %                 case 'newprop2'                       %ADD
 %                     OutText='newprop2 Description';   %ADD 
 %                 otherwise
-%                     OutText=ParamDesc@PPMat(obj, Param);
+%                     OutText=ParamDesc@PPMatOld(obj, Param);  %ADD Change this to immediate superclass
 %             end
 %         end
 %         
@@ -81,7 +92,10 @@ classdef PPMat
     properties (SetAccess = immutable)
         Type  
     end
-    
+%     
+%     properties (SetAccess = protected) %This should also be immutable
+%         SClass
+%     end
 %     properties (SetAccess = protected)
 %         PropValPairs
 %     end
@@ -113,12 +127,19 @@ classdef PPMat
                 end
             end
         end
+        
     end
 
     methods 
+        function Params= ParamList(obj)
+            Params=properties(obj);
+            Params=Params(~strcmpi(Params,'name'));
+            Params=Params(~strcmpi(Params,'type'));
+        end
         function OutText=ParamDesc(obj, Param)
-            OutText='';
-            switch lower(Param)
+           OutText='';
+           %fprintf('%s sees %s: Sclass is %s\n',mfilename,class(obj),obj.SClass)
+           switch lower(Param)
                 case 'name'
                     OutText='Name';
                 case 'type'
@@ -175,6 +196,12 @@ classdef PPMat
                     end
                 end
             end
+%            obj.SClassList=superclasses(obj);
+%             if ~isempty(S)
+%                 obj.SClass=S{1};
+%             else
+%                 obj.SClass='PPMat';
+%             end
             obj.Name=Name;
             obj.Type=Type;
             obj.CheckProperties(mfilename('class'));

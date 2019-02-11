@@ -8,11 +8,12 @@ classdef PPMatSCPCM < PPMatPCM
     methods
         function OutText=ParamDesc(obj, Param)
             OutText='';
+            %fprintf('%s sees %s: Sclass is %s\n',mfilename,class(obj),obj.SClass)
             switch lower(Param)
                 case 'dt_nucl'
                     OutText='Nucleation Delta Temp';
                 otherwise
-                    OutText=ParamDesc@PPMat(obj, Param);
+                    OutText=ParamDesc@PPMatPCM(obj, Param);
             end
         end
         

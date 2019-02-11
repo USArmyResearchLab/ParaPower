@@ -77,6 +77,12 @@ classdef PPMatLib < handle
                     Types{end+1}=TempMat.Type;
                 end
             end
+            N=strcmpi('Null',Types);
+            if ~isempty(find(N))
+                Types=Types(~N);
+                Types=['Null' Types];
+            end
+                
         end
         
         function Params=GetParamAvail
@@ -253,29 +259,96 @@ classdef PPMatLib < handle
             %if nargin=1 & 
         end
         
-        function DefineNewMaterial (obj, Action)
+        function Out=DefineNewMaterial (obj, Action, varargin)
             switch lower(Action)
+
                 case 'init'
                     if ishandle(obj.iNewMatF) & isvalid(obj.iNewMatF)
                         delete(obj.iNewMatF)
                     end
-                    NP=[0.1 .8 .1 .1];
+                    NP=[0.1 0.95 0.1 0.1];
                     FS=12;
-                    obj.iNewMatF=figure('name','Define Material','menu','none','toolbar','none');
-                    Temp=uicontrol('unit','normal','style','edit','string','012345678910','fontsize',FS);
+                    LongestString='Nucleation Delta Temp';
+                    obj.iNewMatF=figure('name','Define Material','menu','none','toolbar','none','unit','normal');
+    %DEBUG                set(obj.iNewMatF,'windowstyle','modal');
+                    P=get(obj.iNewMatF,'posit');
+                    set(obj.iNewMatF,'posit',[P(1) .15 P(3) .8]);
+                    Temp=uicontrol('unit','normal','style','edit','string',LongestString,'fontsize',FS);
                     E=get(Temp,'extent');
                     delete(Temp);
                     NP(3:4)=E(3:4);
-                    CloseWindow=@(A,B)delete(obj.iNewMatF);
-                    H.OKBtn=uicontrol('unit','normal','style','pushbutton','string','OK','posit',[0.3 0.1 0.19 0.1],'fontsize',FS);
-                    H.CnBtn=uicontrol('unit','normal','style','pushbutton','string','Cancel','posit',[0.6 0.1 0.19 0.1],'fontsize',FS,'callback',CloseWindow);
+                    Close_CB=@(H,A)delete(obj.iNewMatF);
+                    OK_CB=@(H,A)obj.DefineNewMaterial('OK',H,A);
+                    MatType_CB=@(H,A)obj.DefineNewMaterial('PopParms',H,A);
+                    H.OKBtn=uicontrol('unit','normal','style','pushbutton','string','OK','posit',[0.3 0.1 0.19 0.05],'fontsize',FS,'callback',OK_CB);
+                    H.CnBtn=uicontrol('unit','normal','style','pushbutton','string','Cancel','posit',[0.6 0.1 0.19 0.05],'fontsize',FS,'callback',Close_CB);
                     H.Name=uicontrol('unit','normal','style','text','string','Name:','posit',NP,'fontsize',FS,'horiz','left');
                     H.NameE=uicontrol('unit','norma','style','edit','string','','posit',[NP(1)+NP(3)+.01 NP(2) 1-NP(1)-NP(3)-.05 NP(4)],'fontsize',FS,'horizon','left');
                     H.Type=uicontrol('unit','normal','style','text','string','Type:','posit',[NP(1) NP(2)-E(4)*1.05 E(3) E(4)],'fontsize',FS,'horiz','left');
                     PopParms=@(A,B)obj.DefineNewMaterial('PopParms');
-                    H.TypeE=uicontrol('unit','norma','style','popup','string',obj.GetMatTypesAvail,'posit',[NP(1)+NP(3)+.01 NP(2)-E(4)*1.05 1-NP(1)-NP(3)-.05 NP(4)],'fontsize',FS,'horizon','left','callback');
+                    H.TypeE=uicontrol('unit','norma','style','popup','string',obj.GetMatTypesAvail,'posit',[NP(1)+NP(3)+.01 NP(2)-E(4)*1.05 1-NP(1)-NP(3)-.05 NP(4)] ...
+                                     ,'fontsize',FS,'horizon','left' ...
+                                     ,'callback',MatType_CB ...
+                                     );
+                    H.ParamL=[];
+                    H.ParamE=[];
                     set(obj.iNewMatF,'user',H);
+                    MatType_CB(H.TypeE,[]);
                 case 'popparms'
+                    handle=varargin{1};
+                    %action=varargin{2};
+                    Types=get(handle,'string');
+                    ThisType=Types{get(handle,'value')};
+                    eval(['NewMat=PPMat' ThisType ';' ]);
+                    H=get(get(handle,'parent'),'user');
+                    
+                    %disp(['Setting material type ' ThisType ':'])
+                    NPl=get(H.Name,'posit');
+                    NPl_delta=get(H.Name,'posit')-get(H.Type,'posit');
+                    FS=get(H.Name,'fontsize');
+                    
+                    if strcmpi(ThisType,'null')
+                        ParamList={};
+                     else
+                        ParamList=NewMat.ParamList;
+                        ParamList=ParamList(~strcmpi(ParamList,'SClass'));
+                    end
+                    if ~isempty(H.ParamL)
+                        for I=1:length(H.ParamL)
+                            delete(H.ParamL(I));
+                            delete(H.ParamE(I));
+                        end
+                        H.ParamL=[];
+                        H.ParamE=[];
+                    end
+                    
+                    for I=1:length(ParamList)
+                        %disp(['Setting ' ParamList{I}])
+                        Posit=NPl - (I+1)*NPl_delta - [0 .005 0 0 ];
+                        Desc=NewMat.ParamDesc(ParamList{I});
+                        H.ParamL(I)=uicontrol('unit','normal','style','text','string',[Desc ':'],'posit',Posit,'fontsize',FS,'horiz','left');
+                        
+                        Posit=[Posit(1)+Posit(3)+0.01 Posit(2) 1-Posit(1)-Posit(3)-0.05 Posit(4)]; %[NP(1)+NP(3)+.01 NP(2) 1-NP(1)-NP(3)-.05 NP(4)]
+                        H.ParamE(I)=uicontrol('unit','norma','style','edit','string','','posit',Posit,'fontsize',FS,'horizon','left');
+                    end
+                    set(get(handle,'parent'),'user',H);
+                case 'ok'
+                    handle=varargin{1};
+                    H=get(get(handle,'parent'),'user');
+                    Types=get(H.TypeE,'string');
+                    ThisType=Types{get(H.TypeE,'value')};
+                    eval(['NewMat=PPMat' ThisType ';' ]);
+                    Name=get(H.NameE,'string');
+                    ArgList=sprintf('''Name'', ''%s'' ',Name);
+                    ParamList=NewMat.ParamList;
+                    for I=1:length(ParamList)
+                        ArgList=sprintf('%s, ''%s'', %s ',ArgList, ParamList{I}, get(H.ParamE(I),'string'));
+                    end
+                    eval(['NewMat=PPMat' ThisType '(' ArgList ');' ]);
+                    %assignin('base','NewMat',NewMat)
+                    obj.AddMatl(NewMat);
+                    delete(obj.iNewMatF)
+                    
                 otherwise
                     obj.AddError(sprintf('Unknown action for DefineNewMaterial function',Action))
                     obj.ShowErrorText;

@@ -12,6 +12,7 @@ classdef PPMatSolid < PPMat
     methods 
         function OutText=ParamDesc(obj, Param)
             OutText='';
+            %fprintf('%s sees %s: Sclass is %s\n',mfilename,class(obj),obj.SClass)
             switch lower(Param)
                 case 'cte'
                     OutText='CTE deg';
