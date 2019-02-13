@@ -2,9 +2,9 @@
                               %which must start with PPMat. PPMatOld is the 
                               %materal from which the new one is being derived)
       
-      
+
       methods
-         
+
           function [obj]=PPMatNull(varargin)  %ADD Name of this function must match the class name
               %Default Values
               Type='Null';            %ADD  This is the new material type

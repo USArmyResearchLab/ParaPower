@@ -41,6 +41,7 @@ classdef PPMatLib < handle
         iMatObjList
         iParamList 
         iFilename
+        iSource
         iMatTypeList
         iNameList
         ErrorText='';
@@ -52,6 +53,7 @@ classdef PPMatLib < handle
         NumMat
         Params
         MatList
+        Source
     end
 
     methods (Access = protected)
@@ -248,6 +250,12 @@ classdef PPMatLib < handle
                 obj.ShowErrorText;
             end
         end
+        function set.Source(obj, Text)
+            obj.iSource=Text;
+        end
+        function Text=get.Source(obj)
+            Text=obj.iSource;
+        end
         function N=get.NumMat(obj)
             N=length(obj.iMatObjList);
         end
@@ -297,8 +305,8 @@ classdef PPMatLib < handle
                     end
                     NP=[0.1 0.95 0.1 0.1];
                     FS=12;
-                    LongestString='Nucleation Delta Temp';
-                    obj.iNewMatF=figure('name','Define Material','menu','none','toolbar','none','unit','normal');
+                    LongestString='Nucleation Delta TempMMMM';
+                    obj.iNewMatF=figure('name','Define Material','menu','none','toolbar','none','unit','normal','numbertitle','off');
                     set(obj.iNewMatF,'windowstyle','modal');
                     P=get(obj.iNewMatF,'posit');
                     set(obj.iNewMatF,'posit',[P(1) .15 P(3) .8]);
@@ -390,6 +398,7 @@ classdef PPMatLib < handle
                     end
                     set(get(handle,'parent'),'user',H);
                 case 'ok'
+                    Success=true;
                     handle=varargin{1};
                     H=get(get(handle,'parent'),'user');
                     Types=get(H.TypeE,'string');
@@ -398,34 +407,41 @@ classdef PPMatLib < handle
                     Name=get(H.NameE,'string');
                     ArgList=sprintf('''Name'', ''%s'' ',Name);
                     ParamList=NewMat.ParamList;
+                    if strcmpi(NewMat.Type,'null')
+                        ParamList={};
+                    end
                     for I=1:length(ParamList)
                         Value=get(H.ParamE(I),'string');
                         if isempty(Value)
-                            obj.AddError(sprintf('Parameter "%s" is empty. NaN will be used.',ParamList{I},Value));
+                            obj.AddError(sprintf('Parameter "%s" is empty.',ParamList{I}));
                             Value='NaN';
+                            Success=false;
                         elseif isempty(str2num(Value))
-                            obj.AddError(sprintf('Parameter "%s" is "%s" but must be a number. NaN will be used.',ParamList{I},Value));
+                            obj.AddError(sprintf('Parameter "%s" is "%s" but must be a number.',ParamList{I},Value));
                             Value='NaN';
+                            Success=false;
                         end
                         ArgList=sprintf('%s, ''%s'', %s ',ArgList, ParamList{I}, Value);
                     end
                     eval(['NewMat=PPMat' ThisType '(' ArgList ');' ]);
                     %assignin('base','NewMat',NewMat)
-                    obj.ShowErrorText;
+                    obj.ShowErrorText('gui');
                     OldMatNum=get(H.OKBtn,'user');
-                    if isempty(OldMatNum)
+                    if isempty(OldMatNum) && Success
                         obj.AddMatl(NewMat);
-                        Success=true;
-                    else
+                    elseif Success
                         Success=obj.ReplMatl(OldMatNum,NewMat);
                     end
                     if Success
                         delete(obj.iNewMatF)
+                        obj.iSource=[obj.iSource '*'];
+                        obj.iNewMatF=[];
                     else
+                        %obj.AddError('Material modifications will be discarded.')
                         obj.ShowErrorText('gui');
                     end
                 otherwise
-                    obj.AddError(sprintf('Unknown action for DefineNewMaterial function',Action))
+                    obj.AddError(sprintf('Unknown action for DefineNewMaterial function "%s"',Action))
                 obj.ShowErrorText;
             end
             
@@ -440,19 +456,44 @@ classdef PPMatLib < handle
                     end
                     NP=[0.1 0.95 0.1 0.1];
                     FS=12;
-                    obj.iMatableF=figure('name','Material Library','menu','none','toolbar','none','unit','normal');
-%DEBUG                    set(obj.iNewMatF,'windowstyle','modal');
+                    obj.iMatableF=figure('name','Material Library','menu','none','toolbar','none','unit','normal','numbertitle','off');
+                    set(obj.iMatableF,'windowstyle','modal');
                     %P=get(obj.iNewMatF,'posit');
                     set(obj.iMatableF,'posit',[.2 .2 .7 .45]);
                     
-                    Close_CB=@(H,A)delete(obj.iMatableF);
-                    OK_CB=@(H,A)obj.DefineNewMaterial('OK',H,A);
+                    Cancel_CB=@(H,A)obj.ShowTable('Cancel',H,A);
+                    OK_CB=@(H,A)obj.ShowTable('OK',H,A);
                     SelectCell_CB=@(H,A)obj.ShowTable('CellEdit',H,A);
-                    MatType_CB=@(H,A)obj.DefineNewMaterial('PopParms',H,A);
-                    H.Table=uitable('unit','normal','posit',[0 0.1 1 .8],'rowname','','cellselectioncallback',SelectCell_CB);
-                    
-                    
-%                    H.OKBtn=uicontrol('unit','normal','style','pushbutton','string','OK','posit',[0.3 0.1 0.19 0.05],'fontsize',FS,'callback',OK_CB);
+                    MatType_CB=@(H,A)obj.ShowTable('PopParms',H,A);
+                    Delete_CB=@(H,A)obj.ShowTable('DeleteRow',H,A);
+                    Insert_CB=@(H,A)obj.ShowTable('InsertRow',H,A);
+                    Sort_CB=@(H,A)obj.ShowTable('SortRow',H,A);
+                    Load_CB=@(H,A)obj.ShowTable('Load',H,A);
+                    Save_CB=@(H,A)obj.ShowTable('Save',H,A);
+                    Help_CB=@(H,A)obj.ShowTable('Help',H,A);
+                    OrigMatLib=PPMatLib;
+                    for I=1:obj.NumMat
+                        OrigMatLib.AddMatl(obj.GetMatNum(I));
+                    end
+                    OrigMatLib.iSource=obj.iSource;
+                    setappdata(obj.iMatableF,'OrigMatLib',OrigMatLib);
+                    Pl=0.2;
+                    Pb=0.01;
+                    Pw=0.08;
+                    Ph=0.06;
+                    H.Text(1)=uicontrol('unit','normal','style','text','string','Data from Memory','posit',[0 .95 1 .05],'fontsize',FS,'horizont','center');
+                    H.Text(2)=uicontrol('unit','normal','style','text','string','Click on a material name to edit its properties','posit',[0 .90 1 .05],'fontsize',FS,'horizont','center');
+                    H.HelpBtn=uicontrol('unit','norma','style','pushbutton','string','Help','position',[1-Pw 1-Ph Pw*.9 Ph*.8],'fontsize',FS,'Callback',Help_CB);
+                    H.Table=uitable('unit','normal','posit',[0.01 0.15 .98 .75],'rowname','','cellselectioncallback',SelectCell_CB);
+                    H.LoadBtn=uicontrol('unit','norma','style','pushbutton','string','Import','position',[Pl Pb Pw*.9 Ph*.8],'fontsize',FS,'Callback',Load_CB);
+                    H.SaveBtn=uicontrol('unit','norma','style','pushbutton','string','Export','position',[Pl Pb+Ph Pw*.9 Ph*.8],'fontsize',FS,'Callback',Save_CB);
+                    H.OKBtn=uicontrol('unit','normal','style','pushbutton','string','OK', 'posit', [Pl+Pw*6 Pb Pw*.9 Ph*.8],'fontsize',FS,'callback',OK_CB);
+                    H.CnBtn=uicontrol('unit','normal','style','pushbutton','string','Cancel', 'posit', [Pl+Pw*6 Pb+Ph Pw*.9 Ph*.8],'fontsize',FS,'callback',Cancel_CB);
+                    H.DeleteBtn=uicontrol('unit','norma','style','pushbutton','string','Delete','position',[Pl+Pw*2 Pb Pw*.9 Ph*.8],'fontsize',FS,'Callback',Delete_CB);
+                    H.InsertBtn=uicontrol('unit','norma','style','pushbutton','string','Insert','position',[Pl+Pw*2 Pb+Ph Pw*.9 Ph*.8],'fontsize',FS,'Callback',Insert_CB);
+                    H.SortBtn=uicontrol('unit','norma','style','pushbutton','string','Sort','position',[Pl+Pw*4 Pb+Ph Pw*.9 Ph*.8],'fontsize',FS,'Callback',Sort_CB);
+                    H.FieldList=uicontrol('unit','norma','style','popup','string','Insert','position',[Pl+Pw*4 Pb Pw*.9 Ph*.8],'fontsize',FS);%,'Callback',Insert_CB);
+%                    H.DeleteBtn=uicontrol('unit','normal','style','pushbutton','string','OK','posit',[0.3 0.1 0.19 .05],'fontsize',FS,'callback',OK_CB);
 %                    H.CnBtn=uicontrol('unit','normal','style','pushbutton','string','Cancel','posit',[0.6 0.1 0.19 0.05],'fontsize',FS,'callback',Close_CB);
 %                    H.Name=uicontrol('unit','normal','style','text','string','Name:','posit',NP,'fontsize',FS,'horiz','left');
 %                    H.NameE=uicontrol('unit','norma','style','edit','string','','posit',[NP(1)+NP(3)+.01 NP(2) 1-NP(1)-NP(3)-.05 NP(4)],'fontsize',FS,'horizon','left');
@@ -465,6 +506,21 @@ classdef PPMatLib < handle
 
                     set(obj.iMatableF,'user',H);
                     obj.ShowTable('PopulateTable')
+                case 'help'
+                    Text={};
+                    Text{end+1}=['This Material Library (MatLib) is designed to work with ParaPower but.' ...
+                                 'can be used independently.  All functionality is contained ' ...
+                                 'with the PPMatLib.m file.  New materials can be created by ' ...
+                                 'defining PPMatXXXXX.m objects.  The MatLib object is a handle '...
+                                 'class object and thus is persistent and exists as a pointer.'];
+                    Text{end+1}='';
+                    Text{end+1}=['The object can be loaded and saved just as any other MATLAB object.' ...
+                                 'However the PPMatLib.m must be accessible to enable full functionality.'];
+                    TextOutput='';
+                    for I=1:length(Text)
+                        TextOutput=[TextOutput Text{I}  char(10)];
+                    end
+                    msgbox(TextOutput,'Help','modal');
                 case 'populatetable'
                     H=get(obj.iMatableF,'user');
                     ColNames={};
@@ -480,12 +536,14 @@ classdef PPMatLib < handle
                             ColNames{I+1}=obj.ParamDesc(Params{I});
                         end
                     end
+                    ColNames{1}='Del';
                     set(H.Table,'ColumnName',ColNames);
-                        
+                    set(H.FieldList,'string',ColNames(2:end));
                     Data={};
                     for I=1:obj.NumMat
                         Mat=obj.GetMatNum(I);
                         MatProps=properties(Mat);
+                        Data{I,1}=false;
                         for J=1:length(MatProps)
                             MatProps(J);
                             ColNum=find(strcmpi(Params,MatProps{J}))+1;
@@ -499,6 +557,19 @@ classdef PPMatLib < handle
                     set(H.Table,'data',Data)
                     set(H.Table,'columnformat',{'logical'})
                     set(H.Table,'columneditable',[true false(1,length(ColNames))]);
+                    S=get(H.Text(1),'string');
+                    if length(obj.iSource)>2 && strcmp(obj.iSource(end-1:end),'**')
+                        obj.iSource=obj.iSource(1:end-1);
+                    end
+                    if isempty(obj.iSource)
+                        set(H.Text(1),'string',S);
+                    else
+%                         Si=strfind(S,',');
+%                         if isempty(Si)
+%                             Si=length(S)+1;
+%                         end
+                        set(H.Text(1),'string',['Source: ',obj.iSource]);
+                    end
                     set(obj.iMatableF,'user',H);
                 case 'celledit'
                     H=varargin{1};
@@ -509,40 +580,160 @@ classdef PPMatLib < handle
                     if length(Index(:,2))==1 & Index(2)==ClickIndex
                         obj.DefineNewMaterial('edit',Index(1));
                         uiwait(obj.iNewMatF)
+                        D=get(H.Table,'data'); set(H.Table,'data',[],'data',D)
                         obj.ShowTable('PopulateTable')
                     end
                 case 'ok'
                     handle=varargin{1};
                     H=get(get(handle,'parent'),'user');
-                    Types=get(H.TypeE,'string');
-                    ThisType=Types{get(H.TypeE,'value')};
-                    eval(['NewMat=PPMat' ThisType ';' ]);
-                    Name=get(H.NameE,'string');
-                    ArgList=sprintf('''Name'', ''%s'' ',Name);
-                    ParamList=NewMat.ParamList;
-                    for I=1:length(ParamList)
-                        Value=get(H.ParamE(I),'string');
-                        if isempty(Value)
-                            obj.AddError(sprintf('Parameter "%s" is empty. NaN will be used.',ParamList{I},Value));
-                            Value='NaN';
-                        elseif isempty(str2num(Value))
-                            obj.AddError(sprintf('Parameter "%s" is "%s" but must be a number. NaN will be used.',ParamList{I},Value));
-                            Value='NaN';
-                        end
-                        ArgList=sprintf('%s, ''%s'', %s ',ArgList, ParamList{I}, Value);
-                    end
-                    eval(['NewMat=PPMat' ThisType '(' ArgList ');' ]);
-                    %assignin('base','NewMat',NewMat)
                     obj.ShowErrorText;
-                    obj.AddMatl(NewMat);
-                    delete(obj.iNewMatF)
+                    delete(obj.iMatableF)
+                    obj.iMatableF=[];
+                    uiresume
+                case 'load'
+                    handle=varargin{1};
+                    H=get(get(handle,'parent'),'user');
+                    oldpathname=get(H.LoadBtn,'userdata');
+                    [fname,pathname]=uigetfile([oldpathname '*.mat'],'Load Material Database');
+                    if fname ~= 0
+                        set(H.LoadBtn,'userdata',pathname);
+                        load([pathname fname],'MatLib');
+                        FigHandle=obj.iMatableF;
+                        obj.DelMatl([1:obj.NumMat]);
+                        for I=1:MatLib.NumMat
+                            obj.AddMatl(MatLib.GetMatNum(I));
+                        end
+                        delete(MatLib);
+                        obj.iMatableF=FigHandle;
+                        obj.iSource=[pathname fname];
+                        obj.ShowTable('PopulateTable')
+                        %MatLib=ConvertOldMatLib(MatLib);
+                        %MatDbase=PopulateMatDbase(handles.MatTable, MatLib);
+                        %set(handles.MatTable,'Data',MatDbase);
+                    end
+                case 'cancel'
+                    handle=varargin{1};
+                    H=get(get(handle,'parent'),'user');
+                    YES='Yes';
+                    Response=questdlg('Are you sure want to discard all changes?','Confirm',YES,'No','No');
+                    if strcmpi(Response,YES)
+                        OrigMatLib=getappdata(obj.iMatableF,'OrigMatLib');
+                        if obj.NumMat>0
+                            obj.DelMatl([1:obj.NumMat]);
+                        end
+                        for I=1:OrigMatLib.NumMat
+                            obj.AddMatl(OrigMatLib.GetMatNum(I))
+                        end
+                        obj.iSource=OrigMatLib.iSource;
+                        obj.ShowTable('ok',handle,[]);
+                    end
+                case 'insertrow'
+                    handle=varargin{1};
+                    H=get(get(handle,'parent'),'user');
+                    obj.DefineNewMaterial('init');
+                    uiwait(obj.iNewMatF)
+                    obj.iSource=[obj.iSource '*']
+                    obj.ShowTable('PopulateTable')
+                case 'save'
+                    handle=varargin{1};
+                    H=get(get(handle,'parent'),'user');
+                    oldpathname=get(H.LoadBtn,'userdata');
+                    [fname,pathname]=uiputfile([oldpathname '*.mat'],'Save Material Database');
+                    if fname ~= 0
+                        set(H.LoadBtn,'userdata',pathname);
+                        MatLib=obj;
+                        FigHandle=MatLib.iMatableF;
+                        MatLib.iMatableF=[];
+                        %MatDbase=get(handles.MatTable,'Data');  
+                        README={'"MatLib" has been converted to an object to enable new material models.'; ...
+                                '"PPMat" is the base class for materials.  PPMatLib is the library class.'};
+                        save([pathname fname],'MatLib','README');
+                        obj.iSource=[pathname fname];
+                        MatLib.iMatableF=FigHandle;
+                        obj.ShowTable('PopulateTable')
+                    end
+                case 'sortrow'
+                    handle=varargin{1};
+                    H=get(get(handle,'parent'),'user');
+                    SortCol=get(H.FieldList,'value');
+                    Data=get(H.Table,'data');
+                    ColData=Data(:,SortCol+1);
+                    try
+                        [NewCol, Index]=sort(ColData);
+                    catch ME
+                        %ME.getReport
+                        try
+                            NewCol=cell2mat(ColData);
+                            if length(NewCol)~=length(ColData)
+                                for I=1:length(ColData)
+                                    if isempty(ColData{I})
+                                        ColData{I}=0;
+                                    end
+                                end
+                                NewCol=cell2mat(ColData);
+                            end
+                            [NewCol, Index]=sort(NewCol);
+                        catch ME
+                            %ME.getReport
+                            Index=[1:obj.NumMat];
+                            obj.AddError('Sort could not be completed.')
+                        end
+                    end
+                    obj.iMatObjList=obj.iMatObjList(Index);
+                    obj.UpdateInternalVars;
+                    obj.iSource=[obj.iSource '*'];
+                    obj.ShowTable('PopulateTable');
+                case 'deleterow'
+                    handle=varargin{1};
+                    H=get(get(handle,'parent'),'user');
+                    GUIColNames=get(H.Table,'columnname');
+                    DelCol=find(strcmpi(GUIColNames,'Del'));
+                    NameCol=find(strcmpi(GUIColNames,'Name'));
+                    Table=get(H.Table,'data');
+                    ColsToDel=find(cell2mat(Table(:,DelCol)));
+                    YES='Yes';
+                    Response=questdlg('Are you sure want to delete all checked materials?','Confirm',YES,'No','No');
+                    if strcmpi(Response,YES)
+                    %     for i=IBCs'
+                    %         MatDbase(i,:)=MatDbase(end,:);
+                    %     end
+                        obj.iSource=[obj.iSource '*']
+                        obj.DelMatl(ColsToDel);
+                        obj.ShowTable('PopulateTable')
+                    end
                 otherwise
-                    obj.AddError(sprintf('Unknown action for DefineNewMaterial function',Action))
+                    obj.AddError(sprintf('Unknown action for ShowTable function "%s"',Action))
                 obj.ShowErrorText;
             end
             
         end
-        
+        function Success=DelMatl(obj, Mat2Del)
+            if ischar(Mat2Del)
+                MatNum=find(strcmpi(obj.iNameList,Mat2Del));
+            elseif iscell(Mat2Del)
+                for I=1:length(Mat2Del)
+                    if ischar(Mat2Del{I})
+                        MatNum(I)=find(strcmpi(obj.iNameList,Mat2Del{I}));
+                    else
+                        MatNum(I)=Mat2Del{I};
+                    end
+                end
+            elseif isnumeric(Mat2Del)
+                MatNum=Mat2Del;
+            end
+            MatNum=sort(MatNum);
+            MatNum=MatNum(end:-1:1);
+            if ~isempty(MatNum) && max(MatNum) <= obj.NumMat
+                for I=reshape(MatNum,1,[])
+                    obj.iMatObjList=obj.iMatObjList([1:obj.NumMat]~=I);
+                end
+                obj.UpdateInternalVars;
+                Success=true;
+            else
+                Success=false;
+                obj.AddError(sprintf('Material number %.0f not found so can''t be be deleted.',max(MatNum)))
+            end
+        end
         function Success=ReplMatl(obj, Mat2Repl, NewMat)
             if ischar(Mat2Repl)
                 MatNum=find(strcmpi(obj.iNameList,Mat2Repl));
