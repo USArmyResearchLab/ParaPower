@@ -105,16 +105,26 @@ function InitializeGUI(handles)
 
     %Draw Logo
     axes(handles.PPLogo)
-    imshow('ARLlogoParaPower.png')
+    BkgColor=get(handles.figure1,'color');
+    Logo=imread('CCDC_RGB_Positive_RLB.lg.png','backgrou',BkgColor);
+    image(Logo)
+    set(handles.PPLogo,'visi','off')
+    Tx=text(0,0,'ParaPower','unit','normal','fontsize',18,'horiz','center');
+    E=get(Tx,'extent');
+    set(Tx,'posit',[.5 -1*E(4)*0.25])
+    set(handles.text9,'background',BkgColor,'enable','on')
+    %imshow('ARLlogoParaPower.png')
     text(0,0,['Version ' ARLParaPowerVersion],'vertical','bott')
     setappdata(handles.figure1,'Version',ARLParaPowerVersion)
     set(handles.GeometryVisualization,'visi','off');
-
+    AxPosit=get(handles.PPLogo,'posit');
+    set(handles.PPLogo,'posit',AxPosit+[0 .5 0 0 ])
     TimeStep_Callback(handles.TimeStep, [], handles)
 
     TableHandle=handles.features;
     %Material Database initialization occurs in ClearGUI
 %    UpdateMatList('Initialize',TableHandle,FTC('mat'))
+    
     AddStatusLine('ClearStatus')
     set(handles.VisualStress,'enable','on');
     disp('stop button functionality is not implemented in this GUI yet.')
@@ -333,6 +343,10 @@ function savebutton_Callback(hObject, eventdata, handles)
         [fname,pathname] = uiputfile ([oldpathname '*.ppmodel']);
         if fname~= 0
             AddStatusLine(['Saving "' pathname fname '".,,']);
+            Source=TestCaseModel.MatLib.Source;
+            if Source(end)=='*'
+                TestCaseModel.MatLib.Source=[pathname fname];
+            end
             save([pathname fname],'TestCaseModel','Results','-mat')  
             AddStatusLine('Done', true);
         end
@@ -502,13 +516,16 @@ function loadbutton_Callback(hObject, eventdata, handles)
            %Update Materials
            if isfield(TestCaseModel,'MatLib')
                %Is this working properly?  Materials database isn't getting reloaded.
-               UpdateMatList('LoadMatLib',handles.features, FTC('mat'), TestCaseModel.MatLib)
-               
+               %UpdateMatList('LoadMatLib',handles.features, FTC('mat'), TestCaseModel.MatLib)
+               NewMatLibUpdate(TestCaseModel.MatLib, handles.features)
+               MatLib=get(handles.features,'user');
+               MatLib.Source=[pathname filename];
            else
                AddStatusLine('Materials database not included in this model.');
                AddStatusLine('It is likely an old model. ');
                AddStatusLine('Current database will be used. ',false,'warning')
                AddStatusLine(' ');
+               NewMatLibUpdate([], FeaturesHandle)
            end
 
            %%%Set Parameters
@@ -522,13 +539,64 @@ function loadbutton_Callback(hObject, eventdata, handles)
         end
     end
 end    
-    
+
+function NewMatLibUpdate(NewMatLib, FeaturesHandle)
+    OldMatLib=get(FeaturesHandle,'user');
+    if isempty(NewMatLib)
+        NewMatLib=OldMatLib;
+    end
+    MatListCol=FTC('mat');
+    ColFormat=get(FeaturesHandle,'columnformat');
+    OldMatList=ColFormat{MatListCol};
+    if ~strcmpi(class(NewMatLib),'PPMatLib')
+        AddStatusLine('Attempting to convert from old materials format.')
+        try 
+            NewNewMatLib=PPMatLib;
+            for I=1:length(NewMatLib.Type)
+                eval(['NewMat=PPMat' NewMatLib.Type{I} '(''' NewMatLib.Material{I} ''')'])
+                for I=1:length(NewMat.ParamList)
+                    P=NewMat.ParamList{I};
+                    oP=P;
+                    if ~isfield(NewMatLib,P)
+                        oP=lower(oP);
+                    end
+                    NewMat.(P)=NewMatLib.(oP)(I);
+                end
+                NewNewMatLib.AddMatl(NewMat);
+            end
+            NewMatLib=NewNewMatLib;
+            NewMatLib.Source='Converted from old';
+        catch ME
+            AddStatusLine('Unknown material library format, using default')
+            AddStatusLine(ME.message)
+            AddStatusLine(' ')
+            NewMatLib=OldMatLib;
+        end
+    end
+    NewMatList=[' ' NewMatLib.MatList()];
+    Data=get(FeaturesHandle,'data');
+    if not(isempty(Data))
+        for I=1:length(Data(:,1))
+            MatIndex=find(strcmpi(Data(I,MatListCol),NewMatList));
+            if isempty(MatIndex)
+                ThisMat='';
+            else
+                ThisMat=NewMatList{MatIndex};
+            end
+            Data{I,MatListCol}=ThisMat;
+        end
+    end
+    ColFormat{MatListCol}=NewMatList;
+    set(FeaturesHandle,'columnformat',ColFormat);
+    set(FeaturesHandle,'data',Data);
+    set(FeaturesHandle,'user',NewMatLib);
+end
 % --- Executes on button press in RunAnalysis.
 function RunAnalysis_Callback(hObject, eventdata, handles)
 % hObject    handle to RunAnalysis (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-
+        clc
         if handles.InitComplete == 0 %Code modified so that draw does NOT automatically occur on run
             Initialize_Callback(hObject, eventdata, handles, false)
         else
@@ -550,13 +618,34 @@ function RunAnalysis_Callback(hObject, eventdata, handles)
         end
 
         drawnow
-        AddStatusLine('Thermal...',true)
+        AddStatusLine('Thermal ',true)
         
         try
             %not used TimeStepOutput = get(handles.slider1,'Value');
             tic
-            GlobalTime=MI.GlobalTime;  %Since there is global time vector, construct one here.
-            [Tprnt, MI, MeltFrac]=ParaPowerThermal(MI);
+%            GlobalTime=MI.GlobalTime;  %Since there is global time vector, construct one here.
+
+            InitTime=MI.GlobalTime(1);    %Time at initializatio extracted from MI.GlobalTime
+            ComputeTime=MI.GlobalTime(2:end); %extract time to compute states from MI.GlobalTime
+
+            MI.GlobalTime=InitTime;  %Setup initialization
+            S1=scPPT('MI',MI); %Initialize object
+            
+            StepsToEstimate=2;
+            tic
+            [Tprnt, T_in, MeltFrac,MeltFrac_in]=S1(ComputeTime(1:min(StepsToEstimate,length(ComputeTime))));  %Compute states at times in ComputeTime (S1 must be called with 1 arg in 2017b)
+            EstTime=toc;
+            if length(ComputeTime)>StepsToEstimate
+                AddStatusLine(sprintf('(est. %.1fs)... ',EstTime*(length(ComputeTime)-StepsToEstimate)/StepsToEstimate), true)
+                [Tprnt2, T_in2, MeltFrac2,MeltFrac_in2]=S1(ComputeTime(3:end));  %Compute states at times in ComputeTime (S1 must be called with 1 arg in 2017b)
+                Tprnt   =cat(4, T_in        , Tprnt   ,  Tprnt2   );
+                MeltFrac=cat(4, MeltFrac_in , MeltFrac,  MeltFrac2);
+            else
+                Tprnt=cat(4,T_in,Tprnt);
+                MeltFrac=cat(4,MeltFrac_in,MeltFrac);
+            end
+
+            MI.GlobalTime = [InitTime ComputeTime]; %Reassemble MI's global time to match initialization and computed states.
 
             Etime=toc;
             AddStatusLine(sprintf('(%3.2fs)...',Etime),true)
@@ -696,16 +785,23 @@ function RunAnalysis_Callback(hObject, eventdata, handles)
 
                numplots = 1;
                figure(numplots)
-               subplot(1,2,1)
+               if isempty(scan_mats)
+                   SP=1;
+               else
+                   SP=2;
+               end
+               subplot(1,SP,1)
                plot (Dout(:,1), Dout(:,2))
                xlabel('Time (s)')
                ylabel('Temperature')
                title('Max Temperature Across All Model')
-               subplot(1,2,2)
-               plot (Dout(:,1), Dout(:,4))
-               xlabel('Time (s)')
-               ylabel('Melt Fraction')
-               title('Max Melt Fraction All PCM Materials')
+               if SP==2
+                   subplot(1,SP,2)
+                   plot (Dout(:,1), Dout(:,4))
+                   xlabel('Time (s)')
+                   ylabel('Melt Fraction')
+                   title('Max Melt Fraction All PCM Materials')
+               end
            end
            figure(handles.figure1)
            %AddStatusLine('Done.', true);
@@ -801,9 +897,13 @@ function AddMaterial_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-TableHandle=handles.features;
 
-UpdateMatList('EditMats',TableHandle,FTC('mat'))
+    TableHandle=handles.features;
+    MatLib=get(TableHandle,'user');
+    MatLib.ShowTable('init');
+    uiwait
+    %UpdateMatList('EditMats',TableHandle,FTC('mat'))
+    NewMatLibUpdate(MatLib, TableHandle)
 end
 
 % --- Executes on button press in Initialize.
@@ -1013,10 +1113,10 @@ else
     end
 
     %Get Materials Database
-    MatHandle=get(handles.features,'userdata');
-    MatLib=getappdata(MatHandle,'Materials');
+    MatLib=get(handles.features,'userdata');
+    %MatLib=getappdata(MatHandle,'Materials');
     figure(handles.figure1)
-
+    
     %Assemble the above definitions into a single variablel that will be used
     %to run the analysis.  This is the only variable that is used from this M-file.
 
@@ -1177,9 +1277,21 @@ set(handles.transient,'value',1)
 AnalysisType_SelectionChangedFcn(handles.transient, eventdata, handles)
 
 %Clear Materials database
-MatHandle=get(handles.features,'userdata');
-delete(MatHandle);
-UpdateMatList('Initialize',handles.features, FTC('mat'))
+% MatHandle=get(handles.features,'userdata');
+% delete(MatHandle);
+% UpdateMatList('Initialize',handles.features, FTC('mat'))
+MatLib=get(handles.features,'userdata');
+delete(MatLib);
+if exist('DefaultMaterials.mat','file')
+    load('DefaultMaterials.mat','MatLib')
+    MatLib.Source=which('DefaultMaterials.mat');
+end
+if ~exist('MatLib','var')
+    MatLib=PPMatLib;
+    AddStatusLine('No materials library loaded (DefaultMaterials.mat does not exist or MatLib is not defined in it.)')
+end
+NewMatLibUpdate(MatLib, handles.features);
+%set(handles.features,'user',MatLib);
 
 DataToRemove={TableDataName 'TestCaseModel' 'MI' 'Results'};
 for I=1:length(DataToRemove)
@@ -1397,7 +1509,7 @@ function figure1_CloseRequestFcn(hObject, eventdata, handles)
 
 % Hint: delete(hObject) closes the figure
 F=get(handles.features,'userdata');
-if not(isempty(F))
+if not(isempty(F)) && ishandle(F)
     delete(F)
 end
 delete(hObject);

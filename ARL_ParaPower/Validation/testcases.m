@@ -1,4 +1,6 @@
 %This M files executes the set of validation test cases for ParaPower
+clear
+
 addpath('..');  %include above directory which contains the parapower code
 CaseDir='Cases';  %Update this to include the directory that will hold the case files.
 
@@ -58,6 +60,7 @@ for Icase=1:length(testcasefiles)
         %Material Properties
         if isfield(TestCaseModel,'MatLib')
             MatLib=TestCaseModel.MatLib;
+            TestCaseModel.Version='V2.0';
         else
             disp('Adding default materials from the material database to the model')
             TestCaseModel.MatLib=Mats;
@@ -70,8 +73,15 @@ for Icase=1:length(testcasefiles)
         fprintf('Analysis executing...')
 
 
+        tic;
+        %[Tprnt, MI, MeltFrac]=ParaPowerThermal(MI);
+        S1=scPPT;
+        S1.MI=MI;
+        [~]=S1();
+        Tprnt=cat(4,S1.T_in,S1.Tres);
+        MeltFrac=cat(4,S1.PH_in,S1.PHres);
+        toc;
         
-        [Tprnt, MI, MeltFrac]=ParaPowerThermal(MI);
         
        fprintf('Complete.\n')
                                            
@@ -83,7 +93,7 @@ for Icase=1:length(testcasefiles)
        )                                
        %figure(3);clf; pause(.001)
        %Visualize(sprintf('t=%1.2f ms, State: %i of %i',StateN*MI.DeltaT*1000, StateN,length(Tprnt(1,1,1,:))),[0 0 0 ],{MI.X MI.Y MI.Z}, MI.Model, MeltFrac(:,:,:,StateN),'Melt Fraction')                                
-       disp('Press key to continue.');pause
+       %disp('Press key to continue.');pause
     end
 end
 

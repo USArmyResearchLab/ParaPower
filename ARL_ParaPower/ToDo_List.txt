@@ -4,6 +4,7 @@ Enable 'stop' button on GUI
 Prettify results plots
 Add total mass output 
 Static Analysis is broken
+Add button to simply do XY plot so you don't have to rerun analysis.
 
 Items Completed.
 ------------------

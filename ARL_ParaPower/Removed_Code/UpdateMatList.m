@@ -1,4 +1,4 @@
-function UpdateMatList(Action,FeatureTableHandle, MatListCol, varargin)
+function UpdateMatList(Action, FeatureTableHandle, MatListCol, varargin)
 %Update a material list in a table with a new materials database
 %TableHandle is a handle to the table of interest
 %Ci is the column number of that table that has materials listed
@@ -47,8 +47,16 @@ function UpdateMatList(Action,FeatureTableHandle, MatListCol, varargin)
        MatLib=getappdata(CurrentMatDbaseH,'Materials');
     end
     
-    NewMatList=reshape(MatLib.Material,[],length(MatLib.Material));
-
+    if ~strcmpi(class(MatLib),'PPMatLib')
+        warning('Utilizing old material database format.')
+        MatLib=MaterialDatabase('ConvertOldMatLib',MatLib);
+    end
+    NewMatList=reshape(MatLib.Name,[],length(MatLib.Name));
+    
+    if isempty(find(strcmpi(NewMatList,'No Matl')))
+        NewMatList=['No Matl' NewMatList];
+    end
+    
     ColFormat=get(FeatureTableHandle,'columnformat');
     OldMatList=ColFormat{MatListCol};
     Data=get(FeatureTableHandle,'data');

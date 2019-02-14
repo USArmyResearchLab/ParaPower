@@ -38,6 +38,9 @@ end
 %Material Properties
 if isfield(TestCaseModel,'MatLib')
     MatLib=TestCaseModel.MatLib;
+    if isempty(find(strcmp(MatLib.MatList,No_Matl), 1))
+        MatLib.AddMatl(PPMatNull('Name',No_Matl));
+    end
 else
     warning('MatLib needs to be included in the TestCaseModel structure')
     msgbox('MatLib needs to be included in the TestCaseModel structure','Warning');
@@ -317,14 +320,23 @@ end
 FeatureMatrix=ModelMatrix; %Retain the ability to separate features
 ModelMatrix=ModelMatrix*1i;  %Make all feature number imaginary, then replace "imaginary" feature numbers with "real" material numbers.
 
- for Fi=1:length(Features)
-    MatNum=find(strcmpi(Features(Fi).Matl,MatLib.Material));
-     if isempty(MatNum)
+%Reduce materials to include only those in use in MI
+MatsInUse=zeros(MatLib.NumMat,1);
+for Fi=1:length(Features)
+    MatsInUse=strcmpi(Features(Fi).Matl,MatLib.Name) | MatsInUse;
+end
+MatsInUse=find(MatsInUse);
+%MatLib=MatLib(MatsInUse);  %Uncomment this line to limit the number of
+%materials include in MI
+
+for Fi=1:length(Features)
+    MatNum=find(strcmpi(Features(Fi).Matl,MatLib.Name));
+    if isempty(MatNum)
         MatNum=NaN;
-        fprintf('Feature %2.0f material %s is unknown',Fi,MatNum);
-     end
-     ModelMatrix(ModelMatrix==Fi*1i)=MatNum;
- end
+        error('Feature %2.0f material %s is unknown',Fi,MatNum);
+    end
+    ModelMatrix(ModelMatrix==Fi*1i)=MatNum;
+end
      
 if ischar(PottingMaterial)
     MatNum=find(strcmpi(PottingMaterial,lower(MatLib.Material)));

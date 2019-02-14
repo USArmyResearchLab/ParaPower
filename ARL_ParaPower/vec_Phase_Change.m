@@ -5,6 +5,10 @@ function [T,PH,changing,K,CP,RHO]=vec_Phase_Change(T,PH,Mat,Map,meltmask,kond,ko
 %use updated properties.
 % post melt.
 
+if ~any(meltmask)  %no meltable elements declared
+    changing=meltmask;
+    return
+end
 
 %Case Checking
 state=[T(meltmask)>Tm(Mat(Map(meltmask))),PH(meltmask)~=0,PH(meltmask)==1];
@@ -36,8 +40,11 @@ if any(changing)  %things are changing phase, update
     T(changing) = T(changing) - direction .* abs(T(changing)-Tm(Mat(Map(changing))));                %decrement T by temperature excess
     %Everything right unless overmelted/oversolidified  PH>1 || PH<0
     
-    PH_ex=max(1/2,abs(PH(changing)-1/2))-1/2;   %unsigned excursion outside of interval 0<PH<1
-    PH(changing)=PH(changing)-PH_ex.*direction; %PH is pinned to be within [0,1]
+    PH_ex=zeros(size(PH));
+    PH_ex(changing)=max(1/2,abs(PH(changing)-1/2))-1/2;   %unsigned excursion outside of interval 0<PH<1
+    PH(changing)=PH(changing)-PH_ex(changing).*direction; %PH is pinned to be within [0,1]  Seen machine error issues here
+    PH(PH_ex~=0)=round(PH(PH_ex~=0));
+    
     
     K(Map(changing)) = 1./( PH(changing)./kondl(Mat(Map(changing))) +(1-PH(changing))./kond(Mat(Map(changing))));  %update properties, K using series resistance
     CP(Map(changing)) = sphtl(Mat(Map(changing))).*PH(changing)+spht(Mat(Map(changing))).*(1-PH(changing));           %others using rule of mixtures
@@ -45,11 +52,11 @@ if any(changing)  %things are changing phase, update
     
     %walk back PH_ex into T using new properties
     if any(PH_ex)
-        T(changing) = T(changing) + direction .* PH_ex .* (Lv(Mat(Map(changing)))./(RHO(Map(changing)).*CP(Map(changing))));
+        T(changing) = T(changing) + direction .* PH_ex(changing) .* (Lv(Mat(Map(changing)))./(RHO(Map(changing)).*CP(Map(changing))));
     end
     
 else %no change
-
+    changing=meltmask;  %update changing to the expanded size (its all zeros)
 end
 
 end

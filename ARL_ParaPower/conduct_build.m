@@ -40,20 +40,20 @@ for dir=1:3
     
     switch dir
         case 1      %row-wise connections
-            areasA=dcol(A_cols).*dlay(A_lays);
-            areasB=dcol(B_cols).*dlay(B_lays);
-            lengthsA=drow(A_rows)/2;
-            lengthsB=drow(B_rows)/2;
+            areasA=dcol(A_cols').*dlay(A_lays');
+            areasB=dcol(B_cols').*dlay(B_lays');
+            lengthsA=drow(A_rows')/2;
+            lengthsB=drow(B_rows')/2;
         case 2      %column-wise connections
-            areasA=drow(A_rows).*dlay(A_lays);
-            areasB=drow(B_rows).*dlay(B_lays);
-            lengthsA=dcol(A_cols)/2;
-            lengthsB=dcol(B_cols)/2;
+            areasA=drow(A_rows').*dlay(A_lays');
+            areasB=drow(B_rows').*dlay(B_lays');
+            lengthsA=dcol(A_cols')/2;
+            lengthsB=dcol(B_cols')/2;
         case 3      %layer-wise connections
-            areasA=dcol(A_cols).*drow(A_rows);
-            areasB=dcol(B_cols).*drow(B_rows);
-            lengthsA=dlay(A_lays)/2;
-            lengthsB=dlay(B_lays)/2;
+            areasA=dcol(A_cols').*drow(A_rows');
+            areasB=dcol(B_cols').*drow(B_rows');
+            lengthsA=dlay(A_lays')/2;
+            lengthsB=dlay(B_lays')/2;
     end
 
     A_areas=A_areas+sparse(Ai,Aj,areasA,size(Acon,1),size(Acon,2));
