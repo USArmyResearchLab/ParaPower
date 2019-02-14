@@ -26,7 +26,7 @@ function varargout = ParaPowerGUI_V2(varargin)
 
 % Edit the above text to modify the response to help ParaPowerGUI_V2
 
-% Last Modified by GUIDE v2.5 25-Jan-2019 07:25:18
+% Last Modified by GUIDE v2.5 14-Feb-2019 10:35:55
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -520,6 +520,9 @@ function loadbutton_Callback(hObject, eventdata, handles)
                NewMatLibUpdate(TestCaseModel.MatLib, handles.features)
                MatLib=get(handles.features,'user');
                MatLib.Source=[pathname filename];
+               if isfield(MI.MatLib)
+                   MI.MatLib=NewMatLibUpdate(MI.MatLib)
+               end
            else
                AddStatusLine('Materials database not included in this model.');
                AddStatusLine('It is likely an old model. ');
@@ -636,7 +639,7 @@ function RunAnalysis_Callback(hObject, eventdata, handles)
             [Tprnt, T_in, MeltFrac,MeltFrac_in]=S1(ComputeTime(1:min(StepsToEstimate,length(ComputeTime))));  %Compute states at times in ComputeTime (S1 must be called with 1 arg in 2017b)
             EstTime=toc;
             if length(ComputeTime)>StepsToEstimate
-                AddStatusLine(sprintf('(est. %.1fs)... ',EstTime*(length(ComputeTime)-StepsToEstimate)/StepsToEstimate), true)
+                AddStatusLine(sprintf(' (est. %.1fs)... ',EstTime*(length(ComputeTime)-StepsToEstimate)/StepsToEstimate), true)
                 [Tprnt2, T_in2, MeltFrac2,MeltFrac_in2]=S1(ComputeTime(3:end));  %Compute states at times in ComputeTime (S1 must be called with 1 arg in 2017b)
                 Tprnt   =cat(4, T_in        , Tprnt   ,  Tprnt2   );
                 MeltFrac=cat(4, MeltFrac_in , MeltFrac,  MeltFrac2);
@@ -698,119 +701,16 @@ function RunAnalysis_Callback(hObject, eventdata, handles)
        
        %not used StateN=round(length(GlobalTime)*TimeStepOutput,0);
        
-       if get(handles.transient,'value')==1
-           %%%%Plot time dependent plots for temp, stress and melt fraction
-
-           
-           if isfield(MI,'FeatureMatrix')
-               TestCaseModel = getappdata(handles.figure1,'TestCaseModel');
-               DoutT=[];
-               DoutM=[];
-               DoutS=[];
-               Fs=unique(MI.FeatureMatrix(~isnan(MI.FeatureMatrix)));
-               for Fi=1:length(Fs)
-                   Ftext{Fi}=MI.FeatureDescr{Fs(Fi)};
-                   Fmask=ismember(MI.FeatureMatrix,Fs(Fi));
-                   Fmask=repmat(Fmask,1,1,1,length(MI.GlobalTime));
-                   if ~isempty(Tprnt)
-                        DoutT(:,1+Fi)=max(reshape(Tprnt(Fmask),[],length(MI.GlobalTime)),[],1);
-                   end
-                   if ~isempty(MeltFrac)
-                        DoutM(:,1+Fi)=max(reshape(MeltFrac(Fmask),[],length(MI.GlobalTime)),[],1);
-                   end
-                   if ~isempty(Stress)
-                        DoutS(:,1+Fi)=max(reshape(Stress(Fmask),[],length(MI.GlobalTime)),[],1);
-                   end
-               end
-               NumAx=0;
-               if ~isempty(DoutT)
-                   DoutT(:,1)=MI.GlobalTime;
-                   NumAx=NumAx+1;
-               end
-               if ~isempty(DoutM)
-                   DoutM(:,1)=MI.GlobalTime;
-                   NumAx=NumAx+1;
-               end
-               if ~isempty(DoutS)
-                   DoutS(:,1)=MI.GlobalTime;
-                   NumAx=NumAx+1;
-               end
-               MaxTitle='Max Results';
-               Figs=findobj('type','figure');
-               FigTitles=get(Figs,'name');
-               MaxResultsFig=find(strcmpi(FigTitles,MaxTitle));
-               ThisAx=NumAx;
-               if isempty(MaxResultsFig)
-                   set(figure,'name',MaxTitle')
-               else
-                   figure(Figs(MaxResultsFig))
-               end
-               if ~isempty(DoutT)
-                   subplot(1,NumAx,ThisAx)
-                   plot(DoutT(:,1),DoutT(:,2:end));
-                   xlabel('Time')
-                   ylabel('Temperature')
-                   title('Max Temp in Feature')
-                   legend(Ftext)
-                   ThisAx=ThisAx-1;
-               end
-               if ~isempty(DoutM)
-                   subplot(1,NumAx,ThisAx)
-                   plot(DoutM(:,1),DoutM(:,2:end));
-                   legend(Ftext)
-                   xlabel('Time')
-                   ylabel('Melt Fraction')
-                   title('Max Melt Fraction in Feature')
-                   ThisAx=ThisAx-1;
-               end
-               if ~isempty(DoutS)
-                   subplot(1,NumAx,ThisAx)
-                   plot(DoutS(:,1),DoutS(:,2:end));
-                   xlabel('Time')
-                   ylabel('Stress')
-                   title('Max Stress in Feature')
-                   legend(Ftext)
-                   ThisAx=ThisAx-1;
-               end
-               
-           else
-               Dout(:,1)=MI.GlobalTime;
-               scan_mats = find(strcmp(MI.MatLib.Type,'PCM'));  %Select only PCM materials
-               scan_mask=ismember(MI.Model,scan_mats);
-               scan_mask=repmat(scan_mask,1,1,1,length(MI.GlobalTime));
-               Dout(:,2)=max(reshape(Tprnt,[],length(MI.GlobalTime)),[],1);
-               %Dout(:,3)=max(Stress,[],[1 2 3]);
-               Dout(:,4)=max(reshape(MeltFrac(scan_mask),[],length(MI.GlobalTime)),[],1);
-
-
-               numplots = 1;
-               figure(numplots)
-               if isempty(scan_mats)
-                   SP=1;
-               else
-                   SP=2;
-               end
-               subplot(1,SP,1)
-               plot (Dout(:,1), Dout(:,2))
-               xlabel('Time (s)')
-               ylabel('Temperature')
-               title('Max Temperature Across All Model')
-               if SP==2
-                   subplot(1,SP,2)
-                   plot (Dout(:,1), Dout(:,4))
-                   xlabel('Time (s)')
-                   ylabel('Melt Fraction')
-                   title('Max Melt Fraction All PCM Materials')
-               end
-           end
-           figure(handles.figure1)
-           %AddStatusLine('Done.', true);
-       end
        Results.Tprint=Tprnt;
        Results.Stress=Stress;
        Results.MeltFrac=MeltFrac;
        Results.Model=MI;
        Results.TimeDate=now;
+       if get(handles.transient,'value')==1
+           %%%%Plot time dependent plots for temp, stress and melt fraction
+            MaxPlot_Callback(handles.MaxPlot, eventdata, handles, Results);
+           %AddStatusLine('Done.', true);
+       end
        setappdata(handles.figure1, 'Results', Results);
        slider1_Callback(handles.slider1, [], handles)
        GUIEnable(handles.figure1);
@@ -1414,7 +1314,7 @@ if get(handles.VisualTemp,'Value')==1
                )
        else
            Visualize(sprintf(state_str)...
-               ,MI,'state', Tprnt(:,:,:,StateN), 'RemoveMaterial',[0] ...
+               ,MI,'state',Tprnt(:,:,:,StateN), 'RemoveMaterial',[0] ...
                ,'scaletitle', 'Temperature', 'BtnLinInt' ...
                )
        end
@@ -2287,3 +2187,130 @@ function ClearResultsButton_Callback(hObject, eventdata, handles)
 end
 
 
+% --- Executes on button press in MaxPlot.
+function MaxPlot_Callback(hObject, eventdata, handles, Results)
+% hObject    handle to MaxPlot (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+   if ~exist('Results')
+       Results=getappdata(handles.figure1, 'Results');
+   end
+   if isempty(Results)
+       AddStatusLine('No results available');
+   else
+       MI=Results.Model;
+       if isfield(MI,'FeatureMatrix')
+           TestCaseModel = getappdata(handles.figure1,'TestCaseModel');
+
+           DoutT=[];
+           DoutM=[];
+           DoutS=[];
+           Fs=unique(MI.FeatureMatrix(~isnan(MI.FeatureMatrix)));
+           for Fi=1:length(Fs)
+               Ftext{Fi}=MI.FeatureDescr{Fs(Fi)};
+               Fmask=ismember(MI.FeatureMatrix,Fs(Fi));
+               Fmask=repmat(Fmask,1,1,1,length(MI.GlobalTime));
+               if ~isempty(Results.Tprint)
+                    DoutT(:,1+Fi)=max(reshape(Results.Tprint(Fmask),[],length(MI.GlobalTime)),[],1);
+               end
+               if ~isempty(Results.MeltFrac)
+                    DoutM(:,1+Fi)=max(reshape(Results.MeltFrac(Fmask),[],length(MI.GlobalTime)),[],1);
+               end
+               if ~isempty(Results.Stress)
+                    DoutS(:,1+Fi)=max(reshape(Results.Stress(Fmask),[],length(MI.GlobalTime)),[],1);
+               end
+               FeatureMat{Fi}=TestCaseModel.Features(Fi).Matl;
+           end
+           PCMFeatures=[];
+           for Fi=1:length(FeatureMat)
+               if ~isempty(findstr(lower(MI.MatLib.GetMatName(FeatureMat{Fi}).Type),'pcm'))
+                   PCMFeatures=[PCMFeatures Fi];
+               end
+           end
+           if isempty(PCMFeatures)
+               DoutM=[];
+           end
+           NumAx=0;
+           if ~isempty(DoutT)
+               DoutT(:,1)=MI.GlobalTime;
+               NumAx=NumAx+1;
+           end
+           if ~isempty(DoutM)
+               DoutM(:,1)=MI.GlobalTime;
+               NumAx=NumAx+1;
+           end
+           if ~isempty(DoutS)
+               DoutS(:,1)=MI.GlobalTime;
+               NumAx=NumAx+1;
+           end
+           MaxTitle='Max Results';
+           Figs=findobj('type','figure');
+           FigTitles=get(Figs,'name');
+           MaxResultsFig=find(strcmpi(FigTitles,MaxTitle));
+           ThisAx=NumAx;
+           if isempty(MaxResultsFig)
+               set(figure,'name',MaxTitle')
+           else
+               figure(Figs(MaxResultsFig))
+           end
+           if ~isempty(DoutT)
+               subplot(1,NumAx,ThisAx)
+               plot(DoutT(:,1),DoutT(:,2:end));
+               xlabel('Time')
+               ylabel('Temperature')
+               title('Max Temp in Feature')
+               legend(Ftext)
+               ThisAx=ThisAx-1;
+           end
+           if ~isempty(DoutM)
+               subplot(1,NumAx,ThisAx)
+               plot(DoutM(:,1),DoutM(:,PCMFeatures+1));
+               legend(Ftext(PCMFeatures))
+               xlabel('Time')
+               ylabel('Melt Fraction')
+               title('Max Melt Fraction in Feature')
+               ThisAx=ThisAx-1;
+           end
+           if ~isempty(DoutS)
+               subplot(1,NumAx,ThisAx)
+               plot(DoutS(:,1),DoutS(:,2:end));
+               xlabel('Time')
+               ylabel('Stress')
+               title('Max Stress in Feature')
+               legend(Ftext)
+               ThisAx=ThisAx-1;
+           end
+       else
+           Dout(:,1)=MI.GlobalTime;
+           scan_mats = find(strcmp(MI.MatLib.Type,'PCM'));  %Select only PCM materials
+           scan_mask=ismember(MI.Model,scan_mats);
+           scan_mask=repmat(scan_mask,1,1,1,length(MI.GlobalTime));
+           Dout(:,2)=max(reshape(Results.Tprint,[],length(MI.GlobalTime)),[],1);
+           %Dout(:,3)=max(Results.Stress,[],[1 2 3]);
+           Dout(:,4)=max(reshape(Results.MeltFrac(scan_mask),[],length(MI.GlobalTime)),[],1);
+
+
+           numplots = 1;
+           figure(numplots)
+           if isempty(scan_mats)
+               SP=1;
+           else
+               SP=2;
+           end
+           subplot(1,SP,1)
+           plot (Dout(:,1), Dout(:,2))
+           xlabel('Time (s)')
+           ylabel('Temperature')
+           title('Max Temperature Across All Model')
+           if SP==2
+               subplot(1,SP,2)
+               plot (Dout(:,1), Dout(:,4))
+               xlabel('Time (s)')
+               ylabel('Melt Fraction')
+               title('Max Melt Fraction All PCM Materials')
+           end
+       end
+       figure(handles.figure1)
+   end
+
+end

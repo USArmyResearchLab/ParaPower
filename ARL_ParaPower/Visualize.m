@@ -49,7 +49,11 @@ function Visualize (PlotTitle, MI, varargin)
     PlotGeom=true; %If no other parameters are called, then plot the model geom
     h=MI.h;
     Ta=MI.Ta;
-    matlist=MI.MatLib.Name;
+    if strcmpi(class(MI.MatLib),'PPMatLib')
+        matlist=MI.MatLib.MatList;
+    else
+        matlist=MI.MatLib.Material;
+    end
 
     
     %Note that any PlotParms field ending in 'Matl' will have negative
