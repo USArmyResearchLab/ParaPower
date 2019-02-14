@@ -18,6 +18,10 @@ classdef PPMatLib < handle
 %                    identified in index
 %   MatLib.Param   - Same as GetParam method below
 %
+%Launch GUI:
+%   ShowTable()         - Launch GUI to display/modify materials table
+%   DefineNewMaterial() - Launch GUI to add a new material.
+%
 %Methods:
 %   GetParam (Param)   - Return vector of parameter values for all 
 %                        materials. Materials that do not define that 
@@ -29,7 +33,6 @@ classdef PPMatLib < handle
 %   ParamDesc (Param)  - Returns description of that parameter
 %   AddMatl (MatObj)   - Adds the material defined in MatObj to the 
 %                        library
-%   DefineNewMaterial()- Not yet implemented
 %   GetMatTypesAvail() - Returns a list of all known material types
 %   GetParamAvail()    - Returns list of all parameters in all known
 %                        material types
@@ -299,6 +302,9 @@ classdef PPMatLib < handle
         end
         
         function DefineNewMaterial (obj, Action, varargin)
+            if ~exist('Action')
+                Action='Init';
+            end
             switch lower(Action)
 
                 case 'init'
@@ -450,8 +456,10 @@ classdef PPMatLib < handle
         end
         
         function ShowTable (obj, Action, varargin)
+            if ~exist('Action')
+                Action='init';
+            end
             switch lower(Action)
-
                 case 'init'
                     if ishandle(obj.iMatableF) & isvalid(obj.iMatableF)
                         delete(obj.iMatableF)
