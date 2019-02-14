@@ -9,24 +9,26 @@ classdef PPMatLib < handle
 %
 %Properties:
 %   NumMat     - Number of materials currently in the library
-%   Params     - List of all parameters of the material types currently in the
-%                library
+%   Params     - List of all parameters of the material types currently
+%                in the library
 %   MatList    - List of materials currently in the library
 %
 %Access Methods:
-%   MatLib(index)  - Returns a new MatLib comprised of materials identified
-%                    in index
+%   MatLib(index)  - Returns a new MatLib comprised of materials 
+%                    identified in index
 %   MatLib.Param   - Same as GetParam method below
 %
 %Methods:
-%   GetParam (Param)   - Return vector of parameter values for all materials.
-%                        material that do not define that parameter will have 
-%                        NaN
-%   GetMatName (Name)  - Returns the material object that matches that name
+%   GetParam (Param)   - Return vector of parameter values for all 
+%                        materials. Materials that do not define that 
+%                        parameter will have NaN
+%   GetMatName (Name)  - Returns the material object that matches that
+%                        name
 %   GetMatNum (Number) - Returns the material object that matches that
 %                        index into the library
 %   ParamDesc (Param)  - Returns description of that parameter
-%   AddMatl (MatObj)   - Adds the material defined in MatObj to the library
+%   AddMatl (MatObj)   - Adds the material defined in MatObj to the 
+%                        library
 %   DefineNewMaterial()- Not yet implemented
 %   GetMatTypesAvail() - Returns a list of all known material types
 %   GetParamAvail()    - Returns list of all parameters in all known
@@ -516,11 +518,18 @@ classdef PPMatLib < handle
                     Text{end+1}='';
                     Text{end+1}=['The object can be loaded and saved just as any other MATLAB object.' ...
                                  'However the PPMatLib.m must be accessible to enable full functionality.'];
-                    TextOutput='';
+                    Text{end+1}='';
+                    Text{end+1}='Output of help PPMatLib:';
+                    Text{end+1}=help('PPMatLib');
+                    TextOutput=''; 
+                    
                     for I=1:length(Text)
                         TextOutput=[TextOutput Text{I}  char(10)];
                     end
-                    msgbox(TextOutput,'Help','modal');
+                    
+                    H=msgbox(TextOutput,'Help','modal');
+                    P=get(H,'posit');
+                    set(H,'posit'   , P.* [1 1 1.3 1]);
                 case 'populatetable'
                     H=get(obj.iMatableF,'user');
                     ColNames={};
