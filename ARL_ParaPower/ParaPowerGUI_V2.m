@@ -1264,15 +1264,16 @@ clf
 Results=getappdata(handles.figure1,'Results');
 
 if isempty(Results)  %no model results
-    MI=getappdata(handles.figure1,'MI');
-    if ~isempty('MI')
+%    if ~isempty('MI')
         AddStatusLine('No Results Exist. Displaying Detailed Geometry','warning')
         NumPlot=NumPlot+1;
+        Initialize_Callback(hObject, eventdata, handles, false)
+        MI=getappdata(handles.figure1,'MI');
         figure(NumPlot)
         Visualize ('', MI, 'modelgeom','ShowQ','ShowExtent')
-    else
-        AddStatusLine('No Existing Results or Model Info.','warning')
-    end
+%    else
+%        AddStatusLine('No Existing Results or Model Info.','warning')
+%    end
     return
 end
     
@@ -1360,6 +1361,9 @@ if get(handles.VisualMelt,'Value')==1
                )
        end                           
     end
+end
+if CurPlot==1
+	AddStatusLine('No results selected to display.','warning')
 end
 end
 
@@ -2203,6 +2207,7 @@ function MaxPlot_Callback(hObject, eventdata, handles, Results)
            DoutM=[];
            DoutS=[];
            Fs=unique(MI.FeatureMatrix(~isnan(MI.FeatureMatrix)));
+           Fs=Fs(Fs~=0);
            for Fi=1:length(Fs)
                Ftext{Fi}=MI.FeatureDescr{Fs(Fi)};
                Fmask=ismember(MI.FeatureMatrix,Fs(Fi));
@@ -2250,6 +2255,7 @@ function MaxPlot_Callback(hObject, eventdata, handles, Results)
            else
                figure(Figs(MaxResultsFig))
            end
+           clf
            if ~isempty(DoutT)
                subplot(1,NumAx,ThisAx)
                plot(DoutT(:,1),DoutT(:,2:end));
