@@ -356,6 +356,7 @@ end
 
 %Get Feature Names
 Fs=unique(FeatureMatrix(~isnan(FeatureMatrix)));
+Fs=Fs(Fs~=0);
 for Fi=1:length(Fs)
    Ftext{Fi}=TestCaseModel.Features(Fs(Fi)).Desc;
 end
