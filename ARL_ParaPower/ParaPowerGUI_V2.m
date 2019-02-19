@@ -1578,7 +1578,7 @@ function ErrorStatus(ErrorFlag)
             end
 
             if strncmpi(ErrorFlag,'war',3)
-                set(handles.ErrorStatus,'vis','on','string','Warning: Check status box.','background','yellow');
+                set(handles.ErrorStatus,'vis','on','string','Warning: Check status box.','background','yellow','color','black');
             elseif strncmpi(ErrorFlag,'err',3)
                 set(handles.ErrorStatus,'vis','on','string','Error: Check status box.','background','red');
             elseif isempty(ErrorFlag)
