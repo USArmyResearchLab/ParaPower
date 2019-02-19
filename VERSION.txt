@@ -22,6 +22,7 @@ V3.1.0 - Refined GUI
 V3.2.0 - Converting to material objects.  
          Main analysis rewite into an object to support SimuLink usage
 V3.2.2 - Material Library code rewritten as object and incorporated into main code
+V3.2.4 - Modified material library code to optimize performance
 		 
 
 Features to Add

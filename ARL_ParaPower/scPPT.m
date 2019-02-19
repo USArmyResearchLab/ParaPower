@@ -15,7 +15,8 @@ classdef scPPT < sPPT
     methods (Access = protected)
         function setupImpl(obj)
             setupImpl@sPPT(obj);
-            obj.sc_mask=strcmp(obj.MI.MatLib.Type(obj.Mat(obj.Map)),'SCPCM');
+            Types=obj.MI.MatLib.GetParam('Type');
+            obj.sc_mask=strcmp(Types(obj.Mat(obj.Map)),'SCPCM');
             %meltable Y/N      scPCM?   Y   N
             %---------------------------------
             %PCM?           Y           Y   Y

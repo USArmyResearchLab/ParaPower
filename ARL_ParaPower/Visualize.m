@@ -153,7 +153,7 @@ function Visualize (PlotTitle, MI, varargin)
             case strleft('modelgeometry',Pl)
                 h=MI.h;
                 Ta=MI.Ta;
-                matlist=MI.MatLib.Name;
+                matlist=MI.MatLib.GetParam('Name');
                 PlotGeom=true;
             otherwise
                 fprintf('Property "%s" is unknown.\n',Prop)

@@ -102,9 +102,9 @@ classdef sPPT < matlab.System & matlab.system.mixin.Propagates ...
                 error(['Incorrect ModelInput version.  V2.0 required, this data is ' ModelInput.Version]);
             end
 
-            kond = MI.MatLib.k; %Thermal conductivity of the solid
-            rho = MI.MatLib.rho; %density of the solid state
-            spht = MI.MatLib.cp; %solid specific heat
+            kond = MI.MatLib.GetParamVector('k'); %Thermal conductivity of the solid
+            rho = MI.MatLib.GetParamVector('rho'); %density of the solid state
+            spht = MI.MatLib.GetParamVector('cp'); %solid specific heat
 
             K = zeros(size(Mat));
             K = reshape(K,[],1);
@@ -117,15 +117,18 @@ classdef sPPT < matlab.System & matlab.system.mixin.Propagates ...
 
 
             %% Voids Setup Hook
-            vmatnum=rollcall(strcmp(MI.MatLib.Type(rollcall),'IBC'));
+            Types=MI.MatLib.GetParam('Type');
+            vmatnum=rollcall(strcmp(Types(rollcall),'IBC'));
             hint=zeros(1,length(vmatnum));
             Ta_void=hint;
 
             for vn=1:length(vmatnum)
                 %set Mat entries corresponding to voids to negative numbers per legacy
                 %definition.  Initialize parameters
-                hint(vn)=MI.MatLib.h_ibc(vmatnum(vn));
-                Ta_void(vn)=MI.MatLib.T_ibc(vmatnum(vn));
+                h_ibc=MI.MatLib.GetParamVector('h_ibc')
+                hint(vn)=h_ibc(vmatnum(vn));
+                T_ibc=MI.MatLib.GetParamVector('T_ibc');
+                Ta_void(vn)=T_ibc(vmatnum(vn));
                 Mat(Mat==vmatnum(vn))=-vn;
             end
 
@@ -142,8 +145,8 @@ classdef sPPT < matlab.System & matlab.system.mixin.Propagates ...
             %% Phase Change Setup Hook
             %PHres=Tres;
             %[isPCM,kondl,rhol,sphtl,Lw,Tm,PH,PH_init] = PCM_init(Mat,matprops,Num_Row,Num_Col,Num_Lay,steps);
-
-            meltable=any(strcmp(MI.MatLib.Type(rollcall),'PCM') | strcmp(MI.MatLib.Type(rollcall),'SCPCM'));
+            Types=MI.MatLib.GetParam('Type');
+            meltable=any(strcmp(Types(rollcall),'PCM') | strcmp(Types(rollcall),'SCPCM'));
             PH=zeros(nnz(Mat>0),1);
             
             if any(meltable)
@@ -197,9 +200,9 @@ classdef sPPT < matlab.System & matlab.system.mixin.Propagates ...
             %For time step "it" that corresponds to t=GlobalTime(it).  The preceding 
             %   delta time is delta_t(it-1).  So, the delta_t leading up to time step
             %   5 [GlobalTime(5)] is delta_t(4)
-
+            Types=MI.MatLib.GetParam('Type');
             if meltable
-                obj.meltmask=strcmp(MI.MatLib.Type(Mat(Map)),'PCM');
+                obj.meltmask=strcmp(Types(Mat(Map)),'PCM');
             end
             
             
@@ -327,8 +330,14 @@ classdef sPPT < matlab.System & matlab.system.mixin.Propagates ...
                      %}                                                                      
                    
                    [T(:,it),PH(:,it),changing,obj.K,obj.CP,obj.RHO]=vec_Phase_Change(T(:,it),PH(:,it-1),Mat,Map,meltmask,...
-                                                                            MI.MatLib.k,MI.MatLib.k_l,MI.MatLib.cp,MI.MatLib.cp_l,MI.MatLib.rho,MI.MatLib.rho_l,...
-                                                                            MI.MatLib.tmelt,Lv,obj.K,obj.CP,obj.RHO);   %These arguments need to be restructured
+                                                                            MI.MatLib.GetParamVector('k'), ...
+                                                                            MI.MatLib.GetParamVector('k_l'), ...
+                                                                            MI.MatLib.GetParamVector('cp'), ...
+                                                                            MI.MatLib.GetParamVector('cp_l'), ...
+                                                                            MI.MatLib.GetParamVector('rho'), ...
+                                                                            MI.MatLib.GetParamVector('rho_l'),...
+                                                                            MI.MatLib.GetParamVector('tmelt'), ...
+                                                                            Lv, obj.K,obj.CP,obj.RHO);   %These arguments need to be restructured
                     
                    [obj,T,PH,changing] = ph_ch_hook(obj,T,PH,changing,it);
                 end

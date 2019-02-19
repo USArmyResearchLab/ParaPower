@@ -323,14 +323,14 @@ ModelMatrix=ModelMatrix*1i;  %Make all feature number imaginary, then replace "i
 %Reduce materials to include only those in use in MI
 MatsInUse=zeros(MatLib.NumMat,1);
 for Fi=1:length(Features)
-    MatsInUse=strcmpi(Features(Fi).Matl,MatLib.Name) | MatsInUse;
+    MatsInUse=strcmpi(Features(Fi).Matl,MatLib.GetParam('Name')) | MatsInUse;
 end
 MatsInUse=find(MatsInUse);
 %MatLib=MatLib(MatsInUse);  %Uncomment this line to limit the number of
 %materials include in MI
 
 for Fi=1:length(Features)
-    MatNum=find(strcmpi(Features(Fi).Matl,MatLib.Name));
+    MatNum=find(strcmpi(Features(Fi).Matl,MatLib.GetParam('Name')));
     if isempty(MatNum)
         MatNum=NaN;
         error('Feature %2.0f material %s is unknown',Fi,MatNum);

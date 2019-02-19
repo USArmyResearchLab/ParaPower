@@ -49,6 +49,7 @@ classdef PPMatLib < handle
         iSource
         iMatTypeList
         iNameList
+        iPropVals=[];
         ErrorText='';
         iNewMatF
         iMatableF
@@ -62,7 +63,28 @@ classdef PPMatLib < handle
     end
 
     methods (Access = protected)
+        function PopulateProps(obj)
+            iPropValsBuf=NaN(obj.NumMat, length(obj.iParamList));
+            if strcmpi(obj.iParamList{1},'Name') && strcmpi(obj.iParamList{2},'Type')
+                for Iprop=3:length(obj.iParamList)
+                    for Imat=1:obj.NumMat
+                        fprintf('Mat: %.0f, Param %.0f\n',Imat,Iprop)
+                        ThisMat=obj.GetMatNum(Imat);
+                        if isprop(ThisMat,obj.iParamList{Iprop})
+                            iPropValsBuf(Imat,Iprop)=ThisMat.(obj.iParamList{Iprop});
+                        end
+                    end
+                end
+                obj.iPropVals=iPropValsBuf;
+            else
+                obj.AddError('First property name MUST be "Name" and second MUST be "Type"')
+                obj.ShowErrorText;
+            end
+        end
         
+        function ClearProps(obj)
+            obj.iPropVals=[];
+        end
         function UpdateInternalVars(obj)
             MatTypeList={};
             MatNameList={};
@@ -82,6 +104,7 @@ classdef PPMatLib < handle
             obj.iParamList=[AbstractFields; MatParmList];
             obj.iMatTypeList=MatTypeList;
             obj.iNameList=MatNameList;
+            obj.PopulateProps;
         end
         function CheckProperties (obj, MfileClass)
 
@@ -131,57 +154,76 @@ classdef PPMatLib < handle
     end
     
     methods
-        function varargout=subsref(obj,s)
-           switch s(1).type
-              case '.'
-                 if length(s) == 1 & ~isprop(obj,s.subs)
-                    % Implement obj.PropertyName
-                     varargout{1}=obj.GetParam(s.subs);
-                 elseif length(s) == 2 && strcmp(s(2).type,'()') && any(strcmpi(obj.iParamList,s(1).subs)) 
-                    % Implement obj.PropertyName(indices)
-                      List=obj.GetParam(s(1).subs);
-                      varargout{1}=List(s(2).subs{1});
-                 else
-                    [varargout{1:nargout}] = builtin('subsref',obj,s);
-                 end
-              case '()'
-                 if length(s) == 1
-                    % Implement obj(indices)
-                    TempOut=PPMatLib;
-                    for Mi=reshape(s.subs{1},1,[])
-                        TempOut.AddMatl(obj.iMatObjList{Mi})
-                    end
-                    varargout{1}=TempOut;
-                 elseif length(s) == 2 && strcmp(s(2).type,'.')
-                    % Implement obj(ind).PropertyName
-                    TempLib=PPMatLib;
-                    for Mi=reshape(s(1).subs{1},1,[])
-                        TempLib.AddMatl(obj.iMatObjList{Mi});
-                    end
-                    varargout{1}=TempLib.GetParam(s(2).subs);
-%                  elseif length(s) == 3 && strcmp(s(2).type,'.') && strcmp(s(3).type,'()')
-%                     % Implement obj(indices).PropertyName(indices)
-%                     ...
-                 else
-                    % Use built-in for any other expression
-                    [varargout{1:nargout}] = builtin('subsref',obj,s);
-                 end
-%               case '{}'
+        function OutParamVec = GetParamVector (obj, Param)
+            %OutParamVec = GetParamVector (obj, Param)
+            %High speed return of parameter vector
+            if isempty(obj.iPropVals)
+                obj.PopulateProps;
+            end
+            Iprop=find(strcmpi(obj.iParamList, Param));
+            OutParamVec=obj.iPropVals(:,Iprop);
+            OutParamVec=reshape(OutParamVec,[],1);
+        end
+        
+%         function varargout=subsref(obj,s)
+%            switch s(1).type
+%               case '.'
+%                  if length(s) == 1 & ~isprop(obj,s.subs)
+%                     % Implement obj.PropertyName
+%                      varargout{1}=obj.GetParam(s.subs);
+%                  elseif length(s) == 2 && strcmp(s(2).type,'()') && any(strcmpi(obj.iParamList,s(1).subs)) 
+%                     % Implement obj.PropertyName(indices)
+%                       List=obj.GetParam(s(1).subs);
+%                       varargout{1}=List(s(2).subs{1});
+%                  else
+%                     [varargout{1:nargout}] = builtin('subsref',obj,s);
+%                  end
+%               case '()'
 %                  if length(s) == 1
-%                     % Implement obj{indices}
-%                     ...
+%                     % Implement obj(indices)
+%                     TempOut=PPMatLib;
+%                     for Mi=reshape(s.subs{1},1,[])
+%                         TempOut.AddMatl(obj.iMatObjList{Mi})
+%                     end
+%                     varargout{1}=TempOut;
 %                  elseif length(s) == 2 && strcmp(s(2).type,'.')
-%                     % Implement obj{indices}.PropertyName
-%                     ...
+%                      Implement this as a buffered property that is contruced on first use that gets wiped out when material changed/added
+%                      %Algorithm will be to construct material propery
+%                      %vectors on first call.  Then destroy them with any
+%                      %call to add/delete/replace material
+%                      %Vectors will be comprised of two parts.
+%                      %PropName - Cell Array of property name
+%                      %PropValue{Property Number} - Cell Array
+%                     % Implement obj(ind).PropertyName
+%                     TempLib=PPMatLib;
+%                     for Mi=reshape(s(1).subs{1},1,[])
+%                         TempLib.AddMatl(obj.iMatObjList{Mi});
+%                     end
+%                     varargout{1}=TempLib.GetParam(s(2).subs);
+% %                  elseif length(s) == 3 && strcmp(s(2).type,'.') && strcmp(s(3).type,'()')
+% %                     % Implement obj(indices).PropertyName(indices)
+% %                     ...
 %                  else
 %                     % Use built-in for any other expression
 %                     [varargout{1:nargout}] = builtin('subsref',obj,s);
 %                  end
-              otherwise
-                 error('Not a valid indexing expression')
-           end
+% %               case '{}'
+% %                  if length(s) == 1
+% %                     % Implement obj{indices}
+% %                     ...
+% %                  elseif length(s) == 2 && strcmp(s(2).type,'.')
+% %                     % Implement obj{indices}.PropertyName
+% %                     ...
+% %                  else
+% %                     % Use built-in for any other expression
+% %                     [varargout{1:nargout}] = builtin('subsref',obj,s);
+% %                  end
+%               otherwise
+%                  error('Not a valid indexing expression')
+%            end
+% 
+%        end
 
-        end
         function OutParam=GetParam(obj, Param)
             AvailParams=obj.Params;
             if isempty(find(strcmp(AvailParams, Param),1))
@@ -448,6 +490,7 @@ classdef PPMatLib < handle
                         %obj.AddError('Material modifications will be discarded.')
                         obj.ShowErrorText('gui');
                     end
+                    obj.ClearProps
                 otherwise
                     obj.AddError(sprintf('Unknown action for DefineNewMaterial function "%s"',Action))
                 obj.ShowErrorText;
@@ -606,7 +649,9 @@ classdef PPMatLib < handle
                     obj.ShowErrorText;
                     delete(obj.iMatableF)
                     obj.iMatableF=[];
-                    uiresume
+                    if length(findobj) > 1
+                        uiresume
+                    end
                 case 'load'
                     handle=varargin{1};
                     H=get(get(handle,'parent'),'user');
@@ -744,6 +789,7 @@ classdef PPMatLib < handle
                 for I=reshape(MatNum,1,[])
                     obj.iMatObjList=obj.iMatObjList([1:obj.NumMat]~=I);
                 end
+                obj.ClearProps;
                 obj.UpdateInternalVars;
                 Success=true;
             else
@@ -761,6 +807,7 @@ classdef PPMatLib < handle
             if strcmpi(NewMat.Name, OldMat.Name) || isempty(find(strcmpi(NewMat.Name,obj.iNameList)))
                 obj.iMatObjList{MatNum}=NewMat;
                 %obj.iNameList(strcmpi(obj.iNameList,OldMat.Name))=NewMat.Name;
+                obj.ClearProps;
                 obj.UpdateInternalVars;
                 Success=true;
             else
@@ -779,6 +826,7 @@ classdef PPMatLib < handle
             end
             if isempty(obj.ErrorText)
                 obj.iMatObjList{end+1}=PPMatObject;
+                obj.ClearProps;
                 obj.UpdateInternalVars;
 %                 obj.iMatTypeList{end+1}=PPMatObject.Type;
 %                 obj.iMatTypeList=unique(obj.iMatTypeList);

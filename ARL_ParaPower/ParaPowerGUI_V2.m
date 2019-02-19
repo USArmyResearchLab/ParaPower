@@ -520,9 +520,6 @@ function loadbutton_Callback(hObject, eventdata, handles)
                NewMatLibUpdate(TestCaseModel.MatLib, handles.features)
                MatLib=get(handles.features,'user');
                MatLib.Source=[pathname filename];
-               if isfield(MI.MatLib)
-                   MI.MatLib=NewMatLibUpdate(MI.MatLib)
-               end
            else
                AddStatusLine('Materials database not included in this model.');
                AddStatusLine('It is likely an old model. ');
@@ -633,7 +630,7 @@ function RunAnalysis_Callback(hObject, eventdata, handles)
 
             MI.GlobalTime=InitTime;  %Setup initialization
             S1=scPPT('MI',MI); %Initialize object
-            
+            setup(S1,[]);
             StepsToEstimate=2;
             tic
             [Tprnt, T_in, MeltFrac,MeltFrac_in]=S1(ComputeTime(1:min(StepsToEstimate,length(ComputeTime))));  %Compute states at times in ComputeTime (S1 must be called with 1 arg in 2017b)
