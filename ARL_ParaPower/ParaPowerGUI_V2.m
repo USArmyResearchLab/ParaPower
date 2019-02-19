@@ -1261,13 +1261,14 @@ else
     figure(Objects(ResultFigure(1)));
 end
 clf
+Results=getappdata(handles.figure1,'Results');
 
-if isempty(TimeStepString)  %no model results
+if isempty(Results)  %no model results
     MI=getappdata(handles.figure1,'MI');
     if ~isempty('MI')
         AddStatusLine('No Results Exist. Displaying Detailed Geometry','warning')
-        numplots=numplots+1;
-        figure(numplots)
+        NumPlot=NumPlot+1;
+        figure(NumPlot)
         Visualize ('', MI, 'modelgeom','ShowQ','ShowExtent')
     else
         AddStatusLine('No Existing Results or Model Info.','warning')
@@ -1275,7 +1276,6 @@ if isempty(TimeStepString)  %no model results
     return
 end
     
-Results=getappdata(handles.figure1,'Results');
 MI = Results.Model;
 Tprnt = Results.Tprint;
 Stress = Results.Stress;
