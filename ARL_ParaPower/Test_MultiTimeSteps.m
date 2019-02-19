@@ -88,9 +88,10 @@ for I=1:2
     elseif (I==2)  %THERE IS CURRENTLY  A PROBLEM WHERE STEP 4 HERE IS NOT THE SAME AS ABOVE
         StepsToEstimate=2;
         tic
-        Eest=min(StepsToEstimate,length(ComputeTime))
+        Eest=min(StepsToEstimate,length(ComputeTime));
         [Tprnt, T_in, MeltFrac,MeltFrac_in]=S1(ComputeTime(1:Eest));  %Compute states at times in ComputeTime (S1 must be called with 1 arg in 2017b)
-        EstTime=toc
+        EstTime=toc;
+        tic
         if length(ComputeTime)>StepsToEstimate
         %    AddStatusLine(sprintf('(Est. %.1s)',EstTime*(length(ComputeTime)-2)))
             [Tprnt2,~, MeltFrac2,~]=S1(ComputeTime(StepsToEstimate+1:end));  %Compute states at times in ComputeTime (S1 must be called with 1 arg in 2017b)
@@ -100,6 +101,8 @@ for I=1:2
             Tprnt=cat(4,T_in,Tprnt);
             MeltFrac=cat(4,MeltFrac_in,MeltFrac);
         end
+        ActTime=toc;
+        fprintf('Estimated Time: %f, Actual Time %f\n',EstTime,ActTime)
     end 
     Tmatrix{I}=Tprnt;
 end        

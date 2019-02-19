@@ -68,7 +68,6 @@ classdef PPMatLib < handle
             if strcmpi(obj.iParamList{1},'Name') && strcmpi(obj.iParamList{2},'Type')
                 for Iprop=3:length(obj.iParamList)
                     for Imat=1:obj.NumMat
-                        fprintf('Mat: %.0f, Param %.0f\n',Imat,Iprop)
                         ThisMat=obj.GetMatNum(Imat);
                         if isprop(ThisMat,obj.iParamList{Iprop})
                             iPropValsBuf(Imat,Iprop)=ThisMat.(obj.iParamList{Iprop});
@@ -165,7 +164,7 @@ classdef PPMatLib < handle
             OutParamVec=reshape(OutParamVec,[],1);
         end
         
-%         function varargout=subsref(obj,s)
+%         function varargout=subsref(obj,s) 
 %            switch s(1).type
 %               case '.'
 %                  if length(s) == 1 & ~isprop(obj,s.subs)

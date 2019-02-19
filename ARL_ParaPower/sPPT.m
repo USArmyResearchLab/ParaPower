@@ -125,7 +125,7 @@ classdef sPPT < matlab.System & matlab.system.mixin.Propagates ...
             for vn=1:length(vmatnum)
                 %set Mat entries corresponding to voids to negative numbers per legacy
                 %definition.  Initialize parameters
-                h_ibc=MI.MatLib.GetParamVector('h_ibc')
+                h_ibc=MI.MatLib.GetParamVector('h_ibc');
                 hint(vn)=h_ibc(vmatnum(vn));
                 T_ibc=MI.MatLib.GetParamVector('T_ibc');
                 Ta_void(vn)=T_ibc(vmatnum(vn));
