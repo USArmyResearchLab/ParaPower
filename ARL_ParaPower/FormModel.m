@@ -52,20 +52,38 @@ end
 
 %DIREX
 
-h(Xminus)=ExternalConditions.h_Xminus;
-h(Xplus)=ExternalConditions.h_Xplus;
-h(Yminus)=ExternalConditions.h_Yminus;
-h(Yplus)=ExternalConditions.h_Yplus;
-h(Zminus)=ExternalConditions.h_Zminus;
-h(Zplus)=ExternalConditions.h_Zplus;
+if isfield(ExternalConditions,'h_Xminus')
+    h(Xminus)=ExternalConditions.h_Xminus;
+    h(Xplus)=ExternalConditions.h_Xplus;
+    h(Yminus)=ExternalConditions.h_Yminus;
+    h(Yplus)=ExternalConditions.h_Yplus;
+    h(Zminus)=ExternalConditions.h_Zminus;
+    h(Zplus)=ExternalConditions.h_Zplus;
 
-Ta(Xminus)=ExternalConditions.Ta_Xminus;
-Ta(Xplus)=ExternalConditions.Ta_Xplus;
-Ta(Yminus)=ExternalConditions.Ta_Yminus;
-Ta(Yplus)=ExternalConditions.Ta_Yplus;
-Ta(Zminus)=ExternalConditions.Ta_Zminus;
-Ta(Zplus)=ExternalConditions.Ta_Zplus;
-
+    Ta(Xminus)=ExternalConditions.Ta_Xminus;
+    Ta(Xplus)=ExternalConditions.Ta_Xplus;
+    Ta(Yminus)=ExternalConditions.Ta_Yminus;
+    Ta(Yplus)=ExternalConditions.Ta_Yplus;
+    Ta(Zminus)=ExternalConditions.Ta_Zminus;
+    Ta(Zplus)=ExternalConditions.Ta_Zplus;
+elseif isfield(ExternalConditions,'h_Left')
+    warning('You are using the previous version of TestCaseModel.  External condition direction names have changed.  Check to be sure that you''re applying the BCs you intend to be applying')
+    h(Xminus)=ExternalConditions.h_Left;
+    h(Xplus)=ExternalConditions.h_Right;
+    h(Yplus)=ExternalConditions.h_Front;
+    h(Yminus)=ExternalConditions.h_Back;
+    h(Zplus)=ExternalConditions.h_Top;
+    h(Zminus)=ExternalConditions.h_Bottom;
+    
+    Ta(Xminus)=ExternalConditions.Ta_Left;
+    Ta(Xplus)=ExternalConditions.Ta_Right;
+    Ta(Yplus)=ExternalConditions.Ta_Front;
+    Ta(Yminus)=ExternalConditions.Ta_Back;
+    Ta(Zplus)=ExternalConditions.Ta_Top;
+    Ta(Zminus)=ExternalConditions.Ta_Bottom;
+else
+    error('Ta and h not created due to error in ExternalConditions')
+end
 Tproc=ExternalConditions.Tproc;
 
 

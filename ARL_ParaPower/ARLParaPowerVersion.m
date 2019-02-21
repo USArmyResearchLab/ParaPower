@@ -1,7 +1,7 @@
 function OutText=ARLParaPowerVersion(Entity)
 %If file does not exist return program version, otherwise file version
-    if ~exist('File')
-        Entity='file'
+    if ~exist('Entity')
+        Entity='file';
     end
     
     switch lower(Entity)

@@ -118,7 +118,9 @@ classdef PPMatLib < handle
     end
     methods (Static)
         function Types=GetMatTypesAvail
-            F=dir('PPMat*.m');
+            LibPath=mfilename('fullpath');
+            LibPath=strrep(LibPath,mfilename,'');
+            F=dir([LibPath 'PPMat*.m']);
             Types={};
             for I=1:length(F)
                 MatFile=F(I).name;
@@ -356,7 +358,7 @@ classdef PPMatLib < handle
                     FS=12;
                     LongestString='Nucleation Delta TempMMMM';
                     obj.iNewMatF=figure('name','Define Material','menu','none','toolbar','none','unit','normal','numbertitle','off');
-                    set(obj.iNewMatF,'windowstyle','modal');
+%DEBUG                    set(obj.iNewMatF,'windowstyle','modal');
                     P=get(obj.iNewMatF,'posit');
                     set(obj.iNewMatF,'posit',[P(1) .15 P(3) .8]);
                     Temp=uicontrol('unit','normal','style','edit','string',LongestString,'fontsize',FS);
@@ -509,7 +511,7 @@ classdef PPMatLib < handle
                     NP=[0.1 0.95 0.1 0.1];
                     FS=12;
                     obj.iMatableF=figure('name','Material Library','menu','none','toolbar','none','unit','normal','numbertitle','off');
-                    set(obj.iMatableF,'windowstyle','modal');
+%DEBUG                    set(obj.iMatableF,'windowstyle','modal');
                     %P=get(obj.iNewMatF,'posit');
                     set(obj.iMatableF,'posit',[.2 .2 .7 .45]);
                     

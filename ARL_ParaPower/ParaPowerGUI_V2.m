@@ -132,7 +132,10 @@ function InitializeGUI(handles)
     ErrorStatus()
 
     %Set Stress Model Directory
-    set(handles.StressModel,'userdata','Stress_Models')
+    MainPath=mfilename('fullpath');
+    MainPath=strrep(MainPath,mfilename,'');
+    
+    set(handles.StressModel,'userdata',[MainPath 'Stress_Models'])
 
     T=uicontrol(handles.figure1,'style','text','units','normal','posit',[0.01 0 .3 .02],'string','DISTRIBUTION C: See Help for details','horiz','left');
     E=get(T,'extent');
@@ -1437,11 +1440,24 @@ function figure1_CloseRequestFcn(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: delete(hObject) closes the figure
-F=get(handles.features,'userdata');
-if not(isempty(F)) && ishandle(F)
-    delete(F)
-end
-delete(hObject);
+    if ishandle(handles.VisualUpdateText)
+        if strcmpi(get(handles.VisualUpdateText,'vis'),'on');
+            P=questdlg('Are you sure you want to close the GUI and erase all current model data?','Confirmation','Yes','No','No');
+        else
+            P='Yes';
+        end
+    else
+        P='Yes';
+    end
+    if strcmpi(P,'No')
+        AddStatusLine('GUI close canceled.')
+    else
+        F=get(handles.features,'userdata');
+        if not(isempty(F)) && ishandle(F)
+            delete(F)
+        end
+        delete(hObject);
+    end
 end
 
 % --- Executes during object creation, after setting all properties.
