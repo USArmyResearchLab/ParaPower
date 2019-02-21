@@ -2,26 +2,61 @@
 warning('This is a template only and will not result in a usable case')    
 
 %Clear the main variables that are passed out from it.
-clear Features ExternalConditions Params PottingMaterial Descr
+clear Features ExternalConditions Params PottingMaterial Descr MatLib
+
+MatLib=PPMatLib;
+MatLib.AddMatl(PPMatPCM(  'name'  , 'Ga'  ...
+                           ,'k_l'   , 24    ...
+                           ,'rho_l' , 6093  ...
+                           ,'cp_l'  , 397   ...
+                           ,'lf'    , 80300 ...
+                           ,'tmelt' , 29.8  ...
+                           ,'cte'   , 0     ...
+                           ,'E'     , 0     ...
+                           ,'nu'    , 0     ...
+                           ,'k'     , 33.7  ...
+                           ,'rho'   , 5903  ...
+                           ,'cp'    , 340   ...
+                        )) ;
+MatLib.AddMatl(PPMatSolid('name'  , 'cu'  ...
+                           ,'cte'   , 2.4e-5...
+                           ,'E'     , 1.1e11...
+                           ,'nu'    , .37   ...
+                           ,'k'     , 390   ...
+                           ,'rho'   , 8900  ...
+                           ,'cp'     , 390   ...
+                        )) ;
+                    
+MatLib.AddMatl(PPMatSolid('name'  , 'SiC'  ...
+                           ,'cte'   , 4e-6 ...
+                           ,'E'     , 4.1e11...
+                           ,'nu'    , .14   ...
+                           ,'k'     , 120   ...
+                           ,'rho'   , 3100  ...
+                           ,'cp'     , 750   ...
+                        )) ;
+                    
+MatLib.AddMatl(PPMatNull('name'  , 'No_Matl'  ...
+                           ));
+                       
 Features.x=[]; Features.y=[]; Features.z=[]; Features.Matl=[]; Features.Q=[]; Features.Matl=''; 
 Features.dz=0; Features.dy=0; Features.dz=0;
 
 Desc='Test Case Template';  %Description of the test case
 
+ExternalConditions.h_Xminus=0;
+ExternalConditions.h_Xplus =0;
+ExternalConditions.h_Yminus=0;
+ExternalConditions.h_Yplus =0;
+ExternalConditions.h_Zminus=0;
+ExternalConditions.h_Zplus =0;
 
-ExternalConditions.h_Left=0;  %Heat transfer coefficient from each side to the external environment
-ExternalConditions.h_Right=0;
-ExternalConditions.h_Front=0;
-ExternalConditions.h_Back=500;
-ExternalConditions.h_Top=1e10;
-ExternalConditions.h_Bottom=0;
-
-ExternalConditions.Ta_Left=20;  %Ambiant temperature outside the defined the structure
-ExternalConditions.Ta_Right=20;
-ExternalConditions.Ta_Front=20;
-ExternalConditions.Ta_Back=20;
-ExternalConditions.Ta_Top=20;
-ExternalConditions.Ta_Bottom=20;
+ExternalConditions.Ta_Xminus=20;
+ExternalConditions.Ta_Xplus =20;
+ExternalConditions.Ta_Yminus=20;
+ExternalConditions.Ta_Yplus =20;
+ExternalConditions.Ta_Zminus=20;
+ExternalConditions.Ta_Zplus =20;
 
 ExternalConditions.Tproc=280; %Processing temperature, used for stress analysis
 
@@ -37,26 +72,39 @@ PottingMaterial  = 0;  %Material that surrounds features in each layer as define
 %feature exists, the material is defined as "potting material."  There is
 %no checking to ensure that features do not overlap.  The behavior for
 %overlapping features is not defined.
-Features(1).x    = [0 .001];  %.x, .y & .z are the two element vectors that define the corners
-Features(1).y    = [0 .001];  %of each features.  X=[X1 X2], Y=[Y1 Yz], Z=[Z1 Z2] is interpreted
-Features(1).z    = [0 .01];   %that corner of the features are at points (X1, Y1, Z1) and (X2, Y2, Z2).
-                              %It is possible to define zero thickness features where Z1=Z2 (or X or Y)
-                              %to ensure a heat source at a certain layer or a certain discretization.
-                              
-Features(1).dx   = 3;     %These define the number of elements in each features.  While these can be 
-Features(1).dy   = 3;     %values from 2 to infinity, only odd values ensure that there is an element
-Features(1).dz   = 10;    %at the center of each features
 
-Features(1).Matl = 'Cu'; %Material text as defined in matlibfun
+PottingMaterial  = 0;
 
-Features(1).Q    = 0;  %Total heat input at this features in watts.  The heat per element is Q/(# elements)
+Features(1).x    = [0 .001];
+Features(1).y    = [0 .001];
+Features(1).z    = [0 .01];
+Features(1).dx   = 2;
+Features(1).dy   = 2;
+Features(1).dz   = 10;
+Features(1).Matl = 'Cu';
+Features(1).Q    = 0;  %Total watts per features dissipated.
 
+Features(2)      = Features(1);
+Features(2).z    = [0 0];
+Features(2).dz   = 1;
+Features(2).Q    = 100;
+Features(2).Matl = 'No_Matl';
 
-%Assemble the above definitions into a single variablel that will be used
-%to run the analysis.  This is the only variable that is used from this
-%M-file.  
+Features(3)      = Features(2);
+Features(3).z    = [1 1]*max(Features(1).z);
+Features(3).Matl = 'SiC';
+
+%     Define Q as @(T,Q,Ti)interp1(T,Q,Ti,'spline');
+%     if Q is cell then do interp, otherwise 
+%         Q{ii,jj,kk}(Arg1 Arg2 Arg3)
+
 TestCaseModel.Features=Features;
 TestCaseModel.Params=Params;
 TestCaseModel.PottingMaterial=PottingMaterial;
 TestCaseModel.ExternalConditions=ExternalConditions;
 TestCaseModel.Desc=Desc;
+TestCaseModel.MatLib=MatLib;
+TestCaseModel.Version='V2.1';
+
+
+MFILE=mfilename('fullpath');

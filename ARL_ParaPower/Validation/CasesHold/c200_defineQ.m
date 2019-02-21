@@ -4,20 +4,20 @@
 
     clear Features ExternalConditions Params PottingMaterial
 
-    %Setting Structural BCs, using direction below if non-zero
-    ExternalConditions.h_Left=0;
-    ExternalConditions.h_Right=0;
-    ExternalConditions.h_Front=0;
-    ExternalConditions.h_Back=0;
-    ExternalConditions.h_Top=0;
-    ExternalConditions.h_Bottom=0;
+    ExternalConditions.h_Xminus=0;
+    ExternalConditions.h_Xplus=0;
+    ExternalConditions.h_Yminus=0;
+    ExternalConditions.h_Yplus=500;
+    ExternalConditions.h_Zminus=1e10;
+    ExternalConditions.h_Zplus=0;
 
-    ExternalConditions.Ta_Left=20;
-    ExternalConditions.Ta_Right=20;
-    ExternalConditions.Ta_Front=20;
-    ExternalConditions.Ta_Back=20;
-    ExternalConditions.Ta_Top=20;
-    ExternalConditions.Ta_Bottom=20;
+    ExternalConditions.Ta_Xminus=20;
+    ExternalConditions.Ta_Xplus=20;
+    ExternalConditions.Ta_Yminux=20;
+    ExternalConditions.Ta_Yplus=20;
+    ExternalConditions.Ta_Zminus=20;
+    ExternalConditions.Ta_Zplus=20;
+
 
     ExternalConditions.Tproc = 280; %Processing temperature
 

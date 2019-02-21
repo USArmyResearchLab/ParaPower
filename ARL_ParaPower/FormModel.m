@@ -379,7 +379,11 @@ end
 Fs=unique(FeatureMatrix(~isnan(FeatureMatrix)));
 Fs=Fs(Fs~=0);
 for Fi=1:length(Fs)
-   Ftext{Fi}=TestCaseModel.Features(Fs(Fi)).Desc;
+    if isfield(TestCaseModel.Features(Fs(Fi)),'Desc')
+        Ftext{Fi}=TestCaseModel.Features(Fs(Fi)).Desc;
+    else
+        Ftext{Fi}=sprintf('Feature #%.0f',Fi);
+    end
 end
 
 ModelInput.OriginPoint=OriginPoint; %Minimum absolute coordinates for X, Y and Z
