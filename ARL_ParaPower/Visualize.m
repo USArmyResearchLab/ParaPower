@@ -547,12 +547,12 @@ function Visualize (PlotTitle, MI, varargin)
 
     if PlotGeom
         Hoffset=0.5;
-        LftT=sprintf('h=%g, T_a=%g',h(Direx.Left),Ta(Direx.Left));
-        RgtT=sprintf('h=%g, T_a=%g',h(Direx.Right),Ta(Direx.Right));
-        BckT=sprintf('h=%g, T_a=%g',h(Direx.Back),Ta(Direx.Back));
-        FrtT=sprintf('h=%g, T_a=%g',h(Direx.Front),Ta(Direx.Front));
-        TopT=sprintf('h=%g, T_a=%g',h(Direx.Top),Ta(Direx.Top));
-        BtmT=sprintf('h=%g, T_a=%g',h(Direx.Bottom),Ta(Direx.Bottom));
+        LftT=sprintf('h=%g, T_a=%g',h(Direx.Xminus),Ta(Direx.Xminus));
+        RgtT=sprintf('h=%g, T_a=%g',h(Direx.Xplus ),Ta(Direx.Xplus));
+        BckT=sprintf('h=%g, T_a=%g',h(Direx.Yminus),Ta(Direx.Yminus));
+        FrtT=sprintf('h=%g, T_a=%g',h(Direx.Yplus ),Ta(Direx.Yplus));
+        TopT=sprintf('h=%g, T_a=%g',h(Direx.Zminus),Ta(Direx.Zminus));
+        BtmT=sprintf('h=%g, T_a=%g',h(Direx.Zplus ),Ta(Direx.Zplus));
     else
         Hoffset=0.1;
         LftT='';
@@ -571,12 +571,12 @@ function Visualize (PlotTitle, MI, varargin)
     end
     if not(PlotParms.HideBC)
         T=[];
-        T=[T text(min(X)-Hoffset*Xrange,Ymid,Zmid,sprintf('Lft %s',LftT)) ];
-        T=[T text(max(X)+Hoffset*Xrange,Ymid,Zmid,sprintf('Rgt %s', RgtT)) ];
-        T=[T text(Xmid, min(Y)-Hoffset*Yrange,Zmid,sprintf('Bck %s', BckT)) ];
-        T=[T text(Xmid, max(Y)+Hoffset*Yrange,Zmid,sprintf('Frt %s', FrtT)) ];
-        T=[T text(Xmid, Ymid, max(Z)+Hoffset*Zrange,sprintf('Top %s', TopT)) ];
-        T=[T text(Xmid, Ymid, min(Z)-Hoffset*Zrange,sprintf('Btm %s', BtmT)) ];
+        T=[T text(min(X)-Hoffset*Xrange,Ymid,Zmid,sprintf('X- %s',LftT)) ];
+        T=[T text(max(X)+Hoffset*Xrange,Ymid,Zmid,sprintf('X+ %s', RgtT)) ];
+        T=[T text(Xmid, min(Y)-Hoffset*Yrange,Zmid,sprintf('Y- %s', BckT)) ];
+        T=[T text(Xmid, max(Y)+Hoffset*Yrange,Zmid,sprintf('Y+ %s', FrtT)) ];
+        T=[T text(Xmid, Ymid, min(Z)-Hoffset*Zrange,sprintf('Z- %s', TopT)) ];
+        T=[T text(Xmid, Ymid, max(Z)+Hoffset*Zrange,sprintf('Z+ %s', BtmT)) ];
         set(T,'edge',[0 0 0]);
     end
 

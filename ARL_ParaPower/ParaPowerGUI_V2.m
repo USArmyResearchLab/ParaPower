@@ -114,7 +114,7 @@ function InitializeGUI(handles)
     set(Tx,'posit',[.5 -1*E(4)*0.25])
     set(handles.text9,'background',BkgColor,'enable','on')
     %imshow('ARLlogoParaPower.png')
-    text(0,0,['Version ' ARLParaPowerVersion],'vertical','bott')
+    text(0,0,['Version ' ARLParaPowerVersion('program')],'vertical','bott')
     setappdata(handles.figure1,'Version',ARLParaPowerVersion)
     set(handles.GeometryVisualization,'visi','off');
     AxPosit=get(handles.PPLogo,'posit');
@@ -424,7 +424,7 @@ function loadbutton_Callback(hObject, eventdata, handles)
             end
             OldVersion=false;
             if isfield(TestCaseModel,'Version')
-               if not(strcmpi(TestCaseModel.Version,'V2.0') )
+               if not(strcmpi(TestCaseModel.Version,ARLParaPowerVersion('file')) )
                    OldVersion=true;
                end
             else
@@ -444,19 +444,37 @@ function loadbutton_Callback(hObject, eventdata, handles)
             %%% Set the External Conditions into the table 
             tabledata = get(handles.ExtCondTable,'data');
 
-           tabledata(1,1) =  mat2cell(ExternalConditions.h_Left,1,1);
-           tabledata(1,2) =  mat2cell(ExternalConditions.h_Right,1,1);
-           tabledata(1,3) =  mat2cell(ExternalConditions.h_Front,1,1);
-           tabledata(1,4) =  mat2cell(ExternalConditions.h_Back,1,1);
-           tabledata(1,5) =  mat2cell(ExternalConditions.h_Top,1,1);
-           tabledata(1,6) =  mat2cell(ExternalConditions.h_Bottom,1,1);
+            if isfield(ExternalConditions,'h_Xminus')
+               tabledata(1,1) =  mat2cell(ExternalConditions.h_Xminus,1,1);
+               tabledata(1,2) =  mat2cell(ExternalConditions.h_Xplus,1,1);
+               tabledata(1,3) =  mat2cell(ExternalConditions.h_Yminus,1,1);
+               tabledata(1,4) =  mat2cell(ExternalConditions.h_Yplus,1,1);
+               tabledata(1,5) =  mat2cell(ExternalConditions.h_Zminus,1,1);
+               tabledata(1,6) =  mat2cell(ExternalConditions.h_Zplus,1,1);
 
-           tabledata(2,1) =  mat2cell(ExternalConditions.Ta_Left,1,1);
-           tabledata(2,2) =  mat2cell(ExternalConditions.Ta_Right,1,1);
-           tabledata(2,3) =  mat2cell(ExternalConditions.Ta_Front,1,1);
-           tabledata(2,4) =  mat2cell(ExternalConditions.Ta_Back,1,1);
-           tabledata(2,5) =  mat2cell(ExternalConditions.Ta_Top,1,1);
-           tabledata(2,6) =  mat2cell(ExternalConditions.Ta_Bottom,1,1);
+               tabledata(2,1) =  mat2cell(ExternalConditions.Ta_Xminus,1,1);
+               tabledata(2,2) =  mat2cell(ExternalConditions.Ta_Xplus,1,1);
+               tabledata(2,3) =  mat2cell(ExternalConditions.Ta_Yminus,1,1);
+               tabledata(2,4) =  mat2cell(ExternalConditions.Ta_Yplus,1,1);
+               tabledata(2,5) =  mat2cell(ExternalConditions.Ta_Zminus,1,1);
+               tabledata(2,6) =  mat2cell(ExternalConditions.Ta_Zplus,1,1);
+            elseif isfield(ExternalConditions,'h_Left')
+                AddStatusLine('You are loading an older file version. Confirm that external BCs are correct,','warning')
+                warndlg('You are loading an older file version. Confirm that external BCs are correct,','File Version Warning','modal')
+                tabledata(1,1) =  mat2cell(ExternalConditions.h_Left,1,1);
+                tabledata(1,2) =  mat2cell(ExternalConditions.h_Right,1,1);
+                tabledata(1,3) =  mat2cell(ExternalConditions.h_Front,1,1);
+                tabledata(1,4) =  mat2cell(ExternalConditions.h_Back,1,1);
+                tabledata(1,5) =  mat2cell(ExternalConditions.h_Top,1,1);
+                tabledata(1,6) =  mat2cell(ExternalConditions.h_Bottom,1,1);
+ 
+                tabledata(2,1) =  mat2cell(ExternalConditions.Ta_Left,1,1);
+                tabledata(2,2) =  mat2cell(ExternalConditions.Ta_Right,1,1);
+                tabledata(2,3) =  mat2cell(ExternalConditions.Ta_Front,1,1);
+                tabledata(2,4) =  mat2cell(ExternalConditions.Ta_Back,1,1);
+                tabledata(2,5) =  mat2cell(ExternalConditions.Ta_Top,1,1);
+                tabledata(2,6) =  mat2cell(ExternalConditions.Ta_Bottom,1,1);
+            end
 
            set(handles.ExtCondTable,'Data',tabledata)
 
@@ -504,10 +522,17 @@ function loadbutton_Callback(hObject, eventdata, handles)
                QData{n}=[];
            end
            
-           setappdata(gcf,'TestCaseModel',TestCaseModel)
-           setappdata(gcf,TableDataName, QData)
+           %It's a good idea to force a rebuild of TestCaseModel from the
+           %GUI instead of assuming that the profile info translates
+           %correctly.
+           %setappdata(gcf,'TestCaseModel',TestCaseModel)
+           if ~isempty(getappdata(handles.figure1,'TestCaseModel'))
+            rmappdata(handles.figure1,'TestCaseModel')
+           end
+
+           setappdata(handles.figure1,TableDataName, QData)
            if exist('Results','var')
-               setappdata(gcf,'Results',Results)
+               setappdata(handles.figure1,'Results',Results)
                if (isfield(Results,'Tprint'))
                     AddStatusLine('Results loaded.');
                end
@@ -845,19 +870,19 @@ for K=1:length(ExtBoundMatrix(:))
 end
 
 %Setting Structural BCs, using direction below if non-zero
-    ExternalConditions.h_Left=ExtBoundMatrix{1,1};    %Heat transfer coefficient from each side to the external environment
-    ExternalConditions.h_Right=ExtBoundMatrix{1,2};
-    ExternalConditions.h_Front=ExtBoundMatrix{1,3};
-    ExternalConditions.h_Back=ExtBoundMatrix{1,4};
-    ExternalConditions.h_Top=ExtBoundMatrix{1,5};
-    ExternalConditions.h_Bottom=ExtBoundMatrix{1,6};
+    ExternalConditions.h_Xminus=ExtBoundMatrix{1,1};    %Heat transfer coefficient from each side to the external environment
+    ExternalConditions.h_Xplus=ExtBoundMatrix{1,2};
+    ExternalConditions.h_Yminus=ExtBoundMatrix{1,3};
+    ExternalConditions.h_Yplus=ExtBoundMatrix{1,4};
+    ExternalConditions.h_Zminus=ExtBoundMatrix{1,5};
+    ExternalConditions.h_Zplus=ExtBoundMatrix{1,6};
 
-    ExternalConditions.Ta_Left=ExtBoundMatrix{2,1};   %Ambiant temperature outside the defined the structure
-    ExternalConditions.Ta_Right=ExtBoundMatrix{2,2};
-    ExternalConditions.Ta_Front=ExtBoundMatrix{2,3};
-    ExternalConditions.Ta_Back=ExtBoundMatrix{2,4};
-    ExternalConditions.Ta_Top=ExtBoundMatrix{2,5};
-    ExternalConditions.Ta_Bottom=ExtBoundMatrix{2,6};
+    ExternalConditions.Ta_Xminus=ExtBoundMatrix{2,1};   %Ambiant temperature outside the defined the structure
+    ExternalConditions.Ta_Xplus=ExtBoundMatrix{2,2};
+    ExternalConditions.Ta_Yminus=ExtBoundMatrix{2,3};
+    ExternalConditions.Ta_Yplus=ExtBoundMatrix{2,4};
+    ExternalConditions.Ta_Zminus=ExtBoundMatrix{2,5};
+    ExternalConditions.Ta_Zplus=ExtBoundMatrix{2,6};
 
     ExternalConditions.Tproc = str2num(get(handles.Tprocess,'String')); %Processing temperature, used for stress analysis
 
@@ -1022,7 +1047,7 @@ else
     TestCaseModel.Params=Params;
     TestCaseModel.PottingMaterial=PottingMaterial;
     TestCaseModel.MatLib=MatLib;
-    TestCaseModel.Version='V2.0';
+    TestCaseModel.Version=ARLParaPowerVersion('file');
 
     if KillInit
         AddStatusLine('Unable to execute model due to errors.','error')
@@ -1263,9 +1288,12 @@ end
 clf
 Results=getappdata(handles.figure1,'Results');
 
-if isempty(Results)  %no model results
+%Get check boxes for Temp, Stress, Melt Fraction results
+ResultsReq=[get(handles.VisualTemp,'Value') get(handles.VisualStress,'Value') get(handles.VisualMelt,'Value')];
+
+if isempty(Results) || max(ResultsReq)==0 %no model results
 %    if ~isempty('MI')
-        AddStatusLine('No Results Exist. Displaying Detailed Geometry','warning')
+        AddStatusLine('No results exist or no results selected. Displaying Detailed Geometry','warning')
         NumPlot=NumPlot+1;
         Initialize_Callback(hObject, eventdata, handles, false)
         MI=getappdata(handles.figure1,'MI');
@@ -1297,7 +1325,7 @@ if ~trans_model
     end
 end
 CurPlot=1;
-if get(handles.VisualTemp,'Value')==1
+if ResultsReq(1)==1
     if isempty(Tprnt)
         AddStatusLine('No temperature solution exists.','warning')
     else
@@ -1318,7 +1346,7 @@ if get(handles.VisualTemp,'Value')==1
        end
     end
 end
-if get(handles.VisualStress,'Value')==1
+if ResultsReq(2)==1
     if isempty(Stress)
         AddStatusLine('No stress solution exists.','warning')
     else
@@ -1341,7 +1369,7 @@ if get(handles.VisualStress,'Value')==1
     end
 end
 
-if get(handles.VisualMelt,'Value')==1
+if ResultsReq(3)==1
     if isempty(MeltFrac)
         AddStatusLine('No melt-fraction solution exists.','warning')
     else
@@ -2081,7 +2109,7 @@ function HelpButton_Callback(hObject, eventdata, handles)
                
     
     HelpText={};
-    HelpText{end+1}=['ARL ParaPower ' ARLParaPowerVersion ];
+    HelpText{end+1}=['ARL ParaPower ' ARLParaPowerVersion('program') ];
     HelpText{end+1}='';
     HelpText{end+1}='Build a model:';
     HelpText{end+1}='    Step 1';

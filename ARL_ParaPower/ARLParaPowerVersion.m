@@ -1,2 +1,15 @@
-function OutText=ARLParaPowerVersion
-    OutText='3.2.4';
+function OutText=ARLParaPowerVersion(Entity)
+%If file does not exist return program version, otherwise file version
+    if ~exist('File')
+        Entity='file'
+    end
+    
+    switch lower(Entity)
+        case 'file'
+            OutText='V2.1';
+        case 'program'
+            OutText='3.2.4';
+        otherwise
+            OutText='';
+            disp('Unknown entity for version info.')
+    end

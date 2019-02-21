@@ -2,23 +2,23 @@ function ModelInput=FormModel(TestCaseModel)
 %disp('============================')
 
 %Overall structures orientation/BCs for ease of reference
-Left  = 1; %X- Face
-Right = 2; %X+ Face
-Front = 3; %Y- Face
-Back  = 4; %Y+ Face
-Bottom= 5; %Z- Face
-Top   = 6; %Z+ Face
+Xminus  = 1; %X- Face
+Xplus = 2; %X+ Face
+Yminus = 3; %Y- Face
+Yplus  = 4; %Y+ Face
+Zminus= 5; %Z- Face
+Zplus   = 6; %Z+ Face
 
 No_Matl='No Matl';
 
 if ischar(TestCaseModel) 
     if strcmpi('GetDirex',TestCaseModel) %this argument will return the directional index definitions
-        ModelInput.Left=Left;
-        ModelInput.Right=Right;
-        ModelInput.Front=Front;
-        ModelInput.Back=Back;
-        ModelInput.Bottom=Bottom;
-        ModelInput.Top=Top;
+        ModelInput.Xminus=Xminus;
+        ModelInput.Xplus=Xplus;
+        ModelInput.Yminus=Yminus;
+        ModelInput.Yplus=Yplus;
+        ModelInput.Zminus=Zminus;
+        ModelInput.Zplus=Zplus;
         return
     else
         error('Invalid optional argument');
@@ -26,7 +26,9 @@ if ischar(TestCaseModel)
 else
     if not(isfield(TestCaseModel,'Version')) 
         error(['Incorrect TestCaseModel version.  No version is specified']);
-    elseif not(strcmpi(TestCaseModel.Version,'V2.0'))
+    elseif strcmpi(TestCaseModel.Version,'V2.0')
+        warning('Form Model is %s.  V2.0 -> V2.1 switched order of external BCs. Please confirm accuracy.', TestCaseModel.Version);
+    elseif not(strcmpi(TestCaseModel.Version,'V2.1'))
         error(['Incorrect TestCaseModel version.  V2.0 required, this data is ' TestCaseModel.Version]);
     end
     ExternalConditions=TestCaseModel.ExternalConditions;
@@ -48,20 +50,21 @@ else
 end
 %[matprops, matlist, matcolors, kond, cte,E,nu,rho,spht]=matlibfun;
 
+%DIREX
 
-h(Left)=ExternalConditions.h_Left;
-h(Right)=ExternalConditions.h_Right;
-h(Front)=ExternalConditions.h_Front;
-h(Back)=ExternalConditions.h_Back;
-h(Top)=ExternalConditions.h_Top;
-h(Bottom)=ExternalConditions.h_Bottom;
+h(Xminus)=ExternalConditions.h_Xminus;
+h(Xplus)=ExternalConditions.h_Xplus;
+h(Yminus)=ExternalConditions.h_Yminus;
+h(Yplus)=ExternalConditions.h_Yplus;
+h(Zminus)=ExternalConditions.h_Zminus;
+h(Zplus)=ExternalConditions.h_Zplus;
 
-Ta(Left)=ExternalConditions.Ta_Left;
-Ta(Right)=ExternalConditions.Ta_Right;
-Ta(Front)=ExternalConditions.Ta_Front;
-Ta(Back)=ExternalConditions.Ta_Back;
-Ta(Top)=ExternalConditions.Ta_Top;
-Ta(Bottom)=ExternalConditions.Ta_Bottom;
+Ta(Xminus)=ExternalConditions.Ta_Xminus;
+Ta(Xplus)=ExternalConditions.Ta_Xplus;
+Ta(Yminus)=ExternalConditions.Ta_Yminus;
+Ta(Yplus)=ExternalConditions.Ta_Yplus;
+Ta(Zminus)=ExternalConditions.Ta_Zminus;
+Ta(Zplus)=ExternalConditions.Ta_Zplus;
 
 Tproc=ExternalConditions.Tproc;
 
