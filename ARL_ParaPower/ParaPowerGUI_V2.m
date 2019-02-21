@@ -350,6 +350,8 @@ function savebutton_Callback(hObject, eventdata, handles)
             if Source(end)=='*'
                 TestCaseModel.MatLib.Source=[pathname fname];
             end
+            TestCaseModel.MatLib.GUIModFlag=false;
+            setappdata(gcf,'TestCaseModel',TestCaseModel);
             save([pathname fname],'TestCaseModel','Results','-mat')  
             AddStatusLine('Done', true);
         end
@@ -530,7 +532,7 @@ function loadbutton_Callback(hObject, eventdata, handles)
            %correctly.
            %setappdata(gcf,'TestCaseModel',TestCaseModel)
            if ~isempty(getappdata(handles.figure1,'TestCaseModel'))
-            rmappdata(handles.figure1,'TestCaseModel')
+              rmappdata(handles.figure1,'TestCaseModel')
            end
 
            setappdata(handles.figure1,TableDataName, QData)
@@ -542,6 +544,7 @@ function loadbutton_Callback(hObject, eventdata, handles)
            end
            
            %Update Materials
+           TestCaseModel.MatLib.GUIModFlag=false;
            if isfield(TestCaseModel,'MatLib')
                %Is this working properly?  Materials database isn't getting reloaded.
                %UpdateMatList('LoadMatLib',handles.features, FTC('mat'), TestCaseModel.MatLib)
@@ -1440,12 +1443,18 @@ function figure1_CloseRequestFcn(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: delete(hObject) closes the figure
-    if ishandle(handles.VisualUpdateText)
-        if strcmpi(get(handles.VisualUpdateText,'vis'),'on');
-            P=questdlg('Are you sure you want to close the GUI and erase all current model data?','Confirmation','Yes','No','No');
-        else
-            P='Yes';
-        end
+    MatLib=get(handles.features,'user');
+    GUIModFlag=MatLib.GUIModFlag;
+    VisualUpdate=isfield(handles,'VisualUpdateText');
+    if (VisualUpdate)
+        VisualUpdate=ishandle(handles.VisualUpdateText);
+    end
+    if VisualUpdate
+        VisualUpdate=strcmpi(get(handles.VisualUpdateText,'vis'),'on');
+    end
+    
+    if VisualUpdate || GUIModFlag
+        P=questdlg('Are you sure you want to close the GUI and erase all current model data?','Confirmation','Yes','No','No');
     else
         P='Yes';
     end

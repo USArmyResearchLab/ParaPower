@@ -12,6 +12,8 @@ classdef PPMatLib < handle
 %   Params     - List of all parameters of the material types currently
 %                in the library
 %   MatList    - List of materials currently in the library
+%   GUIModFlag - Set to true if Library is modified under GUI Control.
+%                Must be manually reset.
 %
 %Access Methods:
 %   MatLib(index)  - Returns a new MatLib comprised of materials 
@@ -53,6 +55,10 @@ classdef PPMatLib < handle
         ErrorText='';
         iNewMatF
         iMatableF
+    end
+    
+    properties
+        GUIModFlag=false;
     end
     
     properties (Access=public, Dependent)
@@ -487,6 +493,7 @@ classdef PPMatLib < handle
                         delete(obj.iNewMatF)
                         obj.iSource=[obj.iSource '*'];
                         obj.iNewMatF=[];
+                        obj.GUIModFlag=true;
                     else
                         %obj.AddError('Material modifications will be discarded.')
                         obj.ShowErrorText('gui');
@@ -689,6 +696,7 @@ classdef PPMatLib < handle
                         end
                         obj.iSource=OrigMatLib.iSource;
                         obj.ShowTable('ok',handle,[]);
+                        obj.GUIModFlag=false;
                     end
                 case 'insertrow'
                     handle=varargin{1};
@@ -697,6 +705,7 @@ classdef PPMatLib < handle
                     uiwait(obj.iNewMatF)
                     obj.iSource=[obj.iSource '*']
                     obj.ShowTable('PopulateTable')
+                    obj.GUIModFlag=true;
                 case 'save'
                     handle=varargin{1};
                     H=get(get(handle,'parent'),'user');
@@ -736,6 +745,7 @@ classdef PPMatLib < handle
                                 NewCol=cell2mat(ColData);
                             end
                             [NewCol, Index]=sort(NewCol);
+                            obj.GUIModFlag=true;
                         catch ME
                             %ME.getReport
                             Index=[1:obj.NumMat];
@@ -763,6 +773,7 @@ classdef PPMatLib < handle
                         obj.iSource=[obj.iSource '*']
                         obj.DelMatl(ColsToDel);
                         obj.ShowTable('PopulateTable')
+                        obj.GUIModFlag=true;
                     end
                 otherwise
                     obj.AddError(sprintf('Unknown action for ShowTable function "%s"',Action))
@@ -793,6 +804,7 @@ classdef PPMatLib < handle
                 obj.ClearProps;
                 obj.UpdateInternalVars;
                 Success=true;
+                obj.GUIModFlag=true;
             else
                 Success=false;
                 obj.AddError(sprintf('Material number %.0f not found so can''t be be deleted.',max(MatNum)))
@@ -811,6 +823,7 @@ classdef PPMatLib < handle
                 obj.ClearProps;
                 obj.UpdateInternalVars;
                 Success=true;
+                obj.GUIModFlag=true;
             else
                 Success=false;
                 obj.AddError(['Material name ' NewMat.Name ' already exists in library.'])
@@ -829,6 +842,7 @@ classdef PPMatLib < handle
                 obj.iMatObjList{end+1}=PPMatObject;
                 obj.ClearProps;
                 obj.UpdateInternalVars;
+                obj.GUIModFlag=true;
 %                 obj.iMatTypeList{end+1}=PPMatObject.Type;
 %                 obj.iMatTypeList=unique(obj.iMatTypeList);
 %                 obj.iNameList{end+1}=PPMatObject.Name;
