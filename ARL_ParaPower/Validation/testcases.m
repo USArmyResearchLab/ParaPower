@@ -65,6 +65,7 @@ for Icase=1:length(testcasefiles)
             TestCaseModel.MatLib=OrigMatLib;
             %return
         end        
+        save([MFILE '.ppmodel'], '-mat', 'TestCaseModel');
         MI=FormModel(TestCaseModel);
         if length(testcasefiles)==Icase
             figure(1);clf; figure(2);clf; figure(1)
@@ -105,22 +106,31 @@ for Icase=1:length(testcasefiles)
                 Compare{Icase}.GlobalTime=MI.GlobalTime;
                 DoFList={'Tprnt' 'MeltFrac'};
                 try
-                    for Idof=1:length(DoFList)
-                        if isfield(NewResults,DoFList{Idof})
-                            Compare{Icase}.DOFdesc{Idof}=DoFList{Idof};
-                            Compare{Icase}.DOFdelt{Idof}=OldResults.(DoFList{Idof}) - NewResults.(DoFList{Idof});
+                    if size(NewResults.Tprnt) == size(OldResults.Tprnt)
+                        for Idof=1:length(DoFList)
+                            if isfield(NewResults,DoFList{Idof})
+                                Compare{Icase}.DOFdesc{Idof}=DoFList{Idof};
+                                Compare{Icase}.DOFdelt{Idof}=OldResults.(DoFList{Idof}) - NewResults.(DoFList{Idof});
+                            end
                         end
-                    end
-                    DoFList={'DoutT' 'DoutM'};
-                    for Idof=1:length(DoFList)
-                        if isfield(NewResults,DoFList{Idof})
-                            Compare{Icase}.DOFdesc{end+1}=DoFList{Idof};
-                            Compare{Icase}.DOFdelt{end+1}=OldResults.(DoFList{Idof}) - NewResults.(DoFList{Idof});
+                        DoFList={'DoutT' 'DoutM'};
+                        for Idof=1:length(DoFList)
+                            if isfield(NewResults,DoFList{Idof})
+                                Compare{Icase}.DOFdesc{end+1}=DoFList{Idof};
+                                Compare{Icase}.DOFdelt{end+1}=OldResults.(DoFList{Idof}) - NewResults.(DoFList{Idof});
+                            end
                         end
+                    else
+                        Compare{Icase}.DOFdesc={'N/A'};
+                        Compare{Icase}.DOFdelt=[];
+                        disp(['Saved case does not match current case for ' TestCaseModel.Desc ]);
                     end
                     Results=NewResults;
-                catch
+                catch ME
                     Compare{Icase}=[];
+                    Compare{Icase}.Desc='';
+                    Compare{Icase}.DOFdelt={[]};
+                    Compare{Icase}.DOFdesc={''};
                     disp('Previous data comparison impossible')
                 end
             else
@@ -155,27 +165,34 @@ end
 DOFDesc={};
 CaseDesc={};
 for I=1:length(Compare)
-    CaseDesc{I}=Compare{I}.Desc;
-    for J=1:length(Compare{1}.DOFdelt)
-        if size(Compare{I}.DOFdelt{J}(:))==2
-            PlotCompare(I,J)=sum((Compare{I}.DOFdelt{J}(:)).^2);
-        else
-            PlotCompare(I,J)=sum((Compare{I}.DOFdelt{J}(:,2)).^2);
+    if ~isempty(Compare{I}.Desc)
+        CaseDesc{I}=Compare{I}.Desc;
+        for J=1:length(Compare{I}.DOFdelt)
+            if size(Compare{I}.DOFdelt{J}(:))==2
+                PlotCompare(I,J)=sum((Compare{I}.DOFdelt{J}(:)).^2);
+            else
+                PlotCompare(I,J)=sum((Compare{I}.DOFdelt{J}(:,2)).^2);
+            end
+            DOFDesc{J}=Compare{I}.DOFdesc{J};
+            DeltaTime(I)=Compare{I}.DeltaTime;
         end
-        DOFDesc{J}=Compare{I}.DOFdesc{J};
-        DeltaTime(I)=Compare{I}.DeltaTime;
     end
 end
 figure(10);
+clf
+NumCols=2;
+NumRows=ceil((1+length(DOFDesc))/NumCols);
 for I=1:length(DOFDesc)
-    subplot(1+length(DOFDesc),1,I+1)
-    bar(PlotCompare(:,I));
-    set(gca,'xticklabel',strrep(CaseDesc,'_',' '))
+    subplot(NumRows,NumCols,I+1)
+    barh(PlotCompare(:,I));
+    set(gca,'yticklabel',strrep(CaseDesc,'_',' '))
     title(DOFDesc{I})
-    set(gca,'yscal','log')
+    set(gca,'xscal','log')
 end
-subplot(1+length(DOFDesc),1,1)
-bar(DeltaTime)
-set(gca,'xticklabel',strrep(CaseDesc,'_',' '))
-title('Delta Wall Time')
-ylabel('time (s)')
+if exist('DeltaTime','var')
+     subplot(NumRows,NumCols,1)
+    barh(DeltaTime)
+    set(gca,'yticklabel',strrep(CaseDesc,'_',' '))
+    title('Delta Wall Time')
+    xlabel('time (s)')
+end
