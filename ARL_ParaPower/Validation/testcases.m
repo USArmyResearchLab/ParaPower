@@ -1,4 +1,15 @@
 %This M files executes the set of validation test cases for ParaPower
+%The test cases to run exist as shortcuts/links in the Validation/Cases
+%directory.  The actual file should exist in the Validation/CasesHold
+%directory.  
+
+%The first time a case is run, a file is generated with the name
+%CASENAME_Results.ppmodel.  This file holds both the model definition as a
+%the results of the analysis at the time.
+
+%The file can be loaded into the GUI using the "load profile" GUI button.
+%The model will be loaded, but no the results.  
+
 clear
 
 addpath('..');  %include above directory which contains the parapower code
@@ -65,7 +76,7 @@ for Icase=1:length(testcasefiles)
             TestCaseModel.MatLib=OrigMatLib;
             %return
         end        
-        save([MFILE '.ppmodel'], '-mat', 'TestCaseModel');
+        %save([MFILE '.ppmodel'], '-mat', 'TestCaseModel');
         MI=FormModel(TestCaseModel);
         if length(testcasefiles)==Icase
             figure(1);clf; figure(2);clf; figure(1)
@@ -80,27 +91,30 @@ for Icase=1:length(testcasefiles)
         S1=scPPT('MI',MI); %Initialize object
         setup(S1,[]);
         [Tprnt, T_in, MeltFrac,MeltFrac_in]=S1(GlobalTimeOrig(2:end));  %Compute states at times in ComputeTime (S1 must be called with 1 arg in 2017b)
-        Results.Tprnt   =cat(4, T_in        , Tprnt  );
-        Results.MeltFrac=cat(4, MeltFrac_in , MeltFrac);
+        NewResults.Tprnt   =cat(4, T_in        , Tprnt  );
+        NewResults.MeltFrac=cat(4, MeltFrac_in , MeltFrac);
         MI.GlobalTime = GlobalTimeOrig; %Reassemble MI's global time to match initialization and computed states.
         Fi=1; %Could be used to mask for features; (Tprnt would be Tprnt(Mask)
-        Results.DoutT(:,1+Fi)=max(reshape(Results.Tprnt,[],length(MI.GlobalTime)),[],1);
-        Results.DoutM(:,1+Fi)=max(reshape(Results.Tprnt,[],length(MI.GlobalTime)),[],1);
-        Results.DoutT(:,1)=MI.GlobalTime;
-        Results.DoutM(:,1)=MI.GlobalTime;
+        NewResults.DoutT(:,1+Fi)=max(reshape(NewResults.Tprnt,[],length(MI.GlobalTime)),[],1);
+        NewResults.DoutM(:,1+Fi)=max(reshape(NewResults.Tprnt,[],length(MI.GlobalTime)),[],1);
+        NewResults.DoutT(:,1)=MI.GlobalTime;
+        NewResults.DoutM(:,1)=MI.GlobalTime;
         ExecTime=toc;
-        Results.ExecTime=ExecTime;
-        Results.DateTime=datetime;
-        Results.Desc=TestCaseModel.Desc;
-        Results.Computer=computer();
-        Results.Matlab=ver('matlab');
+        NewResults.ExecTime=ExecTime;
+        NewResults.DateTime=datetime;
+        NewResults.Desc=TestCaseModel.Desc;
+        NewResults.Computer=computer();
+        NewResults.Matlab=ver('matlab');
         if exist([MFILE '.m'],'file')
-            ResultsFile=[MFILE, '_Results.mat'];
+            ResultsFile=[MFILE, '_Results.ppmodel'];
             if exist(ResultsFile,'file')
-                NewResults=Results;
-                load(ResultsFile);
-                OldResults=Results;
-                Results=NewResults;
+                OldResults=load(ResultsFile,'-mat');
+                if ~isfield(OldResults,'NewResults')
+                    disp([ResultsFile ' uses older version of stored results file.  ''Results'' variable is now named ''NewResults''.'])
+                    OldResults=OldResults.('Results');
+                else
+                    OldResults=OldResults.('NewResults');
+                end
                 Compare{Icase}.Desc=TestCaseModel.Desc;
                 Compare{Icase}.DeltaTime=OldResults.ExecTime - NewResults.ExecTime;
                 Compare{Icase}.GlobalTime=MI.GlobalTime;
@@ -125,7 +139,6 @@ for Icase=1:length(testcasefiles)
                         Compare{Icase}.DOFdelt=[];
                         disp(['Saved case does not match current case for ' TestCaseModel.Desc ]);
                     end
-                    Results=NewResults;
                 catch ME
                     Compare{Icase}=[];
                     Compare{Icase}.Desc='';
@@ -135,7 +148,7 @@ for Icase=1:length(testcasefiles)
                 end
             else
                 fprintf('Results file not found.  A new one will be created (%s)\n', ResultsFile);
-                save (ResultsFile,'Results')
+                save (ResultsFile,'-mat','NewResults','TestCaseModel')
             end
         else
             disp('Results file not requested.')
@@ -147,13 +160,13 @@ for Icase=1:length(testcasefiles)
            figure(2);clf; pause(.001)
            StateN=length(MI.GlobalTime);
            subplot(1,2,1);
-           Visualize(sprintf('t=%1.2f ms, State: %i of %i',MI.GlobalTime(end), StateN,length(Results.Tprnt(1,1,1,:))),MI ...
-           ,'state', Results.Tprnt(:,:,:,StateN) ...
+           Visualize(sprintf('t=%1.2f ms, State: %i of %i',MI.GlobalTime(end), StateN,length(NewResults.Tprnt(1,1,1,:))),MI ...
+           ,'state', NewResults.Tprnt(:,:,:,StateN) ...
            ,'scaletitle', 'Temperature' ...
            )       
            subplot(1,2,2);
-           Visualize(sprintf('t=%1.2f ms, State: %i of %i',MI.GlobalTime(end), StateN,length(Results.MeltFrac(1,1,1,:))),MI ...
-           ,'state', Results.MeltFrac(:,:,:,StateN) ...
+           Visualize(sprintf('t=%1.2f ms, State: %i of %i',MI.GlobalTime(end), StateN,length(NewResults.MeltFrac(1,1,1,:))),MI ...
+           ,'state', NewResults.MeltFrac(:,:,:,StateN) ...
            ,'scaletitle', '% Solid' ...
            )       
        end

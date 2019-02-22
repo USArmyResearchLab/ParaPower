@@ -18,9 +18,11 @@ Mat=ModelInput.Model;
 T_init=ModelInput.Tinit;
 GlobalTime=ModelInput.GlobalTime;
 
-E = ModelInput.MatLib.e;
-cte = ModelInput.MatLib.nu;
-nu = ModelInput.MatLib.rho;
+%kond = MIMI.MatLib.GetParamVector('k')
+
+E = ModelInput.MatLib.GetParamVector('E');
+cte = ModelInput.MatLib.GetParamVector('CTE');
+nu = ModelInput.MatLib.GetParamVector('Nu');
 
 [Num_Row, Num_Col, Num_Lay]=size(Mat);
 NL=Num_Lay;
