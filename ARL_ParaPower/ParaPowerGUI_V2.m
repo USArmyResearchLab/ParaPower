@@ -1483,7 +1483,7 @@ function figure1_CloseRequestFcn(hObject, eventdata, handles)
     end
     
     if VisualUpdate || GUIModFlag
-        P=questdlg('Are you sure you want to close the GUI and erase all current model data?','Confirmation','Yes','No','No');
+        P=questdlg('Are you sure you want to close the GUI and discard all changes to the current model?','Confirmation','Yes','No','No');
     else
         P='Yes';
     end
