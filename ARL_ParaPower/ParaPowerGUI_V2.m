@@ -161,7 +161,19 @@ function InitializeGUI(handles)
     ClearGUI_Callback(handles.ClearGUI, [], handles, false)
     ErrorStatus('')
     GUIEnable(handles.figure1)
-
+    
+    %Make GUI resizable
+    OrigPosit{1}=get(handles.figure1,'posit');
+    OrigPosit{2}=get(handles.figure1,'units');
+    setappdata(handles.figure1,'OriginalPosition',OrigPosit);
+    set(handles.figure1,'unit','normal')
+    Children=findobj(handles.figure1);
+    set(handles.figure1,'resize','on')
+    for I=1:length(Children)
+        if ~isempty(find(strcmpi(properties(Children(I)),'units')))
+            set(Children(I),'unit','normal')
+        end
+    end
 end
 
 % %LogoAxes_CreateFcn(hObject, eventdata, handles)
@@ -1144,6 +1156,23 @@ end
 if Confirm
     AddStatusLine('CLEARSTATUS');
     AddStatusLine('Clearing GUI...')
+    CurrentPos=get(handles.figure1,'posit');
+    OrigPosit=getappdata(handles.figure1,'OriginalPosition');
+    set(handles.figure1,'units',OrigPosit{2});
+    set(handles.figure1,'posit',OrigPosit{1});
+    set(handles.figure1,'units','normal');
+    NewPosit=get(handles.figure1,'posit');
+    if CurrentPos(1)+NewPosit(3) <= 1
+        NewPosit(1)=0.99-NewPosit(3);
+    else
+        NewPosit(1)=CurrentPos(1);
+    end
+    if CurrentPos(2)+NewPosit(4) <= 1
+        NewPosit(2)=0.99-NewPosit(4);
+    else
+        NewPosit(2)=CurrentPos(2);
+    end
+    set(handles.figure1,'posit',NewPosit)
 end
 GUIDisable(handles.figure1)
 axes(handles.GeometryVisualization)
