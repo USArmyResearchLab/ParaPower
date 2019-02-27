@@ -4,10 +4,20 @@ Enable 'stop' button on GUI
 Prettify results plots
 Add total mass output 
 Static Analysis is broken
-Add button to simply do XY plot so you don't have to rerun analysis.
+Object Oriented Material Matrix Construction:
+    State Structure
+        StateMatrix.Desc{i} = 'Melt Fraction', 'Temperature', 'Stress' -> Easily indexable by strcmpi
+        StateMatrix.Value(i, Xindex, Yindex, Zindex, t_index) -> Vectorized extraction of any state of state at any time or state at any location & time
+    Functions in each material:
+        State Initialization
+            Input: Current State, X_index, Y_index, Z_index, X_length, Y_length, Z_length
+            Output: StateMatrix for given X_index, Y_index, Z_index
+        Fill A Matrix
+        
 
 Items Completed.
 ------------------
+Add button to simply do XY plot so you don't have to rerun analysis.
 Save profile w/o results
 Melt fraction issues
 Reduce # of decimals on colorbars
