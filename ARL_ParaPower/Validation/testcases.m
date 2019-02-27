@@ -1,4 +1,4 @@
-%This M files executes the set of validation test cases for ParaPower
+cd %This M files executes the set of validation test cases for ParaPower
 %The test cases to run exist as shortcuts/links in the Validation/Cases
 %directory.  The actual file should exist in the Validation/CasesHold
 %directory.  

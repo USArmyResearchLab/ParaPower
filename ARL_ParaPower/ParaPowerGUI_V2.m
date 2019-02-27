@@ -161,7 +161,19 @@ function InitializeGUI(handles)
     ClearGUI_Callback(handles.ClearGUI, [], handles, false)
     ErrorStatus('')
     GUIEnable(handles.figure1)
-
+    
+    %Make GUI resizable
+    OrigPosit{1}=get(handles.figure1,'posit');
+    OrigPosit{2}=get(handles.figure1,'units');
+    setappdata(handles.figure1,'OriginalPosition',OrigPosit);
+    set(handles.figure1,'unit','normal')
+    Children=findobj(handles.figure1);
+    set(handles.figure1,'resize','on')
+    for I=1:length(Children)
+        if ~isempty(find(strcmpi(properties(Children(I)),'units')))
+            set(Children(I),'unit','normal')
+        end
+    end
 end
 
 % %LogoAxes_CreateFcn(hObject, eventdata, handles)
@@ -1144,6 +1156,9 @@ end
 if Confirm
     AddStatusLine('CLEARSTATUS');
     AddStatusLine('Clearing GUI...')
+    OrigPosit=setappdata(handles.figure1,'OriginalPosition');
+    set(handles.figure1,'posit',OrigPosit{1});
+    set(handles.figure1,'units',OrigPosit{2});
 end
 GUIDisable(handles.figure1)
 axes(handles.GeometryVisualization)
