@@ -1,4 +1,4 @@
-cd %This M files executes the set of validation test cases for ParaPower
+%This M files executes the set of validation test cases for ParaPower
 %The test cases to run exist as shortcuts/links in the Validation/Cases
 %directory.  The actual file should exist in the Validation/CasesHold
 %directory.  
@@ -10,14 +10,23 @@ cd %This M files executes the set of validation test cases for ParaPower
 %The file can be loaded into the GUI using the "load profile" GUI button.
 %The model will be loaded, but no the results.  
 
-clear
+clearvars -EXCEPT TestCaseWildCard
 
 addpath('..');  %include above directory which contains the parapower code
 CaseDir='Cases';  %Update this to include the directory that will hold the case files.
 
-testcasefiles=dir([CaseDir '/*.m']);
+if exist('TestCaseWildCard')
+    disp(['Only running casing meeting the following wildcard: ' TestCaseWildCard])
+else
+    disp('TestCaseWildCard variable doesn''t exist, running all testcases.')
+    TestCaseWildCard='*';
+end
+TestCasesFspec=[CaseDir '/' TestCaseWildCard ];
+TestCasesFspec=strrep(TestCasesFspec,'**','*');
+
+testcasefiles=dir([TestCasesFspec '.m']);
 if ispc
-    testcasefiles=[testcasefiles dir([CaseDir '/*.lnk'])];
+    testcasefiles=[testcasefiles dir([TestCasesFspec '.lnk'])];
 end
 
 fprintf('\n')
@@ -167,7 +176,7 @@ for Icase=1:length(testcasefiles)
            subplot(1,2,2);
            Visualize(sprintf('t=%1.2f ms, State: %i of %i',MI.GlobalTime(end), StateN,length(NewResults.MeltFrac(1,1,1,:))),MI ...
            ,'state', NewResults.MeltFrac(:,:,:,StateN) ...
-           ,'scaletitle', '% Solid' ...
+           ,'scaletitle', 'Melt Fraction' ...
            )       
        end
        %figure(3);clf; pause(.001)

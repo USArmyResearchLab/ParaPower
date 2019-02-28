@@ -643,6 +643,9 @@ function Visualize (PlotTitle, MI, varargin)
     if ~PlotGeom
         ylabel(CB,ColorTitle);
         caxis auto
+        if min(PlotState(:))==max(PlotState(:))
+                caxis([PlotState(1) inf])
+        end
         %caxis([ValMin ValMin+ValRange]);
         %set(CB,'limit',[0 1]);
         %Scale=linspace(0,1,11);
