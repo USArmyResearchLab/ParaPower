@@ -1,4 +1,4 @@
-V1.0.0 - Initial Release
+%V1.0.0 - Initial Release
 	Initial release includes the following primary features...
 		Time invariant heat input
 		Stress analysis
@@ -23,6 +23,12 @@ V3.2.0 - Converting to material objects.
          Main analysis rewite into an object to support SimuLink usage
 V3.2.2 - Material Library code rewritten as object and incorporated into main code
 V3.2.4 - Modified material library code to optimize performance
+V3.2.5 - Materials melt fraction is now initialized to be consistent with
+              its starting temperature
+         Visualizes modified so that if min(plotstate)=max(plotstate) the
+              color scale is set to [plotstate(1) Inf]. This ensure it
+              does not result in [-1 1] for all melt fractions @ 0
+         Added test case for material initialization
 		 
 
 Features to Add

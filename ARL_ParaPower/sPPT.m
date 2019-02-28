@@ -149,9 +149,21 @@ classdef sPPT < matlab.System & matlab.system.mixin.Propagates ...
             meltable=any(strcmp(Types(rollcall),'PCM') | strcmp(Types(rollcall),'SCPCM'));
             PH=zeros(nnz(Mat>0),1);
             
+            
             if any(meltable)
-                [~,rhol,~,Lw,~,~,PH_init] = PCM_init(MI,Mat);
-                PH(:,1)=PH_init;
+                %Convert greater than zero mats into a vector for processing
+                rhol = MI.MatLib.GetParamVector('rho_l');
+                Lw = MI.MatLib.GetParamVector('lf');
+                Tmelt = MI.MatLib.GetParamVector('tmelt');
+                MatGZVec=reshape(Mat(Mat>0),1,[]);
+                for ThisMat=reshape(unique(MatGZVec(:)),1,[])
+                    MatMask=MatGZVec==ThisMat;
+                    PH(MatMask,1)=double(T(MatMask,1)>=Tmelt(ThisMat));
+                end
+                %[~,rhol,~,Lw,~,~,PH_init] = PCM_init(MI,Mat);
+                %PH(:,1)=zeros(nnz(Mat>0),1);
+                
+                
                 obj.Lv=(rho+rhol)/2 .* Lw;  %generate volumetric latent heat of vap using average density
             else
                 obj.Lv=rho*0;

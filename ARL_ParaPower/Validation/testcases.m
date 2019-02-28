@@ -1,4 +1,4 @@
-cd %This M files executes the set of validation test cases for ParaPower
+%This M files executes the set of validation test cases for ParaPower
 %The test cases to run exist as shortcuts/links in the Validation/Cases
 %directory.  The actual file should exist in the Validation/CasesHold
 %directory.  
@@ -10,14 +10,23 @@ cd %This M files executes the set of validation test cases for ParaPower
 %The file can be loaded into the GUI using the "load profile" GUI button.
 %The model will be loaded, but no the results.  
 
-clear
+clearvars -EXCEPT TestCaseWildCard
 
 addpath('..');  %include above directory which contains the parapower code
 CaseDir='Cases';  %Update this to include the directory that will hold the case files.
 
-testcasefiles=dir([CaseDir '/*.m']);
+if exist('TestCaseWildCard')
+    disp(['Only running casing meeting the following wildcard (TestCaseWildCard): ' TestCaseWildCard])
+else
+    disp('TestCaseWildCard variable doesn''t exist, running all testcases.')
+    TestCaseWildCard='*';
+end
+TestCasesFspec=[CaseDir '/' TestCaseWildCard ];
+TestCasesFspec=strrep(TestCasesFspec,'**','*');
+
+testcasefiles=dir([TestCasesFspec '.m']);
 if ispc
-    testcasefiles=[testcasefiles dir([CaseDir '/*.lnk'])];
+    testcasefiles=[testcasefiles dir([TestCasesFspec '.lnk'])];
 end
 
 fprintf('\n')
@@ -33,6 +42,7 @@ Compare=[];
      
 for Icase=1:length(testcasefiles)
     
+    clearvars -EXCEPT TestCaseWildCard Icase testcasefiles Compare
     CaseName=char(testcasefiles(Icase).name);
     if ispc && strcmpi(CaseName(end-3:end),'.lnk')
       [path,name,ext]=fileparts(getTargetFromLink([testcasefiles(Icase).folder '\' CaseName]));
@@ -40,7 +50,6 @@ for Icase=1:length(testcasefiles)
       testcasefiles(Icase).folder=path;
     end
     CaseName=CaseName(1:end-2);
-    clear TestCaseModel MFILE
     
     if isempty(str2num(CaseName(1))) 
         fprintf('Executing test case %s...\n',CaseName)
@@ -116,7 +125,7 @@ for Icase=1:length(testcasefiles)
                     OldResults=OldResults.('NewResults');
                 end
                 Compare{Icase}.Desc=TestCaseModel.Desc;
-                Compare{Icase}.DeltaTime=OldResults.ExecTime - NewResults.ExecTime;
+                Compare{Icase}.DeltaTime=NewResults.ExecTime / OldResults.ExecTime;
                 Compare{Icase}.GlobalTime=MI.GlobalTime;
                 DoFList={'Tprnt' 'MeltFrac'};
                 try
@@ -167,7 +176,7 @@ for Icase=1:length(testcasefiles)
            subplot(1,2,2);
            Visualize(sprintf('t=%1.2f ms, State: %i of %i',MI.GlobalTime(end), StateN,length(NewResults.MeltFrac(1,1,1,:))),MI ...
            ,'state', NewResults.MeltFrac(:,:,:,StateN) ...
-           ,'scaletitle', '% Solid' ...
+           ,'scaletitle', 'Melt Fraction' ...
            )       
        end
        %figure(3);clf; pause(.001)
@@ -206,6 +215,6 @@ if exist('DeltaTime','var')
      subplot(NumRows,NumCols,1)
     barh(DeltaTime)
     set(gca,'yticklabel',strrep(CaseDesc,'_',' '))
-    title('Delta Wall Time')
+    title('Wall Time (Current/Canon)')
     xlabel('time (s)')
 end
