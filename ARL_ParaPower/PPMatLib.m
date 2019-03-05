@@ -286,6 +286,7 @@ classdef PPMatLib < handle
                 MatObj=obj.iMatObjList{MatNum};
             else
                 obj.AddError(sprintf('Material number ''%.0f'' does not exist.',MatNum));
+                MatObj=[];
             end
             obj.ShowErrorText;
         end
@@ -317,7 +318,9 @@ classdef PPMatLib < handle
         function P=get.Params(obj)
             P=reshape(obj.iParamList,[],1);
         end
+        
         function M=get.MatList(obj)
+            M={};
             for I=1:length(obj.iMatObjList)
                 M{I}=obj.iMatObjList{I}.Name;
             end
