@@ -177,8 +177,15 @@ classdef PPMat
                     %disp(Prop)
                     switch lower(Prop)
                         case obj.strleft('name',Pl)
-                            [Value, PropValPairs]=obj.Pop(PropValPairs); 
-                            Name=Value;
+                            [Value, PropValPairs]=obj.Pop(PropValPairs);
+                            Spaces=findstr(Value,' ');
+                            if isempty(Spaces)
+                                Name=Value;
+                            else
+                                Name=Value;
+                                Name(Spaces)='_';
+                                warning('Material name ''%s'' cannot cantain spaces. Name changed to ''%s''',Value,Name);
+                            end
                         case obj.strleft('type',Pl)
                             [Value, PropValPairs]=obj.Pop(PropValPairs); 
                             if ischar(Value)
