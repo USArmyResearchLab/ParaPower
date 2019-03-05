@@ -276,6 +276,7 @@ classdef PPMatLib < handle
                 MatObj=obj.iMatObjList{MatNum};
             else
                 obj.AddError(sprintf('Material named ''%s'' is not in library',MatName));
+                MatObj=[];
             end
             obj.ShowErrorText;
         end
