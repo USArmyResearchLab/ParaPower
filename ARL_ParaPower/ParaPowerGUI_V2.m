@@ -2056,15 +2056,20 @@ function MoveUp_Callback(hObject, eventdata, handles)
         if min(MoveRows)==1
             AddStatusLine('Can''t move first row up','warning')
         else
-            NewTable=TableData;
-            NewQData=QData;
-            for Irow=MoveRows
-                NewTable(Irow-1,:)=TableData(Irow,   :);
-                NewTable(Irow  ,:)=TableData(Irow-1, :);
-                TableData=NewTable;
-                NewQData(Irow-1)=QData(Irow);
-                NewQData(Irow)  =QData(Irow-1);
-                QData=NewQData;
+            %NewTable=TableData;
+            %NewQData=QData;
+            for Irow=reshape(MoveRows,1,[])
+                TempRow=TableData(Irow-1,:);
+                TableData(Irow-1,:)=TableData(Irow,:);
+                TableData(Irow,:)=TempRow;
+                %NewTable(Irow  ,:)=TableData(Irow-1, :);
+                %TableData=NewTable;
+                TempQData=QData(Irow-1);
+                QData(Irow-1)=QData(Irow);
+                QData(Irow)=TempQData;
+                %NewQData(Irow-1)=QData(Irow);
+                %NewQData(Irow)  =QData(Irow-1);
+                %QData=NewQData;
             end
         end
     end
@@ -2092,13 +2097,20 @@ function MoveDown_Callback(hObject, eventdata, handles)
         else
             NewTable=TableData;
             NewQData=QData;
+            MoveRows=MoveRows(end:-1:1);
             for Irow=reshape(MoveRows,1,[])
-                NewTable(Irow+1,:)=TableData(Irow,   :);
-                NewTable(Irow  ,:)=TableData(Irow+1, :);
-                TableData=NewTable;
-                NewQData(Irow+1)=QData(Irow);
-                NewQData(Irow)  =QData(Irow+1);
-                QData=NewQData;
+                TempRow=TableData(Irow+1, :);
+                TableData(Irow+1,:)=TableData(Irow,:);
+                TableData(Irow,:)=TempRow;
+                %NewTable(Irow+1,:)=TableData(Irow,   :);
+                %NewTable(Irow  ,:)=TableData(Irow+1, :);
+                %TableData=NewTable;
+                TempQ=QData(Irow+1);
+                QData(Irow+1)=QData(Irow);
+                QData(Irow)=TempQ;
+                %NewQData(Irow+1)=QData(Irow);
+                %NewQData(Irow)  =QData(Irow+1);
+                %QData=NewQData;
             end
         end
     end
