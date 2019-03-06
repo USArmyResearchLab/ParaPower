@@ -24,10 +24,12 @@ if ischar(TestCaseModel)
         error('Invalid optional argument');
     end
 else
-    if not(isfield(TestCaseModel,'Version')) 
+    if not(isfield(TestCaseModel,'Version') || max(strcmp('Version',properties(TestCaseModel))))
         error(['Incorrect TestCaseModel version.  No version is specified']);
     elseif strcmpi(TestCaseModel.Version,'V2.0')
         warning('Form Model is %s.  V2.0 -> V2.1 switched order of external BCs. Please confirm accuracy.', TestCaseModel.Version);
+    elseif strcmpi(TestCaseModel.Version,'V3.0')
+        warning(['Object version of TestCaseModel is under development']);
     elseif not(strcmpi(TestCaseModel.Version,'V2.1'))
         error(['Incorrect TestCaseModel version.  V2.0 required, this data is ' TestCaseModel.Version]);
     end

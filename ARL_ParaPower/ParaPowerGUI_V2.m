@@ -26,7 +26,7 @@ function varargout = ParaPowerGUI_V2(varargin)
 
 % Edit the above text to modify the response to help ParaPowerGUI_V2
 
-% Last Modified by GUIDE v2.5 14-Feb-2019 10:35:55
+% Last Modified by GUIDE v2.5 06-Mar-2019 14:04:27
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -224,26 +224,34 @@ function addfeature_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
     TableData = get(handles.features,'Data');
-    QData=getappdata(gcf,TableDataName);
-    EmptyRow=EmptyFeatureRow;
-    if isempty(TableData)
-        TableData=EmptyRow;
-    else
-        InsertRows=find(cell2mat(TableData(:,FTC('check')))==true);
-        if isempty(InsertRows)
-            TableData(end+1,:)=EmptyRow;
-            QData{length(TableData(:,1))}=[];
-        else
-            for Irow=reshape(InsertRows(end:-1:1),1,[])
-                TableData(Irow+1:end+1,:)=TableData(Irow:end,:);
-                TableData(Irow,:)=EmptyFeatureRow;
-                QData(Irow+1:end+1)=QData(Irow:end);
-            end
-        end
+    QData=getappdata(handles.figure1,TableDataName);
+    if isempty(QData) && isnumeric(QData)
+        QData={};
     end
+    EmptyRow=EmptyFeatureRow;
+
+    SelectColumn=TableData(:,FTC('check'));
+    TableData=ModTable(TableData, 'Insert',SelectColumn,EmptyRow);
+    QData=ModTable(QData','Insert',SelectColumn,{[]})';
+    
+%     if isempty(TableData)
+%         TableData=EmptyRow;
+%     else
+%         InsertRows=find(cell2mat(TableData(:,FTC('check')))==true);
+%         if isempty(InsertRows)
+%             TableData(end+1,:)=EmptyRow;
+%             QData{length(TableData(:,1))}=[];
+%         else
+%             for Irow=reshape(InsertRows(end:-1:1),1,[])
+%                 TableData(Irow+1:end+1,:)=TableData(Irow:end,:);
+%                 TableData(Irow,:)=EmptyFeatureRow;
+%                 QData(Irow+1:end+1)=QData(Irow:end);
+%             end
+%         end
+%     end
     
     set(handles.features,'Data',TableData)
-    setappdata(gcf,TableDataName,QData);
+    setappdata(handles.figure1,TableDataName,QData);
 
     VisUpdateStatus(handles,true);
 end
@@ -333,12 +341,12 @@ function savebutton_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
     Initialize_Callback(hObject, eventdata, handles, false)
-    TestCaseModel = getappdata(gcf,'TestCaseModel');
-    if isappdata(gcf,'Results')
-        Results=getappdata(gcf,'Results');
+    TestCaseModel = getappdata(handles.figure1,'TestCaseModel');
+    if isappdata(handles.figure1,'Results')
+        Results=getappdata(handles.figure1,'Results');
     else
-        if isappdata(gcf,'MI')
-            Results.Model=getappdata(gcf,'MI');
+        if isappdata(handles.figure1,'MI')
+            Results.Model=getappdata(handles.figure1,'MI');
         else
             Results=[];
         end
@@ -352,7 +360,7 @@ function savebutton_Callback(hObject, eventdata, handles)
         AddStatusLine('Complete model cannot be saved due to errors. GUI state saved instead.')
         [fname,pathname] = uiputfile ([oldpathname '*.guistate']);
         if fname ~=0
-            hgsave(gcf,[pathname fname])
+            hgsave(handles.figure1,[pathname fname])
         end
     else
         [fname,pathname] = uiputfile ([oldpathname '*.ppmodel']);
@@ -363,7 +371,7 @@ function savebutton_Callback(hObject, eventdata, handles)
                 TestCaseModel.MatLib.Source=[pathname fname];
             end
             TestCaseModel.MatLib.GUIModFlag=false;
-            setappdata(gcf,'TestCaseModel',TestCaseModel);
+            setappdata(handles.figure1,'TestCaseModel',TestCaseModel);
             save([pathname fname],'TestCaseModel','Results','-mat')  
             AddStatusLine('Done', true);
         end
@@ -403,7 +411,7 @@ function loadbutton_Callback(hObject, eventdata, handles)
         set(hObject,'userdata',pathname);
         try %Load file not knowing if it's a guistate or model. If it's not a GUI state it will kick out an error and be trapped.
             F_Old=gcf;
-            OldVersion=getappdata(gcf,'Version');
+            OldVersion=getappdata(handles.figure1,'Version');
             Fnew=hgload([pathname filename]);
             NewVersion=getappdata(Fnew,'Version');
             if not(strcmpi(OldVersion,NewVersion))
@@ -416,7 +424,7 @@ function loadbutton_Callback(hObject, eventdata, handles)
                 delete(F_Old);
                 drawnow
                 AddStatusLine(['Loading GUISTATE from "' pathname filename '"...']);
-                set(gcf,'name',CurTitle);
+                set(handles.figure1,'name',CurTitle);
             end
             GUIStateLoaded=true;
         catch ME
@@ -862,8 +870,8 @@ KillInit=0;
 AddStatusLine('Initializing...',handles.figure1)
 clear Features ExternalConditions Params PottingMaterial Descr
 
-setappdata(gcf,'TestCaseModel',[]);
-setappdata(gcf,'MI',[]);
+setappdata(handles.figure1,'TestCaseModel',[]);
+setappdata(handles.figure1,'MI',[]);
 
 Features.x=[]; Features.y=[]; Features.z=[]; Features.Matl=[]; Features.Q=[]; Features.Matl=''; 
 Features.dz=0; Features.dy=0; Features.dz=0;
@@ -950,7 +958,7 @@ else
             return
         end
     end
-    QData=getappdata(gcf,TableDataName);
+    QData=getappdata(handles.figure1,TableDataName);
     if isempty(QData)
         QData{length(FeaturesMatrix(:,1))}=[];
     end
@@ -1059,14 +1067,26 @@ else
     
     %Assemble the above definitions into a single variablel that will be used
     %to run the analysis.  This is the only variable that is used from this M-file.
+    Parameters=get(handles.ParamTable,'data');
+    Parameters=Parameters(:,2:3);
+    TestCaseModel=PPTCM;
 
     TestCaseModel.ExternalConditions=ExternalConditions;
     TestCaseModel.Features=Features;
     TestCaseModel.Params=Params;
     TestCaseModel.PottingMaterial=PottingMaterial;
     TestCaseModel.MatLib=MatLib;
-    TestCaseModel.Version=ARLParaPowerVersion('file');
+    %TestCaseModel.Version=ARLParaPowerVersion('file');
 
+    
+    
+    Cases=TestCaseModel.GenerateTCM(Parameters);
+    
+    if length(Cases)>1
+        AddStatusLine(sprintf('%.0f cases generated.',length(Cases)));
+        TestCaseModel=Cases(1);
+    end
+    
     if KillInit
         AddStatusLine('Unable to execute model due to errors.','error')
     else
@@ -1111,24 +1131,29 @@ function DeleteFeature_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-data = get(handles.features, 'Data');
-
-
+TableData = get(handles.features, 'Data');
 QData=getappdata(handles.figure1,TableDataName);
-if length(QData)<length(data(:,1))
-	QData{length(data(:,1))}=[];
-end
-for I=length(data(:,1)):-1:1
-    if data{I,FTC('check')}
-        data =[data(1:I-1,:); data(I+1:end,:)];
-        QData=[QData(1:I-1)  QData(I+1:end)];
-    end
+
+if length(QData)<length(TableData(:,1))
+	QData{length(TableData(:,1))}=[];
 end
 
-if length(data(:,1))==0
-    data=EmptyFeatureRow;
-end
-set(handles.features, 'Data', data);
+    SelectColumn=TableData(:,FTC('check'));
+    TableData=ModTable(TableData, 'Delete',SelectColumn);
+    QData=ModTable(QData','Delete',SelectColumn,{[]})';
+% for I=length(data(:,1)):-1:1
+%     if data{I,FTC('check')}
+%         data =[data(1:I-1,:); data(I+1:end,:)];
+%         QData=[QData(1:I-1)  QData(I+1:end)];
+%     end
+% end
+% 
+% if length(data(:,1))==0
+%     data=EmptyFeatureRow;
+% end
+
+set(handles.features, 'Data', TableData);
+setappdata(handles.figure1,TableDataName,QData);
 VisUpdateStatus(handles,true);
 end
 
@@ -1789,21 +1814,11 @@ function TableAddRow_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 %TableH=get(get(hObject,'parent'),'children');
-TableH=TableEditHandles('table');
-Table=get(TableH,'data');
-AddEndRow=true;
-for I=length(Table(:,1)):-1:1
-    if Table{I,1}
-        Table{I,1}=false;
-        AddEndRow=false;
-        Table=[Table(1:I-1,:); { false [0] [0] }; Table(I:end,:)];
-    end
-end
-if AddEndRow
-    Table=[Table; { false [0] [0] }];
-end    
-set(TableH,'data',Table)
-TableGraph(hObject)
+    TableH=TableEditHandles('table');
+    Table=get(TableH,'data');
+    Table=ModTable(Table,'Insert');
+    set(TableH,'data',Table)
+    TableGraph(hObject)
 end
 
 % --- Executes on button press in TableDelRow.
@@ -1812,15 +1827,11 @@ function TableDelRow_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 %TableH=get(get(hObject,'parent'),'children');
-TableH=TableEditHandles('table');
-Table=get(TableH,'data');
-for I=length(Table(:,1)):-1:1
-    if Table{I,1}
-        Table=[Table(1:I-1,:); Table(I+1:end,:)];
-    end
-end
-set(TableH,'data',Table)  
-TableGraph(hObject)
+    TableH=TableEditHandles('table');
+    Table=get(TableH,'data');
+    Table=ModTable(Table,'Delete');
+    set(TableH,'data',Table)  
+    TableGraph(hObject)
 end
 
 % --- Executes on button press in TableClose.
@@ -1847,19 +1858,23 @@ function TableGraph(hObject, eventdata, handles)
 % hObject    handle to TableGraph (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-TableH=TableEditHandles('table');
-AxesH=TableEditHandles('axes');
-Table=get(TableH,'data');
-NTable=cell2mat(Table(:,2:3));
-plot(AxesH,NTable(:,1),NTable(:,2))
-YLim=get(AxesH,'ylim');
-if min(NTable(:,2))==YLim(1)
-    YLim(1)=YLim(1)-(YLim(2)-YLim(1))*.05;
-end
-if max(NTable(:,2))==YLim(2)
-    YLim(2)=YLim(2)+(YLim(2)-YLim(1))*.05;
-end
-set(AxesH,'ylim',YLim)
+    TableH=TableEditHandles('table');
+    AxesH=TableEditHandles('axes');
+    Table=get(TableH,'data');
+    Table=Table(:,2:3);
+    Table(find(cellfun(@isempty,Table)))={NaN};  %Any empty cells get replaced with 0's
+    NTable=cell2mat(Table);
+    if ~isempty(NTable)
+        plot(AxesH,NTable(:,1),NTable(:,2))
+        YLim=get(AxesH,'ylim');
+        if min(NTable(:,2))==YLim(1)
+            YLim(1)=YLim(1)-(YLim(2)-YLim(1))*.05;
+        end
+        if max(NTable(:,2))==YLim(2)
+            YLim(2)=YLim(2)+(YLim(2)-YLim(1))*.05;
+        end
+        set(AxesH,'ylim',YLim)
+    end
 end
 
 % --- Executes when entered data in editable cell(s) in TableTable.
@@ -2051,23 +2066,28 @@ function MoveUp_Callback(hObject, eventdata, handles)
     if length(QData)<NumRows
         QData{NumRows}=[];
     end
-    MoveRows=find(cell2mat(TableData(:,FTC('check')))==true);
-    if not(isempty(TableData)) && not(isempty(MoveRows))
-        if min(MoveRows)==1
-            AddStatusLine('Can''t move first row up','warning')
-        else
-            NewTable=TableData;
-            NewQData=QData;
-            for Irow=MoveRows
-                NewTable(Irow-1,:)=TableData(Irow,   :);
-                NewTable(Irow  ,:)=TableData(Irow-1, :);
-                TableData=NewTable;
-                NewQData(Irow-1)=QData(Irow);
-                NewQData(Irow)  =QData(Irow-1);
-                QData=NewQData;
-            end
-        end
-    end
+    
+    SelectColumn=TableData(:,FTC('check'));
+    TableData=ModTable(TableData, 'MoveUp',SelectColumn);
+    QData=ModTable(QData','MoveUp',SelectColumn)';
+    
+%     MoveRows=find(cell2mat(TableData(:,FTC('check')))==true);
+%     if not(isempty(TableData)) && not(isempty(MoveRows))
+%         if min(MoveRows)==1
+%             AddStatusLine('Can''t move first row up','warning')
+%         else
+%             NewTable=TableData;
+%             NewQData=QData;
+%             for Irow=MoveRows
+%                 NewTable(Irow-1,:)=TableData(Irow,   :);
+%                 NewTable(Irow  ,:)=TableData(Irow-1, :);
+%                 TableData=NewTable;
+%                 NewQData(Irow-1)=QData(Irow);
+%                 NewQData(Irow)  =QData(Irow-1);
+%                 QData=NewQData;
+%             end
+%         end
+%     end
     set(handles.features,'Data',TableData)
     setappdata(handles.figure1,TableDataName,QData);
 
@@ -2085,23 +2105,30 @@ function MoveDown_Callback(hObject, eventdata, handles)
     if length(QData)<NumRows
         QData{NumRows}=[];
     end
-    MoveRows=find(cell2mat(TableData(:,FTC('check')))==true);
-    if not(isempty(TableData)) && not(isempty(MoveRows))
-        if max(MoveRows)==length(TableData(:,1))
-            AddStatusLine('Can''t move last row down','warning')
-        else
-            NewTable=TableData;
-            NewQData=QData;
-            for Irow=reshape(MoveRows,1,[])
-                NewTable(Irow+1,:)=TableData(Irow,   :);
-                NewTable(Irow  ,:)=TableData(Irow+1, :);
-                TableData=NewTable;
-                NewQData(Irow+1)=QData(Irow);
-                NewQData(Irow)  =QData(Irow+1);
-                QData=NewQData;
-            end
-        end
-    end
+    
+    SelectColumn=TableData(:,FTC('check'));
+    TableData=ModTable(TableData, 'MoveDown',SelectColumn);
+    QData=ModTable(QData','MoveDown',SelectColumn)';
+    
+    
+%     MoveRows=find(cell2mat(TableData(:,FTC('check')))==true);
+%     if not(isempty(TableData)) && not(isempty(MoveRows))
+%         if max(MoveRows)==length(TableData(:,1))
+%             AddStatusLine('Can''t move last row down','warning')
+%         else
+%             NewTable=TableData;
+%             NewQData=QData;
+%             for Irow=reshape(MoveRows,1,[])
+%                 NewTable(Irow+1,:)=TableData(Irow,   :);
+%                 NewTable(Irow  ,:)=TableData(Irow+1, :);
+%                 TableData=NewTable;
+%                 NewQData(Irow+1)=QData(Irow);
+%                 NewQData(Irow)  =QData(Irow+1);
+%                 QData=NewQData;
+%             end
+%         end
+%     end
+    
     set(handles.features,'Data',TableData)
     setappdata(handles.figure1,TableDataName,QData);
 
@@ -2261,8 +2288,8 @@ function ClearResultsButton_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
     P=questdlg('Are you sure you want to clear the current analysis results?','Confirmation','Yes','No','No');
     if strcmpi(P,'Yes')
-        if isappdata(gcf,'Results')
-           rmappdata(gcf,'Results');
+        if isappdata(handles.figure1,'Results')
+           rmappdata(handles.figure1,'Results');
            slider1_Callback(handles.slider1, eventdata, handles)
            AddStatusLine('Results cleared.')
         end
@@ -2398,4 +2425,207 @@ function MaxPlot_Callback(hObject, eventdata, handles, Results)
        figure(handles.figure1)
    end
 
+end
+
+
+
+% --- Executes on button press in PUp.
+function PUp_Callback(hObject, eventdata, handles)
+% hObject    handle to PUp (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+    Data=get(handles.ParamTable,'data');
+    Data=ModTable(Data,'MoveUp');
+    set(handles.ParamTable,'data',Data);
+    setappdata(handles.ParamFrame,'Changed',true);
+end
+
+% --- Executes on button press in Pdown.
+function Pdown_Callback(hObject, eventdata, handles)
+% hObject    handle to Pdown (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+    Data=get(handles.ParamTable,'data');
+    Data=ModTable(Data,'MoveDown');
+    set(handles.ParamTable,'data',Data);
+    setappdata(handles.ParamFrame,'Changed',true);
+end
+
+% --- Executes on button press in pClose.
+function pClose_Callback(hObject, eventdata, handles)
+% hObject    handle to pClose (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+  set(handles.ParamFrame,'visible','off')
+  Data=get(handles.ParamTable,'data');
+  Data(:,1)={false};
+  Data=Data(~strcmp(Data(:,2),''),:);
+  set(handles.ParamTable,'data',Data);
+  setappdata(handles.ParamFrame,'OrigData',Data)
+  setappdata(handles.ParamFrame,'Changed',false)
+  MakeVisible=getappdata(handles.ParamFrame,'VisibleHandles');
+  if ~isempty(MakeVisible)
+      for I=1:length(MakeVisible{1})
+          set(MakeVisible{1}(I),'visible',MakeVisible{2}{I})
+      end
+  end
+end
+
+% --- Executes on button press in pCancel.
+function pCancel_Callback(hObject, eventdata, handles)
+% hObject    handle to pCancel (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+  Changed=getappdata(handles.ParamFrame,'Changed');
+  if Changed
+      P=questdlg('Discard updates to parameters?','Confirmation','Yes','No','No');
+  else
+      P='Yes';
+  end
+  if strcmpi(P,'yes')
+      OrigData=getappdata(handles.ParamFrame,'OrigData');
+      set(handles.ParamTable,'data',OrigData);
+      pClose_Callback(hObject, eventdata, handles);
+  end
+end
+
+% --- Executes on button press in BtnParameters.
+function BtnParameters_Callback(hObject, eventdata, handles)
+% hObject    handle to BtnParameters (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+  setappdata(handles.ParamFrame,'Changed',false);
+  pClose_Callback(hObject, eventdata, handles);
+  MakeInvisible={};
+  MakeInvisible{1}=findobj(handles.figure1,'-depth',1,'-not',{'tag','figure1','-or','tag','ParamFrame'});
+  MakeInvisible{2}=get(MakeInvisible{1},'visible');
+  setappdata(handles.ParamFrame,'VisibleHandles',MakeInvisible);
+  set(MakeInvisible{1},'visible','off')
+  set(handles.ParamFrame,'visible','on')
+  
+end
+
+% --- Executes on button press in Pinsert.
+function Pinsert_Callback(hObject, eventdata, handles)
+% hObject    handle to Pinsert (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+    Data=get(handles.ParamTable,'data');
+    Data=ModTable(Data,'Insert',[],{false 'VarName' 'VarValue'});
+    set(handles.ParamTable,'data',Data);
+    setappdata(handles.ParamFrame,'Changed',true);
+end
+
+% --- Executes on button press in pDelete.
+function pDelete_Callback(hObject, eventdata, handles)
+% hObject    handle to pDelete (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+    Data=get(handles.ParamTable,'data');
+    Data=ModTable(Data,'Delete');
+    set(handles.ParamTable,'data',Data);
+    setappdata(handles.ParamFrame,'Changed',true);
+
+end
+
+function DataTable=ModTable(DataTable, Action, SelectColumn, EmptyRow)
+    if ~exist('SelectColumn','var') || isempty(SelectColumn)
+        SelectColumn=1;
+    end
+    if iscell(SelectColumn)
+        RowsSelected=find(cell2mat(SelectColumn)==true);
+    else
+        RowsSelected=find(cell2mat(DataTable(:,SelectColumn))==true);
+    end
+    RowsSelected=reshape(RowsSelected,1,[]);
+    L=size(DataTable);
+    L=L(1);
+    switch lower(Action)
+        case 'insert'
+            if isempty(RowsSelected)
+                RowsSelected=L+1;
+            end
+            RowsSelected=RowsSelected(end:-1:1);
+            if ~exist('EmptyRow','var') || isempty(EmptyRow)
+                if L==0
+                    Cols=size(DataTable);
+                    Cols=Cols(2);
+                    EmptyRow={};
+                    EmptyRow{1,Cols}=[];
+                else
+                    EmptyRow=DataTable(1,:);
+                end
+                EmptyRow{SelectColumn}=false;
+                for I=1:length(EmptyRow)
+                    switch class(EmptyRow{I})
+                        case 'char'
+                            EmptyRow{I}='';
+                        case 'logical'
+                            EmptyRow{I}=false;
+                        case 'double'
+                            EmptyRow{I}=NaN;
+                        otherwise
+                            EmptyRow{I}=[];
+                    end
+                end
+            end
+            for Row=RowsSelected
+                if Row>L
+                    DataTable(end+1,:)=EmptyRow;
+                else
+                    DataTable(Row+1:end+1,:)=DataTable(Row:end,:);
+                    DataTable(Row,:)=EmptyRow;
+                end
+            end
+        case 'delete'
+            RowsSelected=RowsSelected(end:-1:1);
+            for Row=RowsSelected
+                DataTable(Row:end-1,:)=DataTable(Row+1:end,:);
+                DataTable=DataTable(1:end-1,:);
+            end
+        case 'moveup'
+            if min(RowsSelected > 1)
+                for Row=RowsSelected
+                    TempRow=DataTable(Row-1,:);
+                    DataTable(Row-1,:)=DataTable(Row,:);
+                    DataTable(Row,:)=TempRow;
+                end
+            end
+        case 'movedown'
+            RowsSelected=RowsSelected(end:-1:1);
+            if max(RowsSelected) < L
+                for Row=RowsSelected
+                    TempRow=DataTable(Row+1,:);
+                    DataTable(Row+1,:)=DataTable(Row,:);
+                    DataTable(Row,:)=TempRow;
+                end
+            end
+        otherwise
+            error('Unknown action ''%s'' for ModTable function.',Action)
+    end
+end
+
+
+% --- Executes when entered data in editable cell(s) in ParamTable.
+function ParamTable_CellEditCallback(hObject, eventdata, handles)
+% hObject    handle to ParamTable (see GCBO)
+% eventdata  structure with the following fields (see MATLAB.UI.CONTROL.TABLE)
+%	Indices: row and column indices of the cell(s) edited
+%	PreviousData: previous data for the cell(s) edited
+%	EditData: string(s) entered by the user
+%	NewData: EditData or its converted form set on the Data property. Empty if Data was not changed
+%	Error: error string when failed to convert EditData to appropriate value for Data
+% handles    structure with handles and user data (see GUIDATA)
+    ValidChars=char([char('0'):char('9') char('a'):char('z') char('A'):char('Z')]);
+    setappdata(handles.ParamFrame,'Changed',true);
+    if eventdata.Indices(2)==2  %If modifying variable name
+        NoSpace=eventdata.NewData(ismember(eventdata.NewData,ValidChars));
+        if ~strcmp(NoSpace,eventdata.NewData)
+            Data=get(hObject,'data');
+            Data{eventdata.Indices(1),eventdata.Indices(2)}=NoSpace;
+            set(hObject,'data',Data);
+            AddStatusLine(sprintf('Parameter name contains non-alphanumerics, changed from ''%s'' to ''%s''',eventdata.NewData,NoSpace))
+        end
+    end
 end

@@ -25,7 +25,7 @@ classdef PPTCM  %PP Test Case Model
         ExternalConditions = [];
     end
     
-    properties (SetAccess = immutable)
+    properties (Constant)
         Version='V3.0';
     end
     
