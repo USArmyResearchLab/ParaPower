@@ -459,6 +459,7 @@ classdef PPMatLib < handle
                     end
                     set(get(handle,'parent'),'user',H);
                 case 'ok'
+                    ValidChars=char([char('0'):char('9') char('a'):char('z') char('A'):char('Z')]);
                     Success=true;
                     handle=varargin{1};
                     H=get(get(handle,'parent'),'user');
@@ -466,6 +467,10 @@ classdef PPMatLib < handle
                     ThisType=Types{get(H.TypeE,'value')};
                     eval(['NewMat=PPMat' ThisType ';' ]);
                     Name=get(H.NameE,'string');
+                    if ~all(ismember(Name,ValidChars))
+                        obj.AddError(sprintf('Material name "%s" is invalid.  It can only contain alphanumerics',Name));
+                        Success=false;
+                    end
                     ArgList=sprintf('''Name'', ''%s'' ',Name);
                     ParamList=NewMat.ParamList;
                     if strcmpi(NewMat.Type,'null')
@@ -836,8 +841,12 @@ classdef PPMatLib < handle
         
         function AddMatl(obj, PPMatObject)
             obj.AddError;
+            ValidChars=char([char('0'):char('9') char('a'):char('z') char('A'):char('Z')]);
             if any(strcmpi(PPMatObject.Name, obj.iNameList))
                 obj.AddError(sprintf('Material "%s" already exists in library (material names MUST be unique).',PPMatObject.Name))
+            end
+            if ~all(ismember(PPMatObject.Name,ValidChars))
+                obj.AddError(sprintf('Material name "%s" can contain only alphanumerics.',PPMatObject.Name))
             end
             if strcmpi(PPMatObject.Type,'abstract')
                 obj.AddError(sprintf('Abstract materials cannot be added to the library. (%s)',PPMatObject.Name))

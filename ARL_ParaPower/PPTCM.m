@@ -11,6 +11,7 @@ classdef PPTCM  %PP Test Case Model
         PottingMaterial   = '0';
         MatLib            = []
         ParamVar          = {};
+        VariableList      = {};
     end
     
     properties (Access = private)
@@ -41,24 +42,33 @@ classdef PPTCM  %PP Test Case Model
     end
     
     methods
-        function TCMout = GenerateTCM (obj, VariableList)
+        function TCMout = GenerateCases (obj, VariableList)
         %TCMout=GenerateTCM(VariableList)
         %Generates Scalar TestCaseModels using substitutions in VariableList
         %Variable list is a structure array. VariableList{:,1}=name and
         %              VariableList{:,2}=value
             ErrText='';
             if exist('VariableList','var')
+                if ~isempty(obj.VariableList)
+                    warning('PPTCM.GenerateTCM using passed VariableList and ignoring PPTCM.VariableList')
+                end
+            else
+                VariableList=obj.VariableList;
+            end
+            if ~isempty(VariableList)
                 VarEval='';
                 for Row=1:length(VariableList(:,1))
                     try
                         if isnumeric(VariableList{Row,2})
                             VarEval=[VariableList{Row,1} '=VariableList{Row,2}; '];
+                        elseif isempty(VariableList{Row,1})
+                            VarEval='';
                         else
                             VarEval=[VariableList{Row,1} '=' VariableList{Row,2} ';'];
                         end
                         eval(VarEval);
                     catch ME
-                        ErrText=[ErrText sprintf('Variable ''%s'' must be a string that evaluates to a numeric scalar or vector (''%s'')',VariableList{Row,1}, VariableList{Row,2})];
+                        ErrText=[ErrText sprintf('Variable ''%s'' must be a string that evaluates to a numeric scalar or vector (''%s'')\n',VariableList{Row,1}, VariableList{Row,2})];
                     end
                 end
             end
@@ -68,8 +78,10 @@ classdef PPTCM  %PP Test Case Model
             ErrText='';
             TCMmaster=obj;
             TCMout=obj;
+            TCMout.VariableList={}; %Since TCMout will contain no variables, strike the variable list from it.
             PropList=properties(TCMmaster);
             PropList=PropList(~strcmpi(PropList,'Version'));
+            PropList=PropList(~strcmpi(PropList,'VariableList'));
             PropList=PropList(~strcmpi(PropList,'MatLib'));
             for Ip=1:length(PropList)
                 ThisPropName=PropList{Ip};
@@ -112,21 +124,45 @@ classdef PPTCM  %PP Test Case Model
                                             TCMcur(end).ParamVar{end,2}=FieldVals{Ifv};     %Specificly for Matieral Field
                                         end                                                 %Specificly for Matieral Field
                                     end                                                     %Specificly for Matieral Field
-                                end                                                         %Specificly for Matieral Field
+                                end        %END MATEIRAL SPECIFIC CODE                      %Specificly for Matieral Field
                                 TCMout=TCMcur;                                              %Specificly for Matieral Field
                             else
-                                if ischar(ThisFieldVal) || length(ThisFieldVal(:))>1
-                                    if ischar(ThisFieldVal)
+                                if ismember(ThisFieldName,{'x' 'y' 'z'})  %These parameters are an n element vector and can't confused with a 2 element vector range
+                                    if isnumeric(ThisFieldVal)
+                                        ThisFieldVal=num2cell(ThisFieldVal);
+                                    end
+                                    ThisFieldVal
+                                    ThisFieldName
+                                    for Icell=1:length(ThisFieldVal)
+                                        if ~isnumeric(ThisFieldVal{Icell})
+                                            try
+                                                eval(sprintf('ThisFieldVal{%g}=%s',Icell,ThisFieldVal{Icell}))
+    BREAKPOINT HERE                                            ErrText=[ErrText 'Cannot evaluate element ' num2str(Icell) ' ''' ThisFieldVal ''' for ' sprintf('TCM.%s(%.0f-%s).%s\n',ThisPropName,Ipv,TCMcur(end).(ThisPropName)(Ipv).Desc,ThisFieldName) ];
+                                            catch ME
+                                                ThisFieldVal{Icell}=[];
+                                            end
+                                        end
+%this is where can address field that have multiple values
+                                    end
+                                else
+                                    ThisFieldVal={ThisFieldVal};
+                                end
+                          % At this point ThisFieldVal should be a cell array regardless of x,y,z or other
+                                for Icell=1:length(ThisFieldVal)
+                                %Cycle through the cell elements    
+                                if ischar(ThisFieldVal{Icell}) || length(ThisFieldVal{Icell}(:))>1
+                                    if ischar(ThisFieldVal{Icell})
                                         try 
-                                            eval(['FieldVals=' ThisFieldVal ';'])
+                                            eval(['FieldVals=' ThisFieldVal{Icell} ';'])
                                         catch ME
-                                            ErrText=[ErrText 'Cannot evaluate ''' ThisFieldVal ''' for ' sprintf('TCM.%s(%.0f-%s).%s\n',ThisPropName,Ipv,TCMcur(end).(ThisPropName)(Ipv).Desc,ThisFieldName) ];
+                                            ErrText=[ErrText 'Cannot evaluate ''' ThisFieldVal{Icell} ''' for ' sprintf('TCM.%s(%.0f-%s).%s\n',ThisPropName,Ipv,TCMcur(end).(ThisPropName)(Ipv).Desc,ThisFieldName) ];
                                             FieldVals=[];
                                         end
                                     else
-                                        FieldVals=ThisFieldVal(:);
+                                        FieldVals=ThisFieldVal{Icell}(:);
                                     end
                                     TCMcur=[];
+                                    fprintf('Fieldname: %s, Field Values: ',ThisFieldName);fprintf('%g ',FieldVals);fprintf('\n');  %DEBUG
                                     for Ifv=1:length(FieldVals)
                                         for Itcm=1:length(TCMout)
                                             if isempty(TCMcur)
@@ -148,7 +184,8 @@ classdef PPTCM  %PP Test Case Model
                                     if ~isempty(FieldVals)
                                         TCMout=TCMcur;  
                                     end
-                                end
+                                end %if loop for is char
+                                end  %For loop to cycle through cell elemenets
                             end
                         end
                     end
@@ -189,6 +226,7 @@ classdef PPTCM  %PP Test Case Model
                 warning(ErrText)
             end
         end
+        
         function FeaturesOut=get.ExternalConditions(obj)
 %             if isempty(obj.iExternalConditions)
 %                 obj.ExternalConditions='Init';

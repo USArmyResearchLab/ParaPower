@@ -465,6 +465,13 @@ function loadbutton_Callback(hObject, eventdata, handles)
             Features=TestCaseModel.Features;
             Params=TestCaseModel.Params;
             PottingMaterial=TestCaseModel.PottingMaterial;
+            
+            if ~isempty(TestCaseModel.VariableList)
+                Data=TestCaseModel.VariableList;
+                Data(:,2:3)=Data'
+                Data(:,1)={false};
+                set(handles.ParamTable,'data',Data);
+            end
 
             %%% Set the External Conditions into the table 
             tabledata = get(handles.ExtCondTable,'data');
@@ -972,10 +979,19 @@ else
         %It is possible to define zero thickness features where Z1=Z2 (or X or Y)
         %to ensure a heat source at a certain layer or a certain discretization.
         %FEATURESTABLE
- 
-        Features(count).x  =  .001*[FeaturesMatrix{count, FTC('x1')} FeaturesMatrix{count, FTC('x2')}];  % X Coordinates of edges of elements
-        Features(count).y =   .001*[FeaturesMatrix{count, FTC('y1')} FeaturesMatrix{count, FTC('y2')}];  % y Coordinates of edges of elements
-        Features(count).z =   .001*[FeaturesMatrix{count, FTC('z1')} FeaturesMatrix{count, FTC('z2')}]; % Height in z directions
+        
+%         for ThisCol=[FTC('x1') FTC('x1') FTC('y1') FTC('y2') FTC('z1') FTC('z2') FTC('divx') FTC('divy') FTC('divz') FTC('qval')]
+%             if isnumeric(FeaturesMatrix{count, ThisCol})
+%                 FeaturesMatrix{count, ThisCol}=num2str(FeaturesMatrix{count, ThisCol});
+%             end
+%         end
+        
+        Features(count).x{1} =  ['.001*' FeaturesMatrix{count, FTC('x1')}];  % X Coordinates of edges of elements
+        Features(count).y{1} =  ['.001*' FeaturesMatrix{count, FTC('y1')}];  % y Coordinates of edges of elements
+        Features(count).z{1} =  ['.001*' FeaturesMatrix{count, FTC('z1')}];  % Height in z directions
+        Features(count).x{2} =  ['.001*' FeaturesMatrix{count, FTC('x2')}];  % X Coordinates of edges of elements
+        Features(count).y{2} =  ['.001*' FeaturesMatrix{count, FTC('y2')}];  % y Coordinates of edges of elements
+        Features(count).z{2} =  ['.001*' FeaturesMatrix{count, FTC('z2')}]; % Height in z directions
 
         %These define the number of elements in each features.  While these can be 
         %values from 2 to infinity, only odd values ensure that there is an element
@@ -1071,6 +1087,7 @@ else
     Parameters=Parameters(:,2:3);
     TestCaseModel=PPTCM;
 
+    TestCaseModel.VariableList=Parameters;
     TestCaseModel.ExternalConditions=ExternalConditions;
     TestCaseModel.Features=Features;
     TestCaseModel.Params=Params;
@@ -1078,21 +1095,19 @@ else
     TestCaseModel.MatLib=MatLib;
     %TestCaseModel.Version=ARLParaPowerVersion('file');
 
-    
-    
-    Cases=TestCaseModel.GenerateTCM(Parameters);
+    Cases=TestCaseModel.GenerateTCM;
     
     if length(Cases)>1
-        AddStatusLine(sprintf('%.0f cases generated.',length(Cases)));
-        TestCaseModel=Cases(1);
+        AddStatusLine(sprintf('%.0f run cases generated.',length(Cases)));
     end
+    ViewCase=Cases(1);
     
     if KillInit
         AddStatusLine('Unable to execute model due to errors.','error')
     else
         AddStatusLine('forming...',true)
         try
-            MI=FormModel(TestCaseModel);
+            MI=FormModel(ViewCase);
         catch ME
             disp(ME.getReport)
             AddStatusLine('Error running forming model','Err')
@@ -1106,6 +1121,7 @@ else
     %    Visualize ('Model Input', MI, 'modelgeom','ShowQ')
 
         setappdata(handles.figure1,'TestCaseModel',TestCaseModel);
+        setappdata(handles.figure1,'RunCases',Cases);
         setappdata(handles.figure1,'MI',MI);
 
         MI=getappdata(handles.figure1,'MI');

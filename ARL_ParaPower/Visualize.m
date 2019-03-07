@@ -684,9 +684,10 @@ function Visualize (PlotTitle, MI, varargin)
         PBorder=1-(P(3)+P(1));
 %        set(ThisAxis,'posit',[PBorder P(2) 1-2*PBorder P(4)]);
         KeyList=keys(QList);
-        QColor(:,1)=(length(KeyList):-1:0)/(length(KeyList));
+        Lkl=length(KeyList);
+        QColor(:,1)=(Lkl:-1:0)/(Lkl);
         QColor(:,2)=0;
-        QColor(:,3)=0;
+        QColor(:,3)=(0:Lkl)/(Lkl);
         QCB=axes(get(gca,'parent'));
         set(QCB,'userdata','REMOVE');
         set(QCB,'posit',[0 .09 .05 .8]);

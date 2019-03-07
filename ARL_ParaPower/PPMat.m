@@ -186,6 +186,10 @@ classdef PPMat
                                 Name(Spaces)='_';
                                 warning('Material name ''%s'' cannot cantain spaces. Name changed to ''%s''',Value,Name);
                             end
+                            ValidChars=char([char('0'):char('9') char('a'):char('z') char('A'):char('Z')]);
+                            if ~all(ismember(Name,ValidChars))
+                                error(sprintf('Material name "%s" can contain only alphanumerics.',Name))
+                            end
                         case obj.strleft('type',Pl)
                             [Value, PropValPairs]=obj.Pop(PropValPairs); 
                             if ischar(Value)

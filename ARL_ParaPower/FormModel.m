@@ -22,6 +22,7 @@ if ischar(TestCaseModel)
         return
     else
         error('Invalid optional argument');
+        return
     end
 else
     if not(isfield(TestCaseModel,'Version') || max(strcmp('Version',properties(TestCaseModel))))
@@ -37,6 +38,12 @@ else
     Features=TestCaseModel.Features;
     Params=TestCaseModel.Params;
     PottingMaterial=TestCaseModel.PottingMaterial;
+    Props=properties(TestCaseModel);
+    if any(strcmpi(Props,'ParamVar'))
+        Descriptor=TestCaseModel.ParamVar;
+    else
+        Descriptor={};
+    end
 end
 
 %Material Properties
@@ -402,6 +409,7 @@ ModelInput.Q=Q;
 ModelInput.GlobalTime=GlobalTime;
 ModelInput.Tinit=Params.Tinit;
 ModelInput.MatLib=MatLib;
+ModelInput.Descriptor=Descriptor;
 %ModelInput.matprops=MatLib.matprops;
 %ModelInput.matlist=MatLib.matlist;
 ModelInput.Version='V2.0';
