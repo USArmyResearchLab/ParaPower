@@ -581,9 +581,9 @@ function Visualize (PlotTitle, MI, varargin)
     end
 
     if PlotParms.LinIntState
-        title([PlotTitle, ' (linear interp. elements)'])
+        title([PlotTitle, ' (linear interp. elements)'],'interp','none')
     else
-        title(PlotTitle)
+        title(PlotTitle,'interp','none')
     end
     set(gca,'visi','on')
     %Display axes in green.
@@ -641,7 +641,7 @@ function Visualize (PlotTitle, MI, varargin)
     CB=colorbar;    
     set(CB,'userdata','REMOVE')
     if ~PlotGeom
-        ylabel(CB,ColorTitle);
+        ylabel(CB,sprintf('%s, Min=%.2f, Max=%.2f',ColorTitle,min(PlotState(:)),max(PlotState(:))));
         caxis auto
         if min(PlotState(:))==max(PlotState(:))
                 caxis([PlotState(1) inf])
@@ -685,9 +685,9 @@ function Visualize (PlotTitle, MI, varargin)
 %        set(ThisAxis,'posit',[PBorder P(2) 1-2*PBorder P(4)]);
         KeyList=keys(QList);
         Lkl=length(KeyList);
-        QColor(:,1)=(Lkl:-1:0)/(Lkl);
-        QColor(:,2)=0;
-        QColor(:,3)=(0:Lkl)/(Lkl);
+        QColor(:,1)=(0:Lkl)/(Lkl);
+        QColor(:,2)=(Lkl:-1:0)/(Lkl)*.3;
+        QColor(:,3)=(Lkl:-1:0)/(Lkl);
         QCB=axes(get(gca,'parent'));
         set(QCB,'userdata','REMOVE');
         set(QCB,'posit',[0 .09 .05 .8]);

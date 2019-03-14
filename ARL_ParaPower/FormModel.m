@@ -9,7 +9,7 @@ Yplus  = 4; %Y+ Face
 Zminus= 5; %Z- Face
 Zplus   = 6; %Z+ Face
 
-No_Matl='No Matl';
+No_Matl='NoMatl';
 
 if ischar(TestCaseModel) 
     if strcmpi('GetDirex',TestCaseModel) %this argument will return the directional index definitions
@@ -30,7 +30,7 @@ else
     elseif strcmpi(TestCaseModel.Version,'V2.0')
         warning('Form Model is %s.  V2.0 -> V2.1 switched order of external BCs. Please confirm accuracy.', TestCaseModel.Version);
     elseif strcmpi(TestCaseModel.Version,'V3.0')
-        warning(['Object version of TestCaseModel is under development']);
+        %warning(['Object version of TestCaseModel is under development']);
     elseif not(strcmpi(TestCaseModel.Version,'V2.1'))
         error(['Incorrect TestCaseModel version.  V2.0 required, this data is ' TestCaseModel.Version]);
     end
@@ -47,7 +47,7 @@ else
 end
 
 %Material Properties
-if isfield(TestCaseModel,'MatLib')
+if isfield(TestCaseModel,'MatLib') || ~isempty(find(strcmpi(properties(TestCaseModel),'MatLib')))
     MatLib=TestCaseModel.MatLib;
     if isempty(find(strcmp(MatLib.MatList,No_Matl), 1))
         MatLib.AddMatl(PPMatNull('Name',No_Matl));

@@ -18,6 +18,7 @@ classdef PPTCM  %PP Test Case Model
         iFeatures = [];
         iParams = [];
         iExternalConditions = [];
+        iExpanded=false;
     end
     
     properties (Dependent)
@@ -32,16 +33,71 @@ classdef PPTCM  %PP Test Case Model
     
     methods (Static)
         function ObjIn=loadobj(ObjIn) %Generate error on version mismatch
-            ObjCur=PPModelDef();
-            if str2num(ObjIn.Version(2:end))<str2num(ObjCur.Version(2:end)) 
+            %ObjCur=PPModelDef();
+            if str2num(ObjIn.Version(2:end))<str2num(ObjIn.Version(2:end)) 
                 warning('Incoming object is version %s, current version is %s. Default values will be assigned.',ObjIn.Version,ObjCur.Version)
-            elseif str2num(ObjIn.Version(2:end))>str2num(ObjCur.Version(2:end)) 
+            elseif str2num(ObjIn.Version(2:end))>str2num(ObjIn.Version(2:end)) 
                 warning('Incoming object is version %s, current version is %s. Functionality may have been deprecated.',ObjIn.Version,ObjCur.Version)
             end
         end
+        
+        function Qhandle=GenQFunction(Qtext, Parameters)
+            VarText='';
+            if exist('Parameters','var') && ~isempty(Parameters)
+                for Ip=1:length(Parameters(:,1))
+                    VarText=[VarText  Parameters(Ip,1) '=' Parameters(Ip,2) ';' char(10)];
+                end
+                eval(VarText)
+            end
+            EvalText=[VarText 'Qhandle=@(t)(-1)*' Qtext ';'];
+            eval(EvalText);
+        end
+            
     end
     
     methods
+        function obj=GeomFactor(obj, Factor, Action)
+            ErrText='';
+            SFactor=['(00' num2str(Factor) ')*(']; %Add mathematical operators to the factor and leading 0's to make it unique
+            for Fi=1:length(obj.Features)
+                if strcmpi(Action,'add')
+                    for Fld={'x' 'y' 'z'}
+                        for Ei=1:length(obj.Features(Fi).(Fld{1}))
+                            Value=obj.Features(Fi).(Fld{1}){Ei};
+                            if ischar(Value)
+                                Value = [SFactor obj.Features(Fi).(Fld{1}){Ei} ')'];
+                            else
+                                Value=Value*Factor;
+                            end
+                            obj.Features(Fi).(Fld{1}){Ei}=Value;
+                        end
+                    end
+                elseif strcmpi(Action,'strip')
+                    for Fld={'x' 'y' 'z'}
+                        for Ei=1:length(obj.Features(Fi).(Fld{1}))
+                            Value=obj.Features(Fi).(Fld{1}){Ei};
+                            if ischar(Value)
+                                if  length(Value) > length(SFactor)
+                                    Value=[strrep(Value(1:length(SFactor)),SFactor,'') Value(length(SFactor)+1:end)];
+                                    Value=Value(1:end-1);
+                                else
+                                    ErrText=[ErrText sprintf('Factor (%g) cannot be stripped from TCM.Features(%.0f).%s(%.0f)\n',Factor, Fi,Fld{1},Ei)];
+                                end
+                            else
+                                Value=Value/Factor;
+                            end
+                            obj.Features(Fi).(Fld{1}){Ei}=Value;
+                        end
+                    end
+                else
+                    error('Unknown action "%s"', Action)
+                end
+            end
+            if ~isempty(ErrText)
+                warning([char(10) ErrText])
+            end
+        end
+        
         function TCMout = GenerateCases (obj, VariableList)
         %TCMout=GenerateTCM(VariableList)
         %Generates Scalar TestCaseModels using substitutions in VariableList
@@ -80,150 +136,123 @@ classdef PPTCM  %PP Test Case Model
             TCMout=obj;
             TCMout.VariableList={}; %Since TCMout will contain no variables, strike the variable list from it.
             PropList=properties(TCMmaster);
-            PropList=PropList(~strcmpi(PropList,'Version'));
-            PropList=PropList(~strcmpi(PropList,'VariableList'));
-            PropList=PropList(~strcmpi(PropList,'MatLib'));
-            for Ip=1:length(PropList)
-                ThisPropName=PropList{Ip};
+            PropList=PropList(~strcmpi(PropList,'Version'));      %These properties will NOT be cycled through
+            PropList=PropList(~strcmpi(PropList,'VariableList')); %These properties will NOT be cycled through
+            PropList=PropList(~strcmpi(PropList,'MatLib'));       %These properties will NOT be cycled through
+            PropList=PropList(~strcmpi(PropList,'ParamVar'));     %These properties will NOT be cycled through
+            for Ip=1:length(PropList)  %go through list of properties
+                ThisPropName=PropList{Ip}; %DEBUG
                 ThisPropVal=TCMmaster.(ThisPropName);
-                if isstruct(ThisPropVal)
-                    FieldList=fieldnames(ThisPropVal);
-                    FieldList=FieldList(~strcmpi(FieldList,'Desc'));
-                    FieldList=FieldList(~strcmpi(FieldList,'Q'));
-                    for Ifl=1:length(FieldList)
-                        ThisFieldName=FieldList{Ifl};
-                        for Ipv=1:length(ThisPropVal)  %Because features is a structure array
-                            ThisFieldVal=ThisPropVal(Ipv).(ThisFieldName);
-                            if strcmpi(ThisFieldName,'Matl')                        %Specificly for Matieral Field
+                if iscell(ThisPropVal)
+                    error('Cell valued properties are not yet addressed.')
+                elseif isstruct(ThisPropVal)
+                    for Ipe=1:length(ThisPropVal)   %go through each element when a property is an array
+                        ThisPropValElement=ThisPropVal(Ipe);
+                        FieldList=fieldnames(ThisPropValElement);
+                        FieldList=FieldList(~strcmpi(FieldList,'Desc'));  %These fields will NOT be cycled through
+                        %FieldList=FieldList(~strcmpi(FieldList,'Q'));     %These fields will NOT be cycled through
+                        for Ifl=1:length(FieldList)
+                            ThisFieldName=FieldList{Ifl};
+                            ThisFieldVal=ThisPropValElement.(ThisFieldName);
+                            if strcmpi(ThisFieldName,'Matl')  %Materials must be treated differently becasue they are a cell array of strings
                                 if isempty(ThisFieldVal)                            %Specificly for Matieral Field
-                                    FieldVals={''};                                 %Specificly for Matieral Field
+                                    ThisFieldVal={''};                                 %Specificly for Matieral Field
                                 elseif ischar(ThisFieldVal)                         %Specificly for Matieral Field
                                     ThisFieldVal=ThisFieldVal(ThisFieldVal~=' '); %Remove spaces     %Specificly for Matieral Field
-                                    FieldVals=split(ThisFieldVal,','); %Separate by commas     %Specificly for Matieral Field
+                                    ThisFieldVal=split(ThisFieldVal,','); %Separate by commas     %Specificly for Matieral Field
                                 elseif iscell(ThisFieldVal)                         %Specificly for Matieral Field
-                                    FieldVals=ThisFieldVal;                         %Specificly for Matieral Field
+                                    ThisFieldVal=ThisFieldVal;                         %Specificly for Matieral Field
                                 end                                                 %Specificly for Matieral Field
-                                for Imat=1:length(FieldVals)
-                                    if isempty(TCMmaster.MatLib.GetMatName(FieldVals{Imat}))
-                                        ErrText=[ErrText sprintf('Material ''%s'' does not exist in the library\n',FieldVals{Imat})];
-                                        FieldVals{Imat}='XXXX';
+                                for Imat=1:length(ThisFieldVal)
+                                    if isempty(TCMmaster.MatLib.GetMatName(ThisFieldVal{Imat}))
+                                        ErrText=[ErrText sprintf('Material ''%s'' does not exist in the library\n',ThisFieldVal{Imat})];
+                                        ThisFieldVal{Imat}='XXXX';
                                     end
                                 end
-                                FieldVals=FieldVals(~strcmpi(FieldVals,'XXXX'));
-                                TCMcur=[];                                          %Specificly for Matieral Field
-                                for Ifv=1:length(FieldVals)                         %Specificly for Matieral Field
-                                    for Itcm=1:length(TCMout)                       %Specificly for Matieral Field
-                                        if isempty(TCMcur)                          %Specificly for Matieral Field
-                                            TCMcur=TCMout(Itcm);                    %Specificly for Matieral Field
-                                        else                                        %Specificly for Matieral Field
-                                            TCMcur(end+1)=TCMout(Itcm);             %Specificly for Matieral Field
-                                        end                                         %Specificly for Matieral Field
-                                        TCMcur(end).(ThisPropName)(Ipv).(ThisFieldName)=FieldVals{Ifv};     %Specificly for Matieral Field
-                                        if length(FieldVals)>1                              %Specificly for Matieral Field
-                                            TCMcur(end).ParamVar{end+1,1}=sprintf('TCM.%s(%.0f-%s).%s',ThisPropName,Ipv,TCMcur(end).(ThisPropName)(Ipv).Desc,ThisFieldName);     %Specificly for Matieral Field
-                                            TCMcur(end).ParamVar{end,2}=FieldVals{Ifv};     %Specificly for Matieral Field
-                                        end                                                 %Specificly for Matieral Field
-                                    end                                                     %Specificly for Matieral Field
-                                end        %END MATEIRAL SPECIFIC CODE                      %Specificly for Matieral Field
-                                TCMout=TCMcur;                                              %Specificly for Matieral Field
-                            else
-                                if ismember(ThisFieldName,{'x' 'y' 'z'})  %These parameters are an n element vector and can't confused with a 2 element vector range
-                                    if isnumeric(ThisFieldVal)
-                                        ThisFieldVal=num2cell(ThisFieldVal);
-                                    end
-                                    ThisFieldVal
-                                    ThisFieldName
-                                    for Icell=1:length(ThisFieldVal)
-                                        if ~isnumeric(ThisFieldVal{Icell})
-                                            try
-                                                eval(sprintf('ThisFieldVal{%g}=%s',Icell,ThisFieldVal{Icell}))
-    BREAKPOINT HERE                                            ErrText=[ErrText 'Cannot evaluate element ' num2str(Icell) ' ''' ThisFieldVal ''' for ' sprintf('TCM.%s(%.0f-%s).%s\n',ThisPropName,Ipv,TCMcur(end).(ThisPropName)(Ipv).Desc,ThisFieldName) ];
-                                            catch ME
-                                                ThisFieldVal{Icell}=[];
-                                            end
+                                ThisFieldVal=ThisFieldVal(~strcmpi(ThisFieldVal,'XXXX'));
+                                TCMout=ExpandTCM(TCMout, ThisFieldVal, ThisPropName, Ipe, ThisFieldName);
+                            elseif ismember(ThisFieldName,{'Q'})  %Q treated differently since they are more than 1 element
+                                if isnumeric(ThisFieldVal) && length(ThisFieldVal(1,:))==2 %Q is a table
+                                    %Do Nothing at this point as tables don't allow parameters
+                                elseif isnumeric(ThisFieldVal) && isscalar(ThisFieldVal)
+                                    %Do nothing, it's a scalar number
+                                elseif ischar(ThisFieldVal) %Could be a parameter or a function
+                                    
+                                    try %Try without defining 't', shoudl be numeric
+                                        clear t
+                                        eval(['ThisFieldVal=' ThisFieldVal ''])
+                                    catch
+                                        try
+                                            t=sym('t'); %Get expression as a function of t
+                                            eval(['ThisFieldValTest=' ThisFieldVal ''])
+                                            ThisFieldVal=char(ThisFieldValTest);
+                                        catch
+                                            ErrText=[ErrText sprintf('Unknown equation form of Q in TCM.%s(%.0f).%s(%.0f).Q\n',ThisFieldValElement,ThisPropName, Ipe, ThisFieldName,Ife)];
+                                            ThisFieldVal=[];
                                         end
-%this is where can address field that have multiple values
                                     end
+                                    TCMout=ExpandTCM(TCMout, ThisFieldVal, ThisPropName, Ipe, ThisFieldName);
                                 else
-                                    ThisFieldVal={ThisFieldVal};
+                                    ErrText=[ErrText sprintf('Unknown form of Q in TCM.%s(%.0f).%s(%.0f).Q\n',ThisFieldValElement,ThisPropName, Ipe, ThisFieldName,Ife)];
                                 end
-                          % At this point ThisFieldVal should be a cell array regardless of x,y,z or other
-                                for Icell=1:length(ThisFieldVal)
-                                %Cycle through the cell elements    
-                                if ischar(ThisFieldVal{Icell}) || length(ThisFieldVal{Icell}(:))>1
-                                    if ischar(ThisFieldVal{Icell})
-                                        try 
-                                            eval(['FieldVals=' ThisFieldVal{Icell} ';'])
+                            elseif ismember(ThisFieldName,{'x', 'y', 'z'})  %X, Y, Z treated differently since they are more than 1 element
+                                if isnumeric(ThisFieldVal)
+                                    ThisFieldVal=num2cell(ThisFieldVal);
+                                end
+                                for Ife=1:length(ThisFieldVal)  %Go through each element of the field
+                                    ThisFieldValElement=ThisFieldVal{Ife};
+                                    if ischar(ThisFieldValElement)
+                                        try
+                                            eval(['ThisFieldValElement=' ThisFieldValElement ';'])
+                                            if ~isnumeric(ThisFieldValElement)
+                                                ErrText=[ErrText sprintf('Non-numeric: "%s" for TCM.%s(%.0f).%s(%.0f)\n',ThisFieldValElement,ThisPropName, Ipe, ThisFieldName,Ife)];
+                                                ThisFieldValElement=[];
+                                            end
                                         catch ME
-                                            ErrText=[ErrText 'Cannot evaluate ''' ThisFieldVal{Icell} ''' for ' sprintf('TCM.%s(%.0f-%s).%s\n',ThisPropName,Ipv,TCMcur(end).(ThisPropName)(Ipv).Desc,ThisFieldName) ];
-                                            FieldVals=[];
-                                        end
-                                    else
-                                        FieldVals=ThisFieldVal{Icell}(:);
-                                    end
-                                    TCMcur=[];
-                                    fprintf('Fieldname: %s, Field Values: ',ThisFieldName);fprintf('%g ',FieldVals);fprintf('\n');  %DEBUG
-                                    for Ifv=1:length(FieldVals)
-                                        for Itcm=1:length(TCMout)
-                                            if isempty(TCMcur)
-                                                TCMcur=TCMout(Itcm);
-                                            else
-                                                TCMcur(end+1)=TCMout(Itcm);
-                                            end
-                                            TCMcur(end).(ThisPropName)(Ipv).(ThisFieldName)=FieldVals(Ifv);
-                                            if length(FieldVals)>1
-                                                if length(ThisPropVal)==1
-                                                    TCMcur(end).ParamVar{end+1,1}=sprintf('TCM.%s.%s',ThisPropName,ThisFieldName);
-                                                else
-                                                    TCMcur(end).ParamVar{end+1,1}=sprintf('TCM.%s(%.0f-%s).%s',ThisPropName,Ipv,TCMcur(end).(ThisPropName)(Ipv).Desc,ThisFieldName);
-                                                end
-                                                TCMcur(end).ParamVar{end,2}=FieldVals(Ifv);
-                                            end
+                                            ErrText=[ErrText sprintf('Cannot evaluate "%s" for TCM.%s(%.0f).%s(%.0f)\n',ThisFieldValElement,ThisPropName, Ipe, ThisFieldName,Ife)];
+                                            ThisFieldValElement=[];
                                         end
                                     end
-                                    if ~isempty(FieldVals)
-                                        TCMout=TCMcur;  
+                                    TCMout=ExpandTCM(TCMout, ThisFieldValElement, ThisPropName, Ipe, ThisFieldName, Ife);
+                                end
+                            else %Single valued fields
+                                if ischar(ThisFieldVal)
+                                    try
+                                        eval(['ThisFieldVal=' ThisFieldVal ';'])
+                                        if  ~isnumeric(ThisFieldVal)
+                                            ErrText=[ErrText sprintf('Non-numeric: "%s" for TCM.%s(%.0f).%s\n',ThisFieldVal,ThisPropName, Ipe, ThisFieldName)];
+                                            ThisFieldVal=[];
+                                        end
+                                    catch ME
+                                        ErrText=[ErrText sprintf('Cannot evaluate "%s" for TCM.%s(%.0f).%s\n',ThisFieldVal,ThisPropName, Ipe, ThisFieldName)];
+                                        ThisFieldVal=[];
                                     end
-                                end %if loop for is char
-                                end  %For loop to cycle through cell elemenets
+                                end
+                                TCMout=ExpandTCM(TCMout, ThisFieldVal, ThisPropName, Ipe, ThisFieldName);
                             end
                         end
                     end
                 else
-                    if ischar(ThisPropVal) || length(ThisPropVal(:))>1
-                        if ischar(ThisPropVal)
-                            try 
-                                eval(['PropVals=' ThisPropVal ';']);
-                            catch ME
-                                ErrText=[ErrText 'Cannot evaluate ''' ThisPropVal ''' for ' sprintf('TCM.%s\n',ThisPropName)];
-                                PropVals=[];
+                    if ischar(ThisPropVal)
+                        try
+                            eval(['ThisPropVal=' ThisPropVal ';']) 
+                            if  ~isnumeric(ThisPropVal)
+                                ErrText=[ErrText sprintf('Non-numeric value: "%s" for TCM.%s\n',ThisFieldVal,ThisPropName)];
+                                ThisPropVal=[];
                             end
-                        else
-                            PropVals=ThisPropVal(:);
-                        end
-                        TCMcur=[];  %TCMcur is the TCM currently being modified, TCMout is the current source TCM
-                        for Ipv=1:length(PropVals)
-                            for Itcm=1:length(TCMout)
-                                if isempty(TCMcur)
-                                    TCMcur=TCMout(Itcm);
-                                else
-                                    TCMcur(end+1)=TCMout(Itcm);
-                                end
-                                TCMcur(end).(ThisPropName)=PropVals(Ipv);
-                                if length(PropVals) > 1
-                                    TCMcur(end).ParamVar{end+1,1}=sprintf('TCM.%s',ThisPropName);
-                                    TCMcur(end).ParamVar{end,2}=PropVals(Ipv);
-                                end
-                            end
-                        end
-                        if ~isempty(PropVals)
-                            TCMout=TCMcur;
+                        catch ME
+                            ErrText=[ErrText sprintf('Cannot evaluate "%s" for TCM.%s\n',ThisPropVal,ThisPropName)];
+                            ErrText=[ErrText 'Cannot evaluate element ' ThisPropName ' = ' ThisPropVal char(10)  ];
+                            ThisPropVal=[];
                         end
                     end
+                    TCMout=ExpandTCM(TCMout, ThisPropVal, ThisPropName);
                 end
             end
+            [TCMout.iExpanded]=deal(true);
             if ~isempty(ErrText)
-                warning(ErrText)
+                warning([char(10) ErrText])
+                TCMout=ErrText;
             end
         end
         
@@ -313,6 +342,16 @@ classdef PPTCM  %PP Test Case Model
             
         function FeaturesOut=get.Features(obj)
             FeaturesOut=obj.iFeatures;
+            if obj.iExpanded
+                for I=1:length(FeaturesOut)
+                    NumX=cell2mat(FeaturesOut(I).x);
+                    NumY=cell2mat(FeaturesOut(I).y);
+                    NumZ=cell2mat(FeaturesOut(I).z);
+                    FeaturesOut(I).x=NumX;
+                    FeaturesOut(I).y=NumY;
+                    FeaturesOut(I).z=NumZ;
+                end
+            end
         end
         
         function obj=set.Features(obj,Input)
@@ -342,7 +381,7 @@ classdef PPTCM  %PP Test Case Model
             end
             for Fi=1:length(Fields)
                 if ~any(strcmp(fieldnames(F),Fields(Fi)))
-                    ErrText=sprintf('%s Field %s is not a valid feature fieldname\n',ErrText,Fields{Fi});
+                    ErrText=sprintf('%s Field %s is not a valid  feature fieldname\n',ErrText,Fields{Fi});
                 end
             end
             if ~isempty(ErrText)
@@ -462,4 +501,62 @@ function VA=ComputeVA(DCoord)
 
     %Combine the areas of the zero thickness elements and make them imag.
     VA=VA + (Ax+Ay+Az)*1i;
+end
+
+function TCMnew=ExpandTCM(TCMinstance, Values, Prop, Iprop, Field, Ifield)
+%Note that TCM looks like: TCM.Prop(iProp).Field{Ifield}
+%                          TCM.Prop(iProp).Field
+%                          TCM.Prop(iProp)
+%                          TCM.Prop
+
+    if ~(exist('Prop','var') && exist('Values','var'))
+        error('Must pass at least a property and Values.')
+    end
+        
+    TCMnew=[];
+    if isnumeric(Values)
+        Values=num2cell(Values);
+    elseif ischar(Values)
+        Values={Values};
+    end
+    for Itcm=1:length(TCMinstance)
+        if exist('Prop','var') && strcmpi(Prop,'Features')
+            if exist('Iprop','var')
+                FeatDesc=['-' TCMinstance(Itcm).(Prop)(Iprop).Desc];
+            else
+                FeatDesc=['-' TCMinstance(Itcm).(Prop)(1).Desc];
+            end
+        else
+            FeatDesc='';
+        end
+        if ~isempty(Values)
+            for Ival=1:length(Values)
+                TCMnew=[TCMnew TCMinstance(Itcm)];
+                if exist('Ifield','var')
+                    TCMnew(end).(Prop)(Iprop).(Field){Ifield}=Values{Ival};
+                    VarText=sprintf('TCM.%s(%.0f%s).%s(%.0f)',Prop,Iprop,FeatDesc,Field,Ifield);
+                elseif exist('Field','var')
+                    TCMnew(end).(Prop)(Iprop).(Field)=Values{Ival};
+                    VarText=sprintf('TCM.%s(%.0f%s).%s',Prop,Iprop,FeatDesc,Field);
+                elseif exist('Iprop','var')
+                    TCMnew(end).(Prop)(Iprop)=Values{Ival};
+                    VarText=sprintf('TCM.%s(%.0f%s)',Prop,Iprop,FeatDesc);
+                elseif exist('Prop','var')
+                    TCMnew(end).(Prop)=Values{Ival};
+                    VarText=sprintf('TCM.%s',Prop);
+                end
+                if length(Values)>1
+                    TCMnew(end).ParamVar{end+1,1}=VarText;
+                    if isnumeric(Values{Ival})
+                        TCMnew(end).ParamVar{end,2}=sprintf('%g, ',Values{Ival});
+                        TCMnew(end).ParamVar{end,2}=TCMnew(end).ParamVar{end,2}(1:end-2);
+                    else
+                        TCMnew(end).ParamVar{end,2}=Values{Ival};
+                    end
+                end
+            end
+        else
+            TCMnew=[TCMnew TCMinstance(Itcm)];
+        end
+    end
 end
