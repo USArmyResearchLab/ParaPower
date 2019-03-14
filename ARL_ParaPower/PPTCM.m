@@ -21,6 +21,11 @@ classdef PPTCM  %PP Test Case Model
         iExpanded=false;
     end
     
+%    properties(SetAccess = immutable)
+    properties (Access = private)
+        SymAvail
+    end
+    
     properties (Dependent)
         Features = [];
         Params = [];
@@ -41,16 +46,31 @@ classdef PPTCM  %PP Test Case Model
             end
         end
         
-        function Qhandle=GenQFunction(Qtext, Parameters)
+        function QTextOut=GenQFunction(Qtext, Parameters)
+            %Output will be a cell array of strings
+            SymAvail=license('test','symbolic_toolbox');
             VarText='';
             if exist('Parameters','var') && ~isempty(Parameters)
                 for Ip=1:length(Parameters(:,1))
-                    VarText=[VarText  Parameters(Ip,1) '=' Parameters(Ip,2) ';' char(10)];
+                    if ~isempty(Parameters{Ip,1})
+                        VarText=[VarText  Parameters{Ip,1} '=' Parameters{Ip,2} ';' char(10)];
+                    end
                 end
-                eval(VarText)
+                %eval(VarText)
             end
-            EvalText=[VarText 'Qhandle=@(t)(-1)*' Qtext ';'];
-            eval(EvalText);
+            QTextOut={};
+            if SymAvail
+                t=sym('t');
+                EvalText=[VarText 'QHFn=(-1)*' Qtext];
+                eval([EvalText ';']);
+                for I=1:length(QHFn)
+                    QTextOut{I}=char(QHFn(I));
+                end
+            else
+                QTextOut{1}=['-1*' QText];
+                %EvalText=[VarText 'Qhandle{1}=@(t)(-1)*' Qtext ';'];
+                %eval([EvalText ';']);
+            end
         end
             
     end
@@ -103,6 +123,9 @@ classdef PPTCM  %PP Test Case Model
         %Generates Scalar TestCaseModels using substitutions in VariableList
         %Variable list is a structure array. VariableList{:,1}=name and
         %              VariableList{:,2}=value
+            if ~obj.SymAvail
+                disp('WARNING: Symbolic toolbox is not available, Function based Q definitions limited to preclude use of any parameters.')
+            end
             ErrText='';
             if exist('VariableList','var')
                 if ~isempty(obj.VariableList)
@@ -177,16 +200,40 @@ classdef PPTCM  %PP Test Case Model
                                 elseif isnumeric(ThisFieldVal) && isscalar(ThisFieldVal)
                                     %Do nothing, it's a scalar number
                                 elseif ischar(ThisFieldVal) %Could be a parameter or a function
-                                    
-                                    try %Try without defining 't', shoudl be numeric
+                                    try %Try without defining 't', should be numeric
+                                        if exist('t','var')
+                                            Old_t=t;
+                                        else
+                                            Old_t=[];
+                                        end
                                         clear t
-                                        eval(['ThisFieldVal=' ThisFieldVal ''])
-                                    catch
+                                        EvalString='';
+                                        EvalString=[EvalString sprintf('ThisFieldVal=%s;\n',ThisFieldVal)];
+                                        eval(EvalString)
+                                        t=Old_t;
+                                    catch ME
                                         try
-                                            t=sym('t'); %Get expression as a function of t
-                                            eval(['ThisFieldValTest=' ThisFieldVal ''])
-                                            ThisFieldVal=char(ThisFieldValTest);
-                                        catch
+                                            ThisFieldVal=TCMmaster.GenQFunction(ThisFieldVal, VariableList);
+                                            eval(['TestFn=@(t)' ThisFieldVal{1} ';']);
+                                            TestFn(0);
+
+%                                             for Itfv=1:length(Qtext)
+%                                                 eval(sprintf('ThisFieldVal{%.0f}=@(t)%s;',Itfv,Qtext{Itfv}))
+%                                             end
+%                                             if obj.SymAvail
+%                                                 t=sym('t'); %Get expression as a function of t
+%                                                 eval(['ThisFieldValTest=' ThisFieldVal ''])
+%                                                 %if length(ThisFieldValTest)>1
+%                                                     ThisFieldVal={};
+%                                                     for Itfvt=1:length(ThisFieldValTest)
+%                                                         ThisFieldVal{Itfvt}=char(ThisFieldValTest(Itfvt));
+%                                                     end
+%                                                 %end
+%                                             else
+%                                                 eval(['ThisFieldValTest=' ThisFieldVal ''])
+%                                                 ThisFieldVal={ThisFieldValTest};
+%                                             end
+                                        catch ME
                                             ErrText=[ErrText sprintf('Unknown equation form of Q in TCM.%s(%.0f).%s(%.0f).Q\n',ThisFieldValElement,ThisPropName, Ipe, ThisFieldName,Ife)];
                                             ThisFieldVal=[];
                                         end
@@ -397,6 +444,7 @@ classdef PPTCM  %PP Test Case Model
         end
         
         function obj = PPTCM(ExternalConditions, Features, Params, PottingMaterial, MatLib)  %Constructor
+            obj.SymAvail=license('test','symbolic_toolbox');
             if nargin==3
                 obj.ExternalConditions=ExternalConditions;
                 obj.Features=Features;
