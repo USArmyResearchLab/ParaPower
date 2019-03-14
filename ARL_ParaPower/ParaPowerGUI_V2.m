@@ -1045,11 +1045,7 @@ else
         end
         switch Qtype
             case 'scala'
-%                 if ischar(QValue)
-%                     QValue=str2double(QValue);
-%                 end
-                    
-                if QValue==0
+                if ischar(QValue) && isempty(QValue)
                     Features(count).Q = 0;
                 else
                     Features(count).Q = QValue;
@@ -1093,9 +1089,11 @@ else
                     Features(count).Q=0;
                 else
                     try
-                        TestQ=TestCaseModel.GenQFunction(QValue, Parameters);
-                        TestQ(0);
+                        Qtext=TestCaseModel.GenQFunction(QValue, Parameters);
+                        eval(['TestFn=@(t)' Qtext{1}]);
+                        TestFn(0);
                     catch ErrTrap
+                        ErrTrap.getReport
                         AddStatusLine('Error.', true);
                         AddStatusLine(['For feature ' num2str(count) ' "' QValue '" is not a valid function for Q.'],'error')
                         GUIEnable
