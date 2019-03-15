@@ -75,12 +75,14 @@ classdef PPMatLib < handle
     methods (Access = protected)
         function PopulateProps(obj)
             iPropValsBuf=NaN(obj.NumMat, length(obj.iParamList));
+            iParamList=obj.iParamList;
             if strcmpi(obj.iParamList{1},'Name') && strcmpi(obj.iParamList{2},'Type')
-                for Iprop=3:length(obj.iParamList)
-                    for Imat=1:obj.NumMat
-                        ThisMat=obj.GetMatNum(Imat);
-                        if isprop(ThisMat,obj.iParamList{Iprop})
-                            iPropValsBuf(Imat,Iprop)=ThisMat.(obj.iParamList{Iprop});
+                for Imat=1:obj.NumMat
+                    ThisMat=obj.GetMatNum(Imat);
+                    ThisMatProps=properties(ThisMat);
+                    for Iprop=3:length(iParamList)
+                        if any(strcmp(ThisMatProps,iParamList{Iprop}))
+                            iPropValsBuf(Imat,Iprop)=ThisMat.(iParamList{Iprop});
                         end
                     end
                 end
@@ -261,7 +263,7 @@ classdef PPMatLib < handle
             obj.ShowErrorText
         end
         function ShowErrorText(obj, dest)
-            if ~exist('dest')
+            if ~exist('dest','var')
                 dest='';
             end
             if ~isempty(obj.ErrorText)
@@ -682,6 +684,7 @@ classdef PPMatLib < handle
                     if fname ~= 0
                         set(H.LoadBtn,'userdata',pathname);
                         load([pathname fname],'MatLib');
+                        obj.GUIModFlag=true;
                         FigHandle=obj.iMatableF;
                         obj.DelMatl([1:obj.NumMat]);
                         for I=1:MatLib.NumMat
@@ -699,7 +702,11 @@ classdef PPMatLib < handle
                     handle=varargin{1};
                     H=get(get(handle,'parent'),'user');
                     YES='Yes';
-                    Response=questdlg('Are you sure want to discard all changes?','Confirm',YES,'No','No');
+                    if  obj.GUIModFlag
+                        Response=questdlg('Are you sure want to discard all changes?','Confirm',YES,'No','No');
+                    else
+                        Response=YES;
+                    end
                     if strcmpi(Response,YES)
                         OrigMatLib=getappdata(obj.iMatableF,'OrigMatLib');
                         if obj.NumMat>0
@@ -746,6 +753,7 @@ classdef PPMatLib < handle
                     ColData=Data(:,SortCol+1);
                     try
                         [NewCol, Index]=sort(ColData);
+                        obj.GUIModFlag=true;
                     catch ME
                         %ME.getReport
                         try
