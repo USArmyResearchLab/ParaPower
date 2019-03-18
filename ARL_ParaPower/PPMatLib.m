@@ -74,13 +74,16 @@ classdef PPMatLib < handle
 
     methods (Access = protected)
         function PopulateProps(obj)
+            BaseProps=properties(PPMat);  %Ignore properties that are part of PPMat
             iPropValsBuf=NaN(obj.NumMat, length(obj.iParamList));
             iParamList=obj.iParamList;
-            if strcmpi(obj.iParamList{1},'Name') && strcmpi(obj.iParamList{2},'Type')
+            if find(strcmpi(obj.iParamList{1},BaseProps))==1  && ...
+               find(strcmpi(obj.iParamList{2},BaseProps))==2  && ...
+               find(strcmpi(obj.iParamList{3},BaseProps))==3
                 for Imat=1:obj.NumMat
                     ThisMat=obj.GetMatNum(Imat);
                     ThisMatProps=properties(ThisMat);
-                    for Iprop=3:length(iParamList)
+                    for Iprop=length(BaseProps)+1:length(iParamList)
                         if any(strcmp(ThisMatProps,iParamList{Iprop}))
                             iPropValsBuf(Imat,Iprop)=ThisMat.(iParamList{Iprop});
                         end
@@ -88,7 +91,12 @@ classdef PPMatLib < handle
                 end
                 obj.iPropVals=iPropValsBuf;
             else
-                obj.AddError('First property name MUST be "Name" and second MUST be "Type"')
+                ErrText='Property list MUST start with';
+                for I=1:length(BaseProps)
+                    ErrText=[ErrText ' ' BaseProps{I}];
+                end
+                ErrText=[ErrText '.'];
+                obj.AddError(ErrText)
                 obj.ShowErrorText;
             end
         end
@@ -834,9 +842,15 @@ classdef PPMatLib < handle
             end 
         end
         
+        function NewMatLib=CreateCopy(obj)
+            NewMatLib=PPMatLib;
+            for I=1:obj.NumMat
+                NewMatLib.AddMatl(obj.GetMatNum(I))
+            end
+        end
+        
         function MatLibArray=GenerateCases (obj, ParamTable)
             BaseMatLib=obj;
-            
         end
     end
 end

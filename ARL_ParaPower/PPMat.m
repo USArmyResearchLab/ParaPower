@@ -53,7 +53,7 @@ classdef PPMat
 %             elseif nargin == 1 & iscell(varargin{1})
 %                 varargin=varargin{1};
 %             end
-%             obj=obj@PPMatOld([ 'type' Type varargin]); %ADD this must be updated to an immediate superclass constructor
+%             obj=obj@PPMatOld([ 'type' Type 'NoExpandProps' {'Prop1' 'Prop2'} varargin]); %ADD this must be updated to an immediate superclass constructor
 %             
 %             PropValPairs=obj.PropValPairs;
 %             obj.PropValPairs={};
@@ -91,6 +91,7 @@ classdef PPMat
     end
     properties (SetAccess = immutable)
         Type  
+        NoExpandProps %Properties that will not be expanded by eval
     end
     
 %     
@@ -140,6 +141,7 @@ classdef PPMat
             Params=Params(~strcmpi(Params,'name'));
             Params=Params(~strcmpi(Params,'type'));
             Params=Params(~strcmpi(Params,'ValidChars'));
+            Params=Params(~strcmpi(Params,'NoExpandProps'));
         end
         function OutText=ParamDesc(obj, Param)
            OutText='';
@@ -162,6 +164,7 @@ classdef PPMat
         % O = PPMat();  Default Type=Base, Name=''
             Type='Abstract';
             Name='';
+            NoExpandProps={'Name' 'Type'};
             PropValPairs={};
             obj.PropValPairs={};
             if nargin==1 & ~iscell(varargin{1})
@@ -202,6 +205,14 @@ classdef PPMat
                             else
                                 error('Material type must be of type char')
                             end
+                        case obj.strleft('noexpandprops',Pl)
+                            [Value, PropValPairs]=obj.Pop(PropValPairs); 
+                            if ischar(Value)
+                                Value={Value};
+                            end
+                            for Vi=1:length(Value)
+                                NoExpandProps = [NoExpandProps Value{Vi}];
+                            end
                         otherwise
                             if isempty(PropValPairs)
                                 PropValPairs={'Name' Prop};
@@ -220,6 +231,7 @@ classdef PPMat
 %             end
             obj.Name=Name;
             obj.Type=Type;
+            obj.NoExpandProps=NoExpandProps;
             obj.CheckProperties(mfilename('class'));
 
         end
