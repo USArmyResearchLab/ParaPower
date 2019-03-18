@@ -1,8 +1,8 @@
 classdef PPMatIBC < PPMat
     
     properties (Access=public)
-        h_ibc   {mustBeNumeric(h_ibc), mustBeReal(h_ibc)}   = NaN
-        T_ibc   {mustBeNumeric(T_ibc), mustBeReal(T_ibc)}     = NaN
+        h_ibc   = NaN %{mustBeNumeric(h_ibc), mustBeReal(h_ibc)}   = NaN
+        T_ibc   = NaN %{mustBeNumeric(T_ibc), mustBeReal(T_ibc)}     = NaN
     end
     
     methods

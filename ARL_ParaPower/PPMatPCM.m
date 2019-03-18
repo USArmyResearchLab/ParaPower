@@ -1,11 +1,11 @@
 classdef PPMatPCM < PPMatSolid
     
     properties (Access=public)
-        k_l         {mustBeNumeric(k_l), mustBeReal(k_l)}   = NaN
-        rho_l       {mustBeNumeric(rho_l), mustBeReal(rho_l)}     = NaN
-        cp_l        {mustBeNumeric(cp_l), mustBeReal(cp_l)}    = NaN
-        lf          {mustBeNumeric(lf), mustBeReal(lf)}     = NaN
-        tmelt       {mustBeNumeric(tmelt), mustBeReal(tmelt)}   = NaN
+        k_l         = NaN %{mustBeNumeric(k_l), mustBeReal(k_l)}   = NaN
+        rho_l       = NaN %{mustBeNumeric(rho_l), mustBeReal(rho_l)}     = NaN
+        cp_l        = NaN %{mustBeNumeric(cp_l), mustBeReal(cp_l)}    = NaN
+        lf          = NaN %{mustBeNumeric(lf), mustBeReal(lf)}     = NaN
+        tmelt       = NaN %{mustBeNumeric(tmelt), mustBeReal(tmelt)}   = NaN
     end
     
     

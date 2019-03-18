@@ -1,7 +1,7 @@
 classdef PPMatSCPCM < PPMatPCM
     
     properties (Access=public)
-        dT_Nucl     {mustBeNumeric(dT_Nucl), mustBeReal(dT_Nucl)}   = NaN
+        dT_Nucl     = NaN %{mustBeNumeric(dT_Nucl), mustBeReal(dT_Nucl)}   = NaN
     end
     
     

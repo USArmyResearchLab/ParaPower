@@ -171,65 +171,6 @@ classdef PPMatLib < handle
             OutParamVec=obj.iPropVals(:,Iprop);
             OutParamVec=reshape(OutParamVec,[],1);
         end
-        
-%         function varargout=subsref(obj,s) 
-%            switch s(1).type
-%               case '.'
-%                  if length(s) == 1 & ~isprop(obj,s.subs)
-%                     % Implement obj.PropertyName
-%                      varargout{1}=obj.GetParam(s.subs);
-%                  elseif length(s) == 2 && strcmp(s(2).type,'()') && any(strcmpi(obj.iParamList,s(1).subs)) 
-%                     % Implement obj.PropertyName(indices)
-%                       List=obj.GetParam(s(1).subs);
-%                       varargout{1}=List(s(2).subs{1});
-%                  else
-%                     [varargout{1:nargout}] = builtin('subsref',obj,s);
-%                  end
-%               case '()'
-%                  if length(s) == 1
-%                     % Implement obj(indices)
-%                     TempOut=PPMatLib;
-%                     for Mi=reshape(s.subs{1},1,[])
-%                         TempOut.AddMatl(obj.iMatObjList{Mi})
-%                     end
-%                     varargout{1}=TempOut;
-%                  elseif length(s) == 2 && strcmp(s(2).type,'.')
-%                      Implement this as a buffered property that is contruced on first use that gets wiped out when material changed/added
-%                      %Algorithm will be to construct material propery
-%                      %vectors on first call.  Then destroy them with any
-%                      %call to add/delete/replace material
-%                      %Vectors will be comprised of two parts.
-%                      %PropName - Cell Array of property name
-%                      %PropValue{Property Number} - Cell Array
-%                     % Implement obj(ind).PropertyName
-%                     TempLib=PPMatLib;
-%                     for Mi=reshape(s(1).subs{1},1,[])
-%                         TempLib.AddMatl(obj.iMatObjList{Mi});
-%                     end
-%                     varargout{1}=TempLib.GetParam(s(2).subs);
-% %                  elseif length(s) == 3 && strcmp(s(2).type,'.') && strcmp(s(3).type,'()')
-% %                     % Implement obj(indices).PropertyName(indices)
-% %                     ...
-%                  else
-%                     % Use built-in for any other expression
-%                     [varargout{1:nargout}] = builtin('subsref',obj,s);
-%                  end
-% %               case '{}'
-% %                  if length(s) == 1
-% %                     % Implement obj{indices}
-% %                     ...
-% %                  elseif length(s) == 2 && strcmp(s(2).type,'.')
-% %                     % Implement obj{indices}.PropertyName
-% %                     ...
-% %                  else
-% %                     % Use built-in for any other expression
-% %                     [varargout{1:nargout}] = builtin('subsref',obj,s);
-% %                  end
-%               otherwise
-%                  error('Not a valid indexing expression')
-%            end
-% 
-%        end
 
         function OutParam=GetParam(obj, Param)
             AvailParams=obj.Params;
@@ -857,6 +798,11 @@ classdef PPMatLib < handle
                 obj.AddError('No material added.')
                 obj.ShowErrorText;
             end 
+        end
+        
+        function MatLibArray=GenerateCases (obj, ParamTable)
+            BaseMatLib=obj;
+            
         end
     end
 end
