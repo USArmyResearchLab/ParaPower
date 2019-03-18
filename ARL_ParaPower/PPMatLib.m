@@ -14,6 +14,8 @@ classdef PPMatLib < handle
 %   MatList    - List of materials currently in the library
 %   GUIModFlag - Set to true if Library is modified under GUI Control.
 %                Must be manually reset.
+%   ParamVar   - List of changes made for parameterization
+%   ParamTable - List of parameters to be evaluated when parameterizing properties
 %
 %Access Methods:
 %   MatLib(index)  - Returns a new MatLib comprised of materials 
@@ -59,6 +61,7 @@ classdef PPMatLib < handle
     
     properties
         GUIModFlag=false;
+        ParamVar='';
     end
     
     properties (Access=public, Dependent)
@@ -76,6 +79,7 @@ classdef PPMatLib < handle
         function PopulateProps(obj)
             BaseProps=properties(PPMat);  %Ignore properties that are part of PPMat
             iPropValsBuf=NaN(obj.NumMat, length(obj.iParamList));
+            iPropValsBuf=num2cell(iPropValsBuf);
             iParamList=obj.iParamList;
             if find(strcmpi(obj.iParamList{1},BaseProps))==1  && ...
                find(strcmpi(obj.iParamList{2},BaseProps))==2  && ...
@@ -85,7 +89,7 @@ classdef PPMatLib < handle
                     ThisMatProps=properties(ThisMat);
                     for Iprop=length(BaseProps)+1:length(iParamList)
                         if any(strcmp(ThisMatProps,iParamList{Iprop}))
-                            iPropValsBuf(Imat,Iprop)=ThisMat.(iParamList{Iprop});
+                            iPropValsBuf{Imat,Iprop}=ThisMat.(iParamList{Iprop});
                         end
                     end
                 end
@@ -158,6 +162,28 @@ classdef PPMatLib < handle
                 
         end
         
+        function NewMatLib=ExpandMatLib(MatLibInstance, PropVals, MatNum, PropName, PropCellIndex)
+            %The passed PropVal is the set of values of a single cell of
+            %property named in PropName.
+            NewMatLib=[];
+            for Iml=1:length(MatLibInstance)
+                if ~isempty(PropVals)
+                    ThisMat=NewMatLib(end).GetMatNum(MatNum);
+                    for Ipv=1:length(PropVals)
+                        NewMatLib=[NewMatLib MatLibInstance(Iml)];
+                        ThisMat.(PropName){PropCellIndex}=PropVals(Ipv);
+                        if NewMatLib(end).ReplMatl(MatNum, ThisMat)
+                            VarText=sprintf('%s.%s{%.0f}',ThisMat.Name, PropName, PropVals(Ipv));
+                        else
+                            error('Can''t replace material %s', ThisMat.Name)
+                            VarText='';
+                        end
+                        NewMatLib(end).ParamVar=[NewMatLib(end).ParamVar char(10) VarText];
+                    end
+                end
+            end
+        end        
+        
         function Params=GetParamAvail
             Params={};
             MatTypes=PPMatLib.GetMatTypesAvail();
@@ -182,7 +208,7 @@ classdef PPMatLib < handle
                 obj.PopulateProps;
             end
             Iprop=find(strcmpi(obj.iParamList, Param));
-            OutParamVec=obj.iPropVals(:,Iprop);
+            OutParamVec=cell2mat(obj.iPropVals(:,Iprop));
             OutParamVec=reshape(OutParamVec,[],1);
         end
 
@@ -850,7 +876,54 @@ classdef PPMatLib < handle
         end
         
         function MatLibArray=GenerateCases (obj, ParamTable)
-            BaseMatLib=obj;
+         %If parameters are numeric, or character they are assumed to be a
+         %single value.  If they're a cell array, the cell array is stepped
+         %through and eval'ed.
+         
+            ErrText='';
+            if ~exist('ParamTable','var')
+                ParamTable=obj.ParamTable;
+            end
+            if exist('ParamTable','var') && ~isempty(ParamTable)
+                VarText='';
+                for Ip=1:length(ParamTable(:,1))
+                    if ~isempty(ParamTable{Ip,1})
+                        VarText=[VarText  ParamTable{Ip,1} '=' ParamTable{Ip,2} ';' char(10)];
+                    end
+                end
+                eval(VarText)
+            end
+            BaseMatLib=obj.CreateCopy;
+            NewMatLib=PPMatLib;
+            for Imat=1:BaseMatLib.NumMat
+                ThisMat=BaseMatLib.GetMatNum(Imat);
+                ParamList=ThisMat.ParamList;
+                for Iprop=1:length(ParamList)
+                    ThisPropName=ParamList{Iprop};
+                    ThisPropVal=ThisMat.(ThisPropName);
+                    if ~any(strcmpi(ThisPropName, ThisMat.NoExpandProps))
+                        if ischar(ThisPropVal)
+                            ThisPropVal={ThisPropVal};
+                        elseif isnumeric(ThisPropVal)
+                            ThisPropVal={ThisPropVal};
+                        end
+                        for Ipv=1:length(ThisPropVal(:))
+                            try
+                                if iscell(ThisPropVal{Ipv})
+                                    ErrText=[ErrText char(10) 'Nest cell array not permitted for "' ThisPropName '" for material "' ThisMat.Name '" as "' ThisPropVal '"'];
+                                else
+                                    eval(sprintf('ThisPropVal{%.0f}=%s;',Ipv,ThisPropVal{Ipv}))
+                                end
+                            catch ME
+                                ErrText=[ErrText char(10) 'Cannot evaluate property "' ThisPropName '" for material "' ThisMat.Name '" as "' ThisPropVal '"'];
+                                ME.getReport
+                                ThisPropVal=NaN;
+                            end
+                            NewMatLib=obj.ExpandMatLib(NewMatLib, ThisPropVal{Ipv}, MatName, PropName, Ipv);
+                        end
+                    end
+                end
+            end
         end
     end
 end
