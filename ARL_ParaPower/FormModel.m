@@ -309,7 +309,9 @@ for Fi=1:length(Features)
          ThisQ=[];
      elseif length(Features(Fi).Q(1,:))==2
          ThisQ=@(t)(-1)*interp1(Features(Fi).Q(:,1),Features(Fi).Q(:,2),t);
-         GlobalTime=[GlobalTime Features(Fi).Q(:,1)'];
+         if ~isempty(Params.Tsteps)  %Only add to global time if Tsteps is not empty indicating a transient solution
+            GlobalTime=[GlobalTime Features(Fi).Q(:,1)'];
+         end
      else
          error(['Unknown form of Q for feature ' num2str(Fi)])
      end

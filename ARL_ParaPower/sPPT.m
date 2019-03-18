@@ -243,7 +243,7 @@ classdef sPPT < matlab.System & matlab.system.mixin.Propagates ...
             %obj.Cap=Cap;
             %obj.vol=vol;
             obj.B=B;
-            %obj.C=C;
+            obj.C=C;
             obj.Aj=Aj;
             obj.Bj=Bj;
         end
@@ -260,9 +260,14 @@ classdef sPPT < matlab.System & matlab.system.mixin.Propagates ...
            
             else
               disp('Using absolute time input')
-              time_in=obj.GlobalTime(end);
-              if ~(time_in < GlobalTime(1))
-                  error('non-positive initial step')
+              if isempty(GlobalTime) || any(isnan(GlobalTime))
+                  disp('Time is empty or NaN, analysis will be static.')
+                  time_in=[];
+              else
+                  time_in=obj.GlobalTime(end);
+                  if ~(time_in < GlobalTime(1))
+                      error('non-positive initial step')
+                  end
               end
               GlobalTime=[time_in GlobalTime]; %pad input GT
               obj.GlobalTime=GlobalTime;  %overwrite stored GT
