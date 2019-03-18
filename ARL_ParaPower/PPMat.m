@@ -92,6 +92,7 @@ classdef PPMat
     properties (SetAccess = immutable)
         Type  
     end
+    
 %     
 %     properties (SetAccess = protected) %This should also be immutable
 %         SClass
@@ -117,6 +118,9 @@ classdef PPMat
                 PV={};
             end
         end
+        function C=ValidChars()
+            C=char([char('0'):char('9') '_' char('a'):char('z') char('A'):char('Z')]);
+        end
      end
     
     methods (Access = protected)
@@ -135,6 +139,7 @@ classdef PPMat
             Params=properties(obj);
             Params=Params(~strcmpi(Params,'name'));
             Params=Params(~strcmpi(Params,'type'));
+            Params=Params(~strcmpi(Params,'ValidChars'));
         end
         function OutText=ParamDesc(obj, Param)
            OutText='';
@@ -177,8 +182,19 @@ classdef PPMat
                     %disp(Prop)
                     switch lower(Prop)
                         case obj.strleft('name',Pl)
-                            [Value, PropValPairs]=obj.Pop(PropValPairs); 
-                            Name=Value;
+                            [Value, PropValPairs]=obj.Pop(PropValPairs);
+                            Spaces=findstr(Value,' ');
+                            if isempty(Spaces)
+                                Name=Value;
+                            else
+                                Name=Value;
+                                Name(Spaces)='_';
+                                warning('Material name ''%s'' cannot cantain spaces. Name changed to ''%s''',Value,Name);
+                            end
+                            
+                            if ~all(ismember(Name,obj.ValidChars))
+                                error(sprintf('Material name "%s" can contain only alphanumerics.',Name))
+                            end
                         case obj.strleft('type',Pl)
                             [Value, PropValPairs]=obj.Pop(PropValPairs); 
                             if ischar(Value)

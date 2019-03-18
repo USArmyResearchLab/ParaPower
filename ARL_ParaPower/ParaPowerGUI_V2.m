@@ -26,7 +26,7 @@ function varargout = ParaPowerGUI_V2(varargin)
 
 % Edit the above text to modify the response to help ParaPowerGUI_V2
 
-% Last Modified by GUIDE v2.5 14-Feb-2019 10:35:55
+% Last Modified by GUIDE v2.5 12-Mar-2019 12:33:11
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -129,6 +129,7 @@ function InitializeGUI(handles)
     set(handles.VisualStress,'enable','on');
     disp('stop button functionality is not implemented in this GUI yet.')
     set(handles.pushbutton18,'enable','off')
+    set(handles.CaseSelect,'visible','off')
     ErrorStatus()
 
     %Set Stress Model Directory
@@ -224,26 +225,34 @@ function addfeature_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
     TableData = get(handles.features,'Data');
-    QData=getappdata(gcf,TableDataName);
-    EmptyRow=EmptyFeatureRow;
-    if isempty(TableData)
-        TableData=EmptyRow;
-    else
-        InsertRows=find(cell2mat(TableData(:,FTC('check')))==true);
-        if isempty(InsertRows)
-            TableData(end+1,:)=EmptyRow;
-            QData{length(TableData(:,1))}=[];
-        else
-            for Irow=reshape(InsertRows(end:-1:1),1,[])
-                TableData(Irow+1:end+1,:)=TableData(Irow:end,:);
-                TableData(Irow,:)=EmptyFeatureRow;
-                QData(Irow+1:end+1)=QData(Irow:end);
-            end
-        end
+    QData=getappdata(handles.figure1,TableDataName);
+    if isempty(QData) && isnumeric(QData)
+        QData={};
     end
+    EmptyRow=EmptyFeatureRow;
+
+    SelectColumn=TableData(:,FTC('check'));
+    TableData=ModTable(TableData, 'Insert',SelectColumn,EmptyRow);
+    QData=ModTable(QData','Insert',SelectColumn,{[]})';
+    
+%     if isempty(TableData)
+%         TableData=EmptyRow;
+%     else
+%         InsertRows=find(cell2mat(TableData(:,FTC('check')))==true);
+%         if isempty(InsertRows)
+%             TableData(end+1,:)=EmptyRow;
+%             QData{length(TableData(:,1))}=[];
+%         else
+%             for Irow=reshape(InsertRows(end:-1:1),1,[])
+%                 TableData(Irow+1:end+1,:)=TableData(Irow:end,:);
+%                 TableData(Irow,:)=EmptyFeatureRow;
+%                 QData(Irow+1:end+1)=QData(Irow:end);
+%             end
+%         end
+%     end
     
     set(handles.features,'Data',TableData)
-    setappdata(gcf,TableDataName,QData);
+    setappdata(handles.figure1,TableDataName,QData);
 
     VisUpdateStatus(handles,true);
 end
@@ -290,13 +299,19 @@ end
 
 function E=EmptyFeatureRow
     E{1,FTC('NumCols')}=[];
+    E{FTC('X1')}='';
+    E{FTC('X2')}='';
+    E{FTC('y1')}='';
+    E{FTC('y2')}='';
+    E{FTC('z1')}='';
+    E{FTC('z2')}='';
     E{FTC('Check')}=false;
     E{FTC('QVal')}='0';
     E{FTC('QType')}='Scalar';
     E{FTC('Desc')}='';
-    E{FTC('DivX')}=1;
-    E{FTC('DivY')}=1;
-    E{FTC('DivZ')}=1;
+    E{FTC('DivX')}='1';
+    E{FTC('DivY')}='1';
+    E{FTC('DivZ')}='1';
     
 end
 
@@ -333,12 +348,16 @@ function savebutton_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
     Initialize_Callback(hObject, eventdata, handles, false)
-    TestCaseModel = getappdata(gcf,'TestCaseModel');
-    if isappdata(gcf,'Results')
-        Results=getappdata(gcf,'Results');
+    TestCaseModel = getappdata(handles.figure1,'TestCaseModel');
+    if isempty(TestCaseModel)
+        return
+    end
+    TestCaseModel = TestCaseModel.GeomFactor(0.001,'strip'); %Convert from mm to m
+    if isappdata(handles.figure1,'Results')
+        Results=getappdata(handles.figure1,'Results');
     else
-        if isappdata(gcf,'MI')
-            Results.Model=getappdata(gcf,'MI');
+        if isappdata(handles.figure1,'MI')
+            Results.Model=getappdata(handles.figure1,'MI');
         else
             Results=[];
         end
@@ -352,9 +371,11 @@ function savebutton_Callback(hObject, eventdata, handles)
         AddStatusLine('Complete model cannot be saved due to errors. GUI state saved instead.')
         [fname,pathname] = uiputfile ([oldpathname '*.guistate']);
         if fname ~=0
-            hgsave(gcf,[pathname fname])
+            hgsave(handles.figure1,[pathname fname])
         end
     else
+        %Strip mm to m conversion from TestCaseModel
+        
         [fname,pathname] = uiputfile ([oldpathname '*.ppmodel']);
         if fname~= 0
             AddStatusLine(['Saving "' pathname fname '".,,']);
@@ -363,7 +384,7 @@ function savebutton_Callback(hObject, eventdata, handles)
                 TestCaseModel.MatLib.Source=[pathname fname];
             end
             TestCaseModel.MatLib.GUIModFlag=false;
-            setappdata(gcf,'TestCaseModel',TestCaseModel);
+            setappdata(handles.figure1,'TestCaseModel',TestCaseModel);
             save([pathname fname],'TestCaseModel','Results','-mat')  
             AddStatusLine('Done', true);
         end
@@ -403,7 +424,7 @@ function loadbutton_Callback(hObject, eventdata, handles)
         set(hObject,'userdata',pathname);
         try %Load file not knowing if it's a guistate or model. If it's not a GUI state it will kick out an error and be trapped.
             F_Old=gcf;
-            OldVersion=getappdata(gcf,'Version');
+            OldVersion=getappdata(handles.figure1,'Version');
             Fnew=hgload([pathname filename]);
             NewVersion=getappdata(Fnew,'Version');
             if not(strcmpi(OldVersion,NewVersion))
@@ -416,7 +437,7 @@ function loadbutton_Callback(hObject, eventdata, handles)
                 delete(F_Old);
                 drawnow
                 AddStatusLine(['Loading GUISTATE from "' pathname filename '"...']);
-                set(gcf,'name',CurTitle);
+                set(handles.figure1,'name',CurTitle);
             end
             GUIStateLoaded=true;
         catch ME
@@ -445,8 +466,11 @@ function loadbutton_Callback(hObject, eventdata, handles)
                    OldVersion=true;
                end
             else
-                TestCaseModel.Version='';
                 OldVersion=true;
+                try 
+                    TestCaseModel.Version='';
+                catch
+                end
             end
 
             if OldVersion
@@ -457,6 +481,13 @@ function loadbutton_Callback(hObject, eventdata, handles)
             Features=TestCaseModel.Features;
             Params=TestCaseModel.Params;
             PottingMaterial=TestCaseModel.PottingMaterial;
+            
+            if ~isempty(TestCaseModel.VariableList)
+                Data=TestCaseModel.VariableList;
+                Data(:,2:3)=Data;
+                Data(:,1)={false};
+                set(handles.ParamTable,'data',Data);
+            end
 
             %%% Set the External Conditions into the table 
             tabledata = get(handles.ExtCondTable,'data');
@@ -511,12 +542,12 @@ function loadbutton_Callback(hObject, eventdata, handles)
                else
                    tabledata{count,FTC('desc')} = '';
                end
-               tabledata(count,FTC('x1'))  = mat2cell(1000*Features(count).x(1),1,1);
-               tabledata(count,FTC('y1'))  = mat2cell(1000*Features(count).y(1),1,1);
-               tabledata(count,FTC('z1'))  = mat2cell(1000*Features(count).z(1),1,1);
-               tabledata(count,FTC('x2'))  = mat2cell(1000*Features(count).x(2),1,1);
-               tabledata(count,FTC('y2'))  = mat2cell(1000*Features(count).y(2),1,1);
-               tabledata(count,FTC('z2'))  = mat2cell(1000*Features(count).z(2),1,1);
+               tabledata(count,FTC('x1'))  = Features(count).x(1);
+               tabledata(count,FTC('y1'))  = Features(count).y(1);
+               tabledata(count,FTC('z1'))  = Features(count).z(1);
+               tabledata(count,FTC('x2'))  = Features(count).x(2);
+               tabledata(count,FTC('y2'))  = Features(count).y(2);
+               tabledata(count,FTC('z2'))  = Features(count).z(2);
                tabledata(count,FTC('mat'))  = cellstr(Features(count).Matl);
                if ischar(Features(count).Q)
                     tabledata(count,FTC('qtype'))  = {'Function(t)'};
@@ -557,7 +588,7 @@ function loadbutton_Callback(hObject, eventdata, handles)
            
            %Update Materials
            TestCaseModel.MatLib.GUIModFlag=false;
-           if isfield(TestCaseModel,'MatLib')
+           if isfield(TestCaseModel,'MatLib') || ~isempty(find(strcmpi(properties(TestCaseModel),'MatLib')))
                %Is this working properly?  Materials database isn't getting reloaded.
                %UpdateMatList('LoadMatLib',handles.features, FTC('mat'), TestCaseModel.MatLib)
                NewMatLibUpdate(TestCaseModel.MatLib, handles.features)
@@ -653,102 +684,114 @@ function RunAnalysis_Callback(hObject, eventdata, handles)
         StressModel=StressModel{StressModelV};
         
         AddStatusLine('Analysis running...');
+
         MI = getappdata(handles.figure1,'MI');
         if isempty(MI)
             AddStatusLine('Model not yet fully defined.','error')
             GUIEnable
             return
         end
-
-        drawnow
-        AddStatusLine('Thermal ',true)
         
-        try
-            %not used TimeStepOutput = get(handles.slider1,'Value');
-            tic
-%            GlobalTime=MI.GlobalTime;  %Since there is global time vector, construct one here.
-
-            InitTime=MI.GlobalTime(1);    %Time at initializatio extracted from MI.GlobalTime
-            ComputeTime=MI.GlobalTime(2:end); %extract time to compute states from MI.GlobalTime
-
-            MI.GlobalTime=InitTime;  %Setup initialization
-            S1=scPPT('MI',MI); %Initialize object
-            setup(S1,[]);
-            StepsToEstimate=2;
-            tic
-            [Tprnt, T_in, MeltFrac,MeltFrac_in]=S1(ComputeTime(1:min(StepsToEstimate,length(ComputeTime))));  %Compute states at times in ComputeTime (S1 must be called with 1 arg in 2017b)
-            EstTime=toc;
-            if length(ComputeTime)>StepsToEstimate
-                AddStatusLine(sprintf(' (est. %.1fs)... ',EstTime*(length(ComputeTime)-StepsToEstimate)/StepsToEstimate), true)
-                [Tprnt2, T_in2, MeltFrac2,MeltFrac_in2]=S1(ComputeTime(3:end));  %Compute states at times in ComputeTime (S1 must be called with 1 arg in 2017b)
-                Tprnt   =cat(4, T_in        , Tprnt   ,  Tprnt2   );
-                MeltFrac=cat(4, MeltFrac_in , MeltFrac,  MeltFrac2);
+        RunCases = getappdata(handles.figure1,'RunCases');
+        
+        drawnow
+        for ThisCase=1:length(RunCases)
+            if length(RunCases)==1
+                MI = getappdata(handles.figure1,'MI');
             else
-                Tprnt=cat(4,T_in,Tprnt);
-                MeltFrac=cat(4,MeltFrac_in,MeltFrac);
+                AddStatusLine(sprintf('Case %g',ThisCase));
+                MI=FormModel(RunCases(ThisCase));
             end
 
-            MI.GlobalTime = [InitTime ComputeTime]; %Reassemble MI's global time to match initialization and computed states.
+            AddStatusLine('Thermal ',true)
 
-            Etime=toc;
-            AddStatusLine(sprintf('(%3.2fs)...',Etime),true)
-        catch ME
-            AddStatusLine('Error during thermal solve.')
-            AddStatusLine(ME.message,'err')
-            AddStatusLine(' ');
-            disp(ME.getReport)
-            Tprnt=[];
-        end
-        AddStatusLine(['Stress (' StressModel ')...']);
-        try
-            if strcmpi(StressModel,'none')
-                Stress=[];
-            else
-                OldPath=path;
-                addpath(get(handles.StressModel,'user'));
+            try
+                %not used TimeStepOutput = get(handles.slider1,'Value');
                 tic
-                eval(['Stress=Stress_' StressModel '(MI,Tprnt);']);
+    %            GlobalTime=MI.GlobalTime;  %Since there is global time vector, construct one here.
+
+                InitTime=MI.GlobalTime(1);    %Time at initializatio extracted from MI.GlobalTime
+                ComputeTime=MI.GlobalTime(2:end); %extract time to compute states from MI.GlobalTime
+
+                MI.GlobalTime=InitTime;  %Setup initialization
+                S1=scPPT('MI',MI); %Initialize object
+                setup(S1,[]);
+                StepsToEstimate=2;
+                tic
+                [Tprnt, T_in, MeltFrac,MeltFrac_in]=S1(ComputeTime(1:min(StepsToEstimate,length(ComputeTime))));  %Compute states at times in ComputeTime (S1 must be called with 1 arg in 2017b)
+                EstTime=toc;
+                if length(ComputeTime)>StepsToEstimate
+                    AddStatusLine(sprintf(' (est. %.1fs)... ',EstTime*(length(ComputeTime)-StepsToEstimate)/StepsToEstimate), true)
+                    [Tprnt2, T_in2, MeltFrac2,MeltFrac_in2]=S1(ComputeTime(3:end));  %Compute states at times in ComputeTime (S1 must be called with 1 arg in 2017b)
+                    Tprnt   =cat(4, T_in        , Tprnt   ,  Tprnt2   );
+                    MeltFrac=cat(4, MeltFrac_in , MeltFrac,  MeltFrac2);
+                else
+                    Tprnt=cat(4,T_in,Tprnt);
+                    MeltFrac=cat(4,MeltFrac_in,MeltFrac);
+                end
+
+                MI.GlobalTime = [InitTime ComputeTime]; %Reassemble MI's global time to match initialization and computed states.
+
                 Etime=toc;
                 AddStatusLine(sprintf('(%3.2fs)...',Etime),true)
-                path(OldPath)
+            catch ME
+                AddStatusLine('Error during thermal solve.')
+                AddStatusLine(ME.message,'err')
+                AddStatusLine(' ');
+                disp(ME.getReport)
+                Tprnt=[];
             end
-            if not(exist('Stress','var'))
-                AddStatusLine('Error.','Error')
-                AddStatusLine(['Unknown stress model: ' StressModel ]);
+            AddStatusLine(['Stress (' StressModel ')...']);
+            try
+                if strcmpi(StressModel,'none')
+                    Stress=[];
+                else
+                    OldPath=path;
+                    addpath(get(handles.StressModel,'user'));
+                    tic
+                    eval(['Stress=Stress_' StressModel '(MI,Tprnt);']);
+                    Etime=toc;
+                    AddStatusLine(sprintf('(%3.2fs)...',Etime),true)
+                    path(OldPath)
+                end
+                if not(exist('Stress','var'))
+                    AddStatusLine('Error.','Error')
+                    AddStatusLine(['Unknown stress model: ' StressModel ]);
+                    AddStatusLine('');
+                    Stress=[];
+                end
+                set(handles.slider1,'value',1);
+            catch ME
+                AddStatusLine('Error during stress solve.')
+                AddStatusLine(ME.message,'err')
                 AddStatusLine('');
+                disp(ME.getReport)
                 Stress=[];
             end
-            set(handles.slider1,'value',1);
-        catch ME
-            AddStatusLine('Error during stress solve.')
-            AddStatusLine(ME.message,'err')
-            AddStatusLine('');
-            disp(ME.getReport)
-            Stress=[];
-        end
-        if ischar(Stress)
-            AddStatusLine('Error during stress solve.')
-            AddStatusLine(Stress)
-            Stress=[];
-            AddStatusLine(' ');
-        end
-        AddStatusLine('Complete.',true)
-       
-        if exist('ME')
-            GUIEnable()
-            return
-        end
-       
-       %not used StateN=round(length(GlobalTime)*TimeStepOutput,0);
-       
-       Results.Tprint=Tprnt;
-       Results.Stress=Stress;
-       Results.MeltFrac=MeltFrac;
-       Results.Model=MI;
-       Results.TimeDate=now;
+            if ischar(Stress)
+                AddStatusLine('Error during stress solve.')
+                AddStatusLine(Stress)
+                Stress=[];
+                AddStatusLine(' ');
+            end
+            AddStatusLine('Complete.',true)
+
+            if exist('ME')
+                GUIEnable()
+                return
+            end
+
+           %not used StateN=round(length(GlobalTime)*TimeStepOutput,0);
+           
+           Results(ThisCase)=PPResults(now, MI, RunCases(ThisCase),'Thermal','MeltFrac','Stress');
+           Results(ThisCase)=Results(ThisCase).setState('Thermal',Tprnt);
+           Results(ThisCase)=Results(ThisCase).setState('MeltFrac',MeltFrac);
+           Results(ThisCase)=Results(ThisCase).setState('Stress',Stress);
+           
+       end
        if get(handles.transient,'value')==1
            %%%%Plot time dependent plots for temp, stress and melt fraction
-            MaxPlot_Callback(handles.MaxPlot, eventdata, handles, Results);
+           MaxPlot_Callback(handles.MaxPlot, eventdata, handles, Results(1));
            %AddStatusLine('Done.', true);
        end
        setappdata(handles.figure1, 'Results', Results);
@@ -862,8 +905,11 @@ KillInit=0;
 AddStatusLine('Initializing...',handles.figure1)
 clear Features ExternalConditions Params PottingMaterial Descr
 
-setappdata(gcf,'TestCaseModel',[]);
-setappdata(gcf,'MI',[]);
+TestCaseModel=PPTCM;
+
+setappdata(handles.figure1,'TestCaseModel',[]);
+setappdata(handles.figure1,'MI',[]);
+setappdata(handles.figure1,'RunCases',[]);
 
 Features.x=[]; Features.y=[]; Features.z=[]; Features.Matl=[]; Features.Q=[]; Features.Matl=''; 
 Features.dz=0; Features.dy=0; Features.dz=0;
@@ -878,6 +924,9 @@ x=2;
 FeaturesMatrix = get(handles.features,'Data');
 %FeaturesMatrix = FeaturesMatrix(:,2:end);  %Changed to abstracting column numbers
 ExtBoundMatrix = get(handles.ExtCondTable,'Data');
+Parameters=get(handles.ParamTable,'data');
+Parameters=Parameters(:,2:3);
+
 for K=1:length(ExtBoundMatrix(:))
     if isempty(ExtBoundMatrix{K})
         AddStatusLine('Error.',true,'error');
@@ -905,20 +954,20 @@ end
     ExternalConditions.Tproc = str2num(get(handles.Tprocess,'String')); %Processing temperature, used for stress analysis
 
     %Parameters that govern global analysis
-    Params.Tinit=str2num(get(handles.Tinit,'String')); %Initial temp of all nodes
-    Params.DeltaT=str2num(get(handles.TimeStep,'String')); %Time Step Size
+    Params.Tinit=(get(handles.Tinit,'String')); %Initial temp of all nodes
+    Params.DeltaT=(get(handles.TimeStep,'String')); %Time Step Size
     if get(handles.Static,'value')==1
-        Params.Tsteps=[]; %Number of time steps
+        Params.Tsteps=''; %Number of time steps
         FindEps = 0;
-    elseif get(handles.transient,'value')==1
-        Params.Tsteps=str2num(get(handles.NumTimeSteps,'String')); %Number of time steps
-        FindEps = Params.Tsteps * Params.DeltaT;
-        if FindEps==0
-            AddStatusLine('Error.',true,'error');
-            AddStatusLine('End time is 0.  Redefine time step or run as a static analysis.');
-            return
-        end
-        MaxTime=Params.Tsteps * Params.DeltaT;
+     elseif get(handles.transient,'value')==1
+         Params.Tsteps=(get(handles.NumTimeSteps,'String')); %Number of time steps
+%         FindEps = Params.Tsteps * Params.DeltaT;
+%         if FindEps==0
+%             AddStatusLine('Error.',true,'error');
+%             AddStatusLine('End time is 0.  Redefine time step or run as a static analysis.');
+%             return
+%         end
+%         MaxTime=Params.Tsteps * Params.DeltaT;
     end
     PottingMaterial  = 0;  %Material that surrounds features in each layer as defined by text strings in matlibfun. 
                        %If Material is 0, then the space is empty and not filled by any material.
@@ -950,7 +999,7 @@ else
             return
         end
     end
-    QData=getappdata(gcf,TableDataName);
+    QData=getappdata(handles.figure1,TableDataName);
     if isempty(QData)
         QData{length(FeaturesMatrix(:,1))}=[];
     end
@@ -964,10 +1013,19 @@ else
         %It is possible to define zero thickness features where Z1=Z2 (or X or Y)
         %to ensure a heat source at a certain layer or a certain discretization.
         %FEATURESTABLE
- 
-        Features(count).x  =  .001*[FeaturesMatrix{count, FTC('x1')} FeaturesMatrix{count, FTC('x2')}];  % X Coordinates of edges of elements
-        Features(count).y =   .001*[FeaturesMatrix{count, FTC('y1')} FeaturesMatrix{count, FTC('y2')}];  % y Coordinates of edges of elements
-        Features(count).z =   .001*[FeaturesMatrix{count, FTC('z1')} FeaturesMatrix{count, FTC('z2')}]; % Height in z directions
+        
+%         for ThisCol=[FTC('x1') FTC('x1') FTC('y1') FTC('y2') FTC('z1') FTC('z2') FTC('divx') FTC('divy') FTC('divz') FTC('qval')]
+%             if isnumeric(FeaturesMatrix{count, ThisCol})
+%                 FeaturesMatrix{count, ThisCol}=num2str(FeaturesMatrix{count, ThisCol});
+%             end
+%         end
+        
+        Features(count).x{1} =  FeaturesMatrix{count, FTC('x1')};  % X Coordinates of edges of elements
+        Features(count).y{1} =  FeaturesMatrix{count, FTC('y1')};  % y Coordinates of edges of elements
+        Features(count).z{1} =  FeaturesMatrix{count, FTC('z1')};  % Height in z directions
+        Features(count).x{2} =  FeaturesMatrix{count, FTC('x2')};  % X Coordinates of edges of elements
+        Features(count).y{2} =  FeaturesMatrix{count, FTC('y2')};  % y Coordinates of edges of elements
+        Features(count).z{2} =  FeaturesMatrix{count, FTC('z2')}; % Height in z directions
 
         %These define the number of elements in each features.  While these can be 
         %values from 2 to infinity, only odd values ensure that there is an element
@@ -976,8 +1034,6 @@ else
         Features(count).dx =  FeaturesMatrix{count, FTC('divx')}; %Number of divisions/feature in X
         Features(count).dy =  FeaturesMatrix{count, FTC('divy')}; %Number of divisions/feature in Y
         Features(count).dz =  FeaturesMatrix{count, FTC('divz')}; %Number of divisions/feature in Z (layers)
-
-
         
         Features(count).Matl = FeaturesMatrix{count, FTC('mat')}; %Material text as defined in matlibfun
         QValue=FeaturesMatrix{count, FTC('qval')};
@@ -989,11 +1045,7 @@ else
         end
         switch Qtype
             case 'scala'
-                if ischar(QValue)
-                    QValue=str2double(QValue);
-                end
-                    
-                if QValue==0
+                if ischar(QValue) && isempty(QValue)
                     Features(count).Q = 0;
                 else
                     Features(count).Q = QValue;
@@ -1017,11 +1069,13 @@ else
                         AddStatusLine('...')
                         KillInit=1;
                     end
-                    if max(Table(:,1))<MaxTime
-                        Table(end+1,:)=[MaxTime Table(end,2)];
-                        AddStatusLine(['Feature ' num2str(count) ' time extended to ' num2str(MaxTime) 's with a flat line from last value.'],'warning')
-                        AddStatusLine('...')
-                    end
+%                     This error check can't occur if time can be
+%                     parameterized. It will be moved to the analysis side.
+%                     if max(Table(:,1))<MaxTime
+%                         Table(end+1,:)=[MaxTime Table(end,2)];
+%                         AddStatusLine(['Feature ' num2str(count) ' time extended to ' num2str(MaxTime) 's with a flat line from last value.'],'warning')
+%                         AddStatusLine('...')
+%                     end
                     if min(Table(:,1))>0
                         Table=[0 0; Table(1,1)-2*eps(MaxTime) 0; Table];
                         AddStatusLine(['Feature ' num2str(count) ' time adjusted to begin at t=0, value of 0'],'warning')
@@ -1035,11 +1089,14 @@ else
                     Features(count).Q=0;
                 else
                     try
-                        TestQ=@(t)eval(QValue)*(-1);
-                        TestQ(0);
+                        Qtext=TestCaseModel.GenQFunction(QValue, Parameters);
+                        eval(['TestFn=@(t)' Qtext{1} ';']);
+                        TestFn(0);
                     catch ErrTrap
+                        ErrTrap.getReport
                         AddStatusLine('Error.', true);
                         AddStatusLine(['For feature ' num2str(count) ' "' QValue '" is not a valid function for Q.'],'error')
+                        GUIEnable
                         return
                     end
                     Features(count).Q = QValue;
@@ -1060,19 +1117,38 @@ else
     %Assemble the above definitions into a single variablel that will be used
     %to run the analysis.  This is the only variable that is used from this M-file.
 
+
+    TestCaseModel.VariableList=Parameters;
     TestCaseModel.ExternalConditions=ExternalConditions;
     TestCaseModel.Features=Features;
     TestCaseModel.Params=Params;
     TestCaseModel.PottingMaterial=PottingMaterial;
     TestCaseModel.MatLib=MatLib;
-    TestCaseModel.Version=ARLParaPowerVersion('file');
+    %TestCaseModel.Version=ARLParaPowerVersion('file');
+    TestCaseModel=TestCaseModel.GeomFactor(.001,'add'); %Convert from m to mm
 
+    setappdata(handles.figure1,'TestCaseModel',TestCaseModel);
+    
+    Cases=TestCaseModel.GenerateCases;
+    
+    if ischar(Cases) || isempty(Cases)
+        KillInit=1;
+    elseif length(Cases)>1
+        AddStatusLine(sprintf('%.0f cases...',length(Cases)), true);
+    end
+    
     if KillInit
         AddStatusLine('Unable to execute model due to errors.','error')
+        if ischar(Cases)
+            AddStatusLine(Cases)
+        end
+        set(handles.CaseSelect,'visible','off')
+
     else
+        ViewCase=Cases(1);
         AddStatusLine('forming...',true)
         try
-            MI=FormModel(TestCaseModel);
+            MI=FormModel(ViewCase);
         catch ME
             disp(ME.getReport)
             AddStatusLine('Error running forming model','Err')
@@ -1080,13 +1156,39 @@ else
             GUIEnable
             return
         end
+        if get(handles.transient,'value')==1
+            if isempty(MI.GlobalTime) || min(MI.GlobalTime) == max(MI.GlobalTime)
+                AddStatusLine('Error.',true,'error');
+                AddStatusLine('Globaltime min and max are the same or isempty.  Redefine time step or run as a static analysis.');
+                GUIEnable
+                return
+            end
+        end
+        
         AddStatusLine('storing...',true)
 
     %    axes(handles.GeometryVisualization);
     %    Visualize ('Model Input', MI, 'modelgeom','ShowQ')
 
-        setappdata(handles.figure1,'TestCaseModel',TestCaseModel);
+        setappdata(handles.figure1,'RunCases',Cases);
         setappdata(handles.figure1,'MI',MI);
+        CaseText=get(handles.CaseSelect,'string');
+        if length(Cases)==1
+            set(handles.CaseSelect,'visible','off')
+            set(handles.CaseSelect,'value',1)
+        elseif length(Cases)>1
+            CaseText={};
+            for I=1:length(Cases)
+                CaseText{I}=sprintf('%.0f: ',I);
+                for JJ=1:length(Cases(1).ParamVar(:,1))
+                    CaseText{I}=[CaseText{I} sprintf('%s: %s; ',Cases(I).ParamVar{JJ,1},Cases(I).ParamVar{JJ,2})];
+                end
+            end
+            set(handles.CaseSelect,'string',CaseText);
+            set(handles.CaseSelect,'visible','on')
+        elseif length(Cases)>1
+            set(handles.CaseSelect,'visible','on')
+        end
 
         MI=getappdata(handles.figure1,'MI');
         axes(handles.GeometryVisualization)
@@ -1111,24 +1213,29 @@ function DeleteFeature_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-data = get(handles.features, 'Data');
-
-
+TableData = get(handles.features, 'Data');
 QData=getappdata(handles.figure1,TableDataName);
-if length(QData)<length(data(:,1))
-	QData{length(data(:,1))}=[];
-end
-for I=length(data(:,1)):-1:1
-    if data{I,FTC('check')}
-        data =[data(1:I-1,:); data(I+1:end,:)];
-        QData=[QData(1:I-1)  QData(I+1:end)];
-    end
+
+if length(QData)<length(TableData(:,1))
+	QData{length(TableData(:,1))}=[];
 end
 
-if length(data(:,1))==0
-    data=EmptyFeatureRow;
-end
-set(handles.features, 'Data', data);
+    SelectColumn=TableData(:,FTC('check'));
+    TableData=ModTable(TableData, 'Delete',SelectColumn);
+    QData=ModTable(QData','Delete',SelectColumn,{[]})';
+% for I=length(data(:,1)):-1:1
+%     if data{I,FTC('check')}
+%         data =[data(1:I-1,:); data(I+1:end,:)];
+%         QData=[QData(1:I-1)  QData(I+1:end)];
+%     end
+% end
+% 
+% if length(data(:,1))==0
+%     data=EmptyFeatureRow;
+% end
+
+set(handles.features, 'Data', TableData);
+setappdata(handles.figure1,TableDataName,QData);
 VisUpdateStatus(handles,true);
 end
 
@@ -1303,37 +1410,57 @@ function View_Callback(hObject, eventdata, handles)
 % hObject    handle to View (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-    slider1_Callback(hObject, eventdata, handles)  %call the move slider1 to ensure up-to-date info
-
+slider1_Callback(hObject, eventdata, handles)  %call the move slider1 to ensure up-to-date info
 TimeString=get(handles.InterestTime,'String'); %this is empty if static analysis results found
 TimeStepString=get(handles.InterestTime,'String'); %this is empty if no results
+
+ThisCase=get(handles.CaseSelect,'value');
 
 NumPlot = 0; 
 NumPlot=NumPlot + get(handles.VisualMelt,'Value');
 NumPlot=NumPlot + get(handles.VisualStress,'Value');
 NumPlot=NumPlot + get(handles.VisualTemp,'Value');
 Objects=findobj(0,'-depth',1,'type','figure');
-ResultFigure=find(strcmpi(get(Objects,'name'),'results'));
+FigTitle=sprintf('Results %g',ThisCase);
+ResultFigure=find(strcmpi(get(Objects,'name'),FigTitle));
 if isempty(ResultFigure)
     figure
-    set(gcf,'unit','normal','posit',[0.05 0.05 0.9 0.85],'name','Results');
+    set(gcf,'unit','normal','posit',[0.05 0.05 0.9 0.85],'name',FigTitle);
 else
     figure(Objects(ResultFigure(1)));
 end
+UseFig=gcf;
 clf
 Results=getappdata(handles.figure1,'Results');
-
+if length(Results)>1
+    ThisCase=get(handles.CaseSelect,'value');
+    Results=Results(ThisCase);
+end
 %Get check boxes for Temp, Stress, Melt Fraction results
 ResultsReq=[get(handles.VisualTemp,'Value') get(handles.VisualStress,'Value') get(handles.VisualMelt,'Value')];
+
+Cases=getappdata(handles.figure1,'RunCases');
+
+VarPlotTitle='';
+for II=1:length(Cases(ThisCase).ParamVar(:,1))
+    VarPlotTitle=[VarPlotTitle sprintf('%s: %s\n',Cases(ThisCase).ParamVar{II,1},Cases(ThisCase).ParamVar{II,2})];
+end
 
 if isempty(Results) || max(ResultsReq)==0 %no model results
 %    if ~isempty('MI')
         AddStatusLine('No results exist or no results selected. Displaying Detailed Geometry','warning')
         NumPlot=NumPlot+1;
         Initialize_Callback(hObject, eventdata, handles, false)
-        MI=getappdata(handles.figure1,'MI');
-        figure(NumPlot)
-        Visualize ('', MI, 'modelgeom','ShowQ','ShowExtent')
+        ThisCase=get(handles.CaseSelect,'value');
+        if length(Cases)>1
+            MI=FormModel(Cases(ThisCase));
+            PlotTitle=[sprintf('Case %g\n',ThisCase) VarPlotTitle];;
+        else
+            MI=getappdata(handles.figure1,'MI');
+            PlotTitle='Case 1 Geometry';
+        end
+        figure(UseFig)
+        Visualize (PlotTitle, MI, 'modelgeom','ShowQ','ShowExtent')
 %    else
 %        AddStatusLine('No Existing Results or Model Info.','warning')
 %    end
@@ -1341,9 +1468,9 @@ if isempty(Results) || max(ResultsReq)==0 %no model results
 end
     
 MI = Results.Model;
-Tprnt = Results.Tprint;
-Stress = Results.Stress;
-MeltFrac = Results.MeltFrac;
+Tprnt = Results.getState('thermal');
+Stress = Results.getState('Stress');
+MeltFrac = Results.getState('MeltFrac');
 GlobalTime=MI.GlobalTime;
 
 StateN=getappdata(handles.figure1,'step');
@@ -1369,12 +1496,12 @@ if ResultsReq(1)==1
 %       figure(numplots)
 %       clf;
        if trans_model
-           Visualize(sprintf('t=%1.2f ms, State: %i of %i',MI.GlobalTime(StateN)*1000, StateN-1,length(Tprnt(1,1,1,:))-1)...
+           Visualize([sprintf('t=%1.2f ms, State: %i of %i\n',MI.GlobalTime(StateN)*1000, StateN-1,length(Tprnt(1,1,1,:))-1) VarPlotTitle]...
                ,MI,'state', Tprnt(:,:,:,StateN), 'RemoveMaterial',[0] ...
                ,'scaletitle', 'Temperature', 'BtnLinInt' ...
                )
        else
-           Visualize(sprintf(state_str)...
+           Visualize([sprintf(state_str) char(10) VarPlotTitle]...
                ,MI,'state',Tprnt(:,:,:,StateN), 'RemoveMaterial',[0] ...
                ,'scaletitle', 'Temperature', 'BtnLinInt' ...
                )
@@ -1391,12 +1518,12 @@ if ResultsReq(2)==1
 %        figure(numplots)
 %        clf
        if trans_model
-           Visualize(sprintf('t=%1.2f ms, State: %i of %i',MI.GlobalTime(StateN)*1000, StateN-1,length(Stress(1,1,1,:))-1)...
+           Visualize([sprintf('t=%1.2f ms, State: %i of %i\n',MI.GlobalTime(StateN)*1000, StateN-1,length(Stress(1,1,1,:))-1) VarPlotTitle]...
                ,MI,'state', Stress(:,:,:,StateN), 'RemoveMaterial',[0] ...
                ,'scaletitle', 'Stress', 'BtnLinInt' ...
                )
        else
-           Visualize(sprintf(state_str)...
+           Visualize([sprintf(state_str) char(10) VarPlotTitle]...
                ,MI,'state', Stress(:,:,:,StateN), 'RemoveMaterial',[0] ...
                ,'scaletitle', 'Stress', 'BtnLinInt' ...
                )
@@ -1413,12 +1540,12 @@ if ResultsReq(3)==1
 %        figure(numplots+1)
 %        clf
        if trans_model
-           Visualize(sprintf('t=%1.2f ms, State: %i of %i',MI.GlobalTime(StateN)*1000, StateN-1,length(MeltFrac(1,1,1,:))-1)...
+           Visualize([sprintf('t=%1.2f ms, State: %i of %i\n',MI.GlobalTime(StateN)*1000, StateN-1,length(MeltFrac(1,1,1,:))-1) VarPlotTitle] ...
                ,MI,'state', MeltFrac(:,:,:,StateN), 'RemoveMaterial',[0] ...
                ,'scaletitle', 'Melt Fraction', 'BtnLinInt' ...
                )
        else
-           Visualize(sprintf(state_str)...
+           Visualize([sprintf(state_str) char(10) VarPlotTitle] ...
                ,MI,'state', MeltFrac(:,:,:,StateN), 'RemoveMaterial',[0] ...
                ,'scaletitle', 'Melt Fraction', 'BtnLinInt' ...
                )
@@ -1789,21 +1916,11 @@ function TableAddRow_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 %TableH=get(get(hObject,'parent'),'children');
-TableH=TableEditHandles('table');
-Table=get(TableH,'data');
-AddEndRow=true;
-for I=length(Table(:,1)):-1:1
-    if Table{I,1}
-        Table{I,1}=false;
-        AddEndRow=false;
-        Table=[Table(1:I-1,:); { false [0] [0] }; Table(I:end,:)];
-    end
-end
-if AddEndRow
-    Table=[Table; { false [0] [0] }];
-end    
-set(TableH,'data',Table)
-TableGraph(hObject)
+    TableH=TableEditHandles('table');
+    Table=get(TableH,'data');
+    Table=ModTable(Table,'Insert');
+    set(TableH,'data',Table)
+    TableGraph(hObject)
 end
 
 % --- Executes on button press in TableDelRow.
@@ -1812,15 +1929,11 @@ function TableDelRow_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 %TableH=get(get(hObject,'parent'),'children');
-TableH=TableEditHandles('table');
-Table=get(TableH,'data');
-for I=length(Table(:,1)):-1:1
-    if Table{I,1}
-        Table=[Table(1:I-1,:); Table(I+1:end,:)];
-    end
-end
-set(TableH,'data',Table)  
-TableGraph(hObject)
+    TableH=TableEditHandles('table');
+    Table=get(TableH,'data');
+    Table=ModTable(Table,'Delete');
+    set(TableH,'data',Table)  
+    TableGraph(hObject)
 end
 
 % --- Executes on button press in TableClose.
@@ -1847,19 +1960,23 @@ function TableGraph(hObject, eventdata, handles)
 % hObject    handle to TableGraph (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-TableH=TableEditHandles('table');
-AxesH=TableEditHandles('axes');
-Table=get(TableH,'data');
-NTable=cell2mat(Table(:,2:3));
-plot(AxesH,NTable(:,1),NTable(:,2))
-YLim=get(AxesH,'ylim');
-if min(NTable(:,2))==YLim(1)
-    YLim(1)=YLim(1)-(YLim(2)-YLim(1))*.05;
-end
-if max(NTable(:,2))==YLim(2)
-    YLim(2)=YLim(2)+(YLim(2)-YLim(1))*.05;
-end
-set(AxesH,'ylim',YLim)
+    TableH=TableEditHandles('table');
+    AxesH=TableEditHandles('axes');
+    Table=get(TableH,'data');
+    Table=Table(:,2:3);
+    Table(find(cellfun(@isempty,Table)))={NaN};  %Any empty cells get replaced with 0's
+    NTable=cell2mat(Table);
+    if ~isempty(NTable)
+        plot(AxesH,NTable(:,1),NTable(:,2))
+        YLim=get(AxesH,'ylim');
+        if min(NTable(:,2))==YLim(1)
+            YLim(1)=YLim(1)-(YLim(2)-YLim(1))*.05;
+        end
+        if max(NTable(:,2))==YLim(2)
+            YLim(2)=YLim(2)+(YLim(2)-YLim(1))*.05;
+        end
+        set(AxesH,'ylim',YLim)
+    end
 end
 
 % --- Executes when entered data in editable cell(s) in TableTable.
@@ -2051,28 +2168,12 @@ function MoveUp_Callback(hObject, eventdata, handles)
     if length(QData)<NumRows
         QData{NumRows}=[];
     end
-    MoveRows=find(cell2mat(TableData(:,FTC('check')))==true);
-    if not(isempty(TableData)) && not(isempty(MoveRows))
-        if min(MoveRows)==1
-            AddStatusLine('Can''t move first row up','warning')
-        else
-            %NewTable=TableData;
-            %NewQData=QData;
-            for Irow=reshape(MoveRows,1,[])
-                TempRow=TableData(Irow-1,:);
-                TableData(Irow-1,:)=TableData(Irow,:);
-                TableData(Irow,:)=TempRow;
-                %NewTable(Irow  ,:)=TableData(Irow-1, :);
-                %TableData=NewTable;
-                TempQData=QData(Irow-1);
-                QData(Irow-1)=QData(Irow);
-                QData(Irow)=TempQData;
-                %NewQData(Irow-1)=QData(Irow);
-                %NewQData(Irow)  =QData(Irow-1);
-                %QData=NewQData;
-            end
-        end
-    end
+
+    
+    SelectColumn=TableData(:,FTC('check'));
+    TableData=ModTable(TableData, 'MoveUp',SelectColumn);
+    QData=ModTable(QData','MoveUp',SelectColumn)';
+    
     set(handles.features,'Data',TableData)
     setappdata(handles.figure1,TableDataName,QData);
 
@@ -2090,30 +2191,11 @@ function MoveDown_Callback(hObject, eventdata, handles)
     if length(QData)<NumRows
         QData{NumRows}=[];
     end
-    MoveRows=find(cell2mat(TableData(:,FTC('check')))==true);
-    if not(isempty(TableData)) && not(isempty(MoveRows))
-        if max(MoveRows)==length(TableData(:,1))
-            AddStatusLine('Can''t move last row down','warning')
-        else
-            NewTable=TableData;
-            NewQData=QData;
-            MoveRows=MoveRows(end:-1:1);
-            for Irow=reshape(MoveRows,1,[])
-                TempRow=TableData(Irow+1, :);
-                TableData(Irow+1,:)=TableData(Irow,:);
-                TableData(Irow,:)=TempRow;
-                %NewTable(Irow+1,:)=TableData(Irow,   :);
-                %NewTable(Irow  ,:)=TableData(Irow+1, :);
-                %TableData=NewTable;
-                TempQ=QData(Irow+1);
-                QData(Irow+1)=QData(Irow);
-                QData(Irow)=TempQ;
-                %NewQData(Irow+1)=QData(Irow);
-                %NewQData(Irow)  =QData(Irow+1);
-                %QData=NewQData;
-            end
-        end
-    end
+
+    SelectColumn=TableData(:,FTC('check'));
+    TableData=ModTable(TableData, 'MoveDown',SelectColumn);
+    QData=ModTable(QData','MoveDown',SelectColumn)';
+    
     set(handles.features,'Data',TableData)
     setappdata(handles.figure1,TableDataName,QData);
 
@@ -2273,8 +2355,8 @@ function ClearResultsButton_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
     P=questdlg('Are you sure you want to clear the current analysis results?','Confirmation','Yes','No','No');
     if strcmpi(P,'Yes')
-        if isappdata(gcf,'Results')
-           rmappdata(gcf,'Results');
+        if isappdata(handles.figure1,'Results')
+           rmappdata(handles.figure1,'Results');
            slider1_Callback(handles.slider1, eventdata, handles)
            AddStatusLine('Results cleared.')
         end
@@ -2287,15 +2369,19 @@ function MaxPlot_Callback(hObject, eventdata, handles, Results)
 % hObject    handle to MaxPlot (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-   if ~exist('Results')
+   if ~exist('Results','var')
        Results=getappdata(handles.figure1, 'Results');
+       if ~isempty(Results)
+           ThisCase=get(handles.CaseSelect,'value');
+           Results=Results(ThisCase);
+       end
    end
    if isempty(Results)
        AddStatusLine('No results available');
    else
        MI=Results.Model;
        if isfield(MI,'FeatureMatrix')
-           TestCaseModel = getappdata(handles.figure1,'TestCaseModel');
+           TestCaseModel = Results.Case;
 
            DoutT=[];
            DoutM=[];
@@ -2306,14 +2392,14 @@ function MaxPlot_Callback(hObject, eventdata, handles, Results)
                Ftext{Fi}=MI.FeatureDescr{Fs(Fi)};
                Fmask=ismember(MI.FeatureMatrix,Fs(Fi));
                Fmask=repmat(Fmask,1,1,1,length(MI.GlobalTime));
-               if ~isempty(Results.Tprint)
-                    DoutT(:,1+Fi)=max(reshape(Results.Tprint(Fmask),[],length(MI.GlobalTime)),[],1);
+               if ~isempty(Results.getState('thermal'))
+                    DoutT(:,1+Fi)=max(reshape(Results.getState('thermal',Fmask),[],length(MI.GlobalTime)),[],1);
                end
-               if ~isempty(Results.MeltFrac)
-                    DoutM(:,1+Fi)=max(reshape(Results.MeltFrac(Fmask),[],length(MI.GlobalTime)),[],1);
+               if ~isempty(Results.getState('MeltFrac'))
+                    DoutM(:,1+Fi)=max(reshape(Results.getState('meltfrac',Fmask),[],length(MI.GlobalTime)),[],1);
                end
-               if ~isempty(Results.Stress)
-                    DoutS(:,1+Fi)=max(reshape(Results.Stress(Fmask),[],length(MI.GlobalTime)),[],1);
+               if ~isempty(Results.getState('Stress'))
+                    DoutS(:,1+Fi)=max(reshape(Results.getState('stress',Fmask),[],length(MI.GlobalTime)),[],1);
                end
                FeatureMat{Fi}=TestCaseModel.Features(Fi).Matl;
            end
@@ -2382,9 +2468,9 @@ function MaxPlot_Callback(hObject, eventdata, handles, Results)
            scan_mats = find(strcmp(MI.MatLib.Type,'PCM'));  %Select only PCM materials
            scan_mask=ismember(MI.Model,scan_mats);
            scan_mask=repmat(scan_mask,1,1,1,length(MI.GlobalTime));
-           Dout(:,2)=max(reshape(Results.Tprint,[],length(MI.GlobalTime)),[],1);
+           Dout(:,2)=max(reshape(Results.getState('Thermal'),[],length(MI.GlobalTime)),[],1);
            %Dout(:,3)=max(Results.Stress,[],[1 2 3]);
-           Dout(:,4)=max(reshape(Results.MeltFrac(scan_mask),[],length(MI.GlobalTime)),[],1);
+           Dout(:,4)=max(reshape(Results.getState('MeltFrac',scan_mask),[],length(MI.GlobalTime)),[],1);
 
 
            numplots = 1;
@@ -2410,4 +2496,237 @@ function MaxPlot_Callback(hObject, eventdata, handles, Results)
        figure(handles.figure1)
    end
 
+end
+
+
+
+% --- Executes on button press in PUp.
+function PUp_Callback(hObject, eventdata, handles)
+% hObject    handle to PUp (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+    Data=get(handles.ParamTable,'data');
+    Data=ModTable(Data,'MoveUp');
+    set(handles.ParamTable,'data',Data);
+    setappdata(handles.ParamFrame,'Changed',true);
+end
+
+% --- Executes on button press in Pdown.
+function Pdown_Callback(hObject, eventdata, handles)
+% hObject    handle to Pdown (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+    Data=get(handles.ParamTable,'data');
+    Data=ModTable(Data,'MoveDown');
+    set(handles.ParamTable,'data',Data);
+    setappdata(handles.ParamFrame,'Changed',true);
+end
+
+% --- Executes on button press in pClose.
+function pClose_Callback(hObject, eventdata, handles)
+% hObject    handle to pClose (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+  Data=get(handles.ParamTable,'data');
+  Data(:,1)={false};
+  Data=Data(~strcmp(Data(:,2),''),:);
+  if ismember('t',Data(:,2))
+      errordlg('"t" is not a valid parameter as it is used in other contexts.','Error Message','modal')
+      return
+  end
+  set(handles.ParamFrame,'visible','off')
+  set(handles.ParamTable,'data',Data);
+  setappdata(handles.ParamFrame,'OrigData',Data)
+  setappdata(handles.ParamFrame,'Changed',false)
+  MakeVisible=getappdata(handles.ParamFrame,'VisibleHandles');
+  if ~isempty(MakeVisible)
+      for I=1:length(MakeVisible{1})
+          if ishandle(MakeVisible{1}(I))
+                set(MakeVisible{1}(I),'visible',MakeVisible{2}{I})
+          end
+      end
+  end
+end
+
+% --- Executes on button press in pCancel.
+function pCancel_Callback(hObject, eventdata, handles)
+% hObject    handle to pCancel (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+  Changed=getappdata(handles.ParamFrame,'Changed');
+  if Changed
+      P=questdlg('Discard updates to parameters?','Confirmation','Yes','No','No');
+  else
+      P='Yes';
+  end
+  if strcmpi(P,'yes')
+      OrigData=getappdata(handles.ParamFrame,'OrigData');
+      set(handles.ParamTable,'data',OrigData);
+      pClose_Callback(hObject, eventdata, handles);
+  end
+end
+
+% --- Executes on button press in BtnParameters.
+function BtnParameters_Callback(hObject, eventdata, handles)
+% hObject    handle to BtnParameters (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+  setappdata(handles.ParamFrame,'Changed',false);
+  pClose_Callback(hObject, eventdata, handles);
+  MakeInvisible={};
+  MakeInvisible{1}=findobj(handles.figure1,'-depth',1,'-not',{'tag','figure1','-or','tag','ParamFrame'});
+  MakeInvisible{2}=get(MakeInvisible{1},'visible');
+  setappdata(handles.ParamFrame,'VisibleHandles',MakeInvisible);
+  set(MakeInvisible{1},'visible','off')
+  set(handles.ParamFrame,'visible','on')
+  
+end
+
+% --- Executes on button press in Pinsert.
+function Pinsert_Callback(hObject, eventdata, handles)
+% hObject    handle to Pinsert (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+    Data=get(handles.ParamTable,'data');
+    Data=ModTable(Data,'Insert',[],{false 'VarName' 'VarValue'});
+    set(handles.ParamTable,'data',Data);
+    setappdata(handles.ParamFrame,'Changed',true);
+end
+
+% --- Executes on button press in pDelete.
+function pDelete_Callback(hObject, eventdata, handles)
+% hObject    handle to pDelete (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+    Data=get(handles.ParamTable,'data');
+    Data=ModTable(Data,'Delete');
+    set(handles.ParamTable,'data',Data);
+    setappdata(handles.ParamFrame,'Changed',true);
+
+end
+
+function DataTable=ModTable(DataTable, Action, SelectColumn, EmptyRow)
+    if ~exist('SelectColumn','var') || isempty(SelectColumn)
+        SelectColumn=1;
+    end
+    if iscell(SelectColumn)
+        RowsSelected=find(cell2mat(SelectColumn)==true);
+    else
+        RowsSelected=find(cell2mat(DataTable(:,SelectColumn))==true);
+    end
+    RowsSelected=reshape(RowsSelected,1,[]);
+    L=size(DataTable);
+    L=L(1);
+    switch lower(Action)
+        case 'insert'
+            if isempty(RowsSelected)
+                RowsSelected=L+1;
+            end
+            RowsSelected=RowsSelected(end:-1:1);
+            if ~exist('EmptyRow','var') || isempty(EmptyRow)
+                if L==0
+                    Cols=size(DataTable);
+                    Cols=Cols(2);
+                    EmptyRow={};
+                    EmptyRow{1,Cols}=[];
+                else
+                    EmptyRow=DataTable(1,:);
+                end
+                EmptyRow{SelectColumn}=false;
+                for I=1:length(EmptyRow)
+                    switch class(EmptyRow{I})
+                        case 'char'
+                            EmptyRow{I}='';
+                        case 'logical'
+                            EmptyRow{I}=false;
+                        case 'double'
+                            EmptyRow{I}=NaN;
+                        otherwise
+                            EmptyRow{I}=[];
+                    end
+                end
+            end
+            for Row=RowsSelected
+                if Row>L
+                    DataTable(end+1,:)=EmptyRow;
+                else
+                    DataTable(Row+1:end+1,:)=DataTable(Row:end,:);
+                    DataTable(Row,:)=EmptyRow;
+                end
+            end
+        case 'delete'
+            RowsSelected=RowsSelected(end:-1:1);
+            for Row=RowsSelected
+                DataTable(Row:end-1,:)=DataTable(Row+1:end,:);
+                DataTable=DataTable(1:end-1,:);
+            end
+        case 'moveup'
+            if min(RowsSelected > 1)
+                for Row=RowsSelected
+                    TempRow=DataTable(Row-1,:);
+                    DataTable(Row-1,:)=DataTable(Row,:);
+                    DataTable(Row,:)=TempRow;
+                end
+            end
+        case 'movedown'
+            RowsSelected=RowsSelected(end:-1:1);
+            if max(RowsSelected) < L
+                for Row=RowsSelected
+                    TempRow=DataTable(Row+1,:);
+                    DataTable(Row+1,:)=DataTable(Row,:);
+                    DataTable(Row,:)=TempRow;
+                end
+            end
+        otherwise
+            error('Unknown action ''%s'' for ModTable function.',Action)
+    end
+end
+
+
+% --- Executes when entered data in editable cell(s) in ParamTable.
+function ParamTable_CellEditCallback(hObject, eventdata, handles)
+% hObject    handle to ParamTable (see GCBO)
+% eventdata  structure with the following fields (see MATLAB.UI.CONTROL.TABLE)
+%	Indices: row and column indices of the cell(s) edited
+%	PreviousData: previous data for the cell(s) edited
+%	EditData: string(s) entered by the user
+%	NewData: EditData or its converted form set on the Data property. Empty if Data was not changed
+%	Error: error string when failed to convert EditData to appropriate value for Data
+% handles    structure with handles and user data (see GUIDATA)
+    ValidChars=char([char('0'):char('9') char('a'):char('z') char('A'):char('Z')]);
+    setappdata(handles.ParamFrame,'Changed',true);
+    if eventdata.Indices(2)==2  %If modifying variable name
+        NoSpace=eventdata.NewData(ismember(eventdata.NewData,ValidChars));
+        if ~strcmp(NoSpace,eventdata.NewData)
+            Data=get(hObject,'data');
+            Data{eventdata.Indices(1),eventdata.Indices(2)}=NoSpace;
+            set(hObject,'data',Data);
+            AddStatusLine(sprintf('Parameter name contains non-alphanumerics, changed from ''%s'' to ''%s''',eventdata.NewData,NoSpace))
+        end
+    end
+end
+
+
+% --- Executes on selection change in CaseSelect.
+function CaseSelect_Callback(hObject, eventdata, handles)
+% hObject    handle to CaseSelect (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: contents = cellstr(get(hObject,'String')) returns CaseSelect contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from CaseSelect
+end
+
+% --- Executes during object creation, after setting all properties.
+function CaseSelect_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to CaseSelect (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+    if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+        set(hObject,'BackgroundColor','white');
+    end
 end

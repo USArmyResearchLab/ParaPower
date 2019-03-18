@@ -67,16 +67,22 @@ classdef PPMatLib < handle
         MatList
         Source
     end
+    
+    properties (Access=private)
+        ValidChars
+    end
 
     methods (Access = protected)
         function PopulateProps(obj)
             iPropValsBuf=NaN(obj.NumMat, length(obj.iParamList));
+            iParamList=obj.iParamList;
             if strcmpi(obj.iParamList{1},'Name') && strcmpi(obj.iParamList{2},'Type')
-                for Iprop=3:length(obj.iParamList)
-                    for Imat=1:obj.NumMat
-                        ThisMat=obj.GetMatNum(Imat);
-                        if isprop(ThisMat,obj.iParamList{Iprop})
-                            iPropValsBuf(Imat,Iprop)=ThisMat.(obj.iParamList{Iprop});
+                for Imat=1:obj.NumMat
+                    ThisMat=obj.GetMatNum(Imat);
+                    ThisMatProps=properties(ThisMat);
+                    for Iprop=3:length(iParamList)
+                        if any(strcmp(ThisMatProps,iParamList{Iprop}))
+                            iPropValsBuf(Imat,Iprop)=ThisMat.(iParamList{Iprop});
                         end
                     end
                 end
@@ -198,7 +204,7 @@ classdef PPMatLib < handle
             obj.ShowErrorText
         end
         function ShowErrorText(obj, dest)
-            if ~exist('dest')
+            if ~exist('dest','var')
                 dest='';
             end
             if ~isempty(obj.ErrorText)
@@ -217,6 +223,7 @@ classdef PPMatLib < handle
                 MatObj=obj.iMatObjList{MatNum};
             else
                 obj.AddError(sprintf('Material named ''%s'' is not in library',MatName));
+                MatObj=[];
             end
             obj.ShowErrorText;
         end
@@ -226,6 +233,7 @@ classdef PPMatLib < handle
                 MatObj=obj.iMatObjList{MatNum};
             else
                 obj.AddError(sprintf('Material number ''%.0f'' does not exist.',MatNum));
+                MatObj=[];
             end
             obj.ShowErrorText;
         end
@@ -257,13 +265,16 @@ classdef PPMatLib < handle
         function P=get.Params(obj)
             P=reshape(obj.iParamList,[],1);
         end
+        
         function M=get.MatList(obj)
+            M={};
             for I=1:length(obj.iMatObjList)
                 M{I}=obj.iMatObjList{I}.Name;
             end
             
         end
         function obj =PPMatLib(varargin)
+            obj.ValidChars=PPMat.ValidChars;
             obj.iParamList={}; 
             obj.iFilename='';
             obj.iMatTypeList={};
@@ -396,6 +407,7 @@ classdef PPMatLib < handle
                     end
                     set(get(handle,'parent'),'user',H);
                 case 'ok'
+                    %ValidChars=char([char('0'):char('9') '_' char('a'):char('z') char('A'):char('Z')]);
                     Success=true;
                     handle=varargin{1};
                     H=get(get(handle,'parent'),'user');
@@ -403,6 +415,10 @@ classdef PPMatLib < handle
                     ThisType=Types{get(H.TypeE,'value')};
                     eval(['NewMat=PPMat' ThisType ';' ]);
                     Name=get(H.NameE,'string');
+                    if ~all(ismember(Name,PPMat.ValidChars))
+                        obj.AddError(sprintf('Material name "%s" is invalid.  It can only contain alphanumerics',Name));
+                        Success=false;
+                    end
                     ArgList=sprintf('''Name'', ''%s'' ',Name);
                     ParamList=NewMat.ParamList;
                     if strcmpi(NewMat.Type,'null')
@@ -609,6 +625,7 @@ classdef PPMatLib < handle
                     if fname ~= 0
                         set(H.LoadBtn,'userdata',pathname);
                         load([pathname fname],'MatLib');
+                        obj.GUIModFlag=true;
                         FigHandle=obj.iMatableF;
                         obj.DelMatl([1:obj.NumMat]);
                         for I=1:MatLib.NumMat
@@ -626,7 +643,11 @@ classdef PPMatLib < handle
                     handle=varargin{1};
                     H=get(get(handle,'parent'),'user');
                     YES='Yes';
-                    Response=questdlg('Are you sure want to discard all changes?','Confirm',YES,'No','No');
+                    if  obj.GUIModFlag
+                        Response=questdlg('Are you sure want to discard all changes?','Confirm',YES,'No','No');
+                    else
+                        Response=YES;
+                    end
                     if strcmpi(Response,YES)
                         OrigMatLib=getappdata(obj.iMatableF,'OrigMatLib');
                         if obj.NumMat>0
@@ -644,7 +665,7 @@ classdef PPMatLib < handle
                     H=get(get(handle,'parent'),'user');
                     obj.DefineNewMaterial('init');
                     uiwait(obj.iNewMatF)
-                    obj.iSource=[obj.iSource '*']
+                    obj.iSource=[obj.iSource '*'];
                     obj.ShowTable('PopulateTable')
                     obj.GUIModFlag=true;
                 case 'save'
@@ -673,6 +694,7 @@ classdef PPMatLib < handle
                     ColData=Data(:,SortCol+1);
                     try
                         [NewCol, Index]=sort(ColData);
+                        obj.GUIModFlag=true;
                     catch ME
                         %ME.getReport
                         try
@@ -773,8 +795,20 @@ classdef PPMatLib < handle
         
         function AddMatl(obj, PPMatObject)
             obj.AddError;
+           % ValidChars=char([char('0'):char('9') '_' char('a'):char('z') char('A'):char('Z')]);
             if any(strcmpi(PPMatObject.Name, obj.iNameList))
                 obj.AddError(sprintf('Material "%s" already exists in library (material names MUST be unique).',PPMatObject.Name))
+            end
+            if ~all(ismember(PPMatObject.Name,PPMatObject.ValidChars))
+                NewName=PPMatObject.Name;
+                Spaces=find(NewName==' ');
+                NewName(Spaces)='_';
+                if ~all(ismember(NewName,PPMatObject.ValidChars))
+                    obj.AddError(sprintf('Material name "%s" can contain only alphanumerics.',PPMatObject.Name))
+                else
+                    disp(sprintf('Material name changed from %s to %s\n',PPMatObject.Name, NewName));
+                    PPMatObject.Name=NewName;
+                end
             end
             if strcmpi(PPMatObject.Type,'abstract')
                 obj.AddError(sprintf('Abstract materials cannot be added to the library. (%s)',PPMatObject.Name))
