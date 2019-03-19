@@ -57,11 +57,13 @@ classdef PPMatLib < handle
         ErrorText='';
         iNewMatF
         iMatableF
+        iExpanded
     end
     
     properties
         GUIModFlag=false;
         ParamVar='';
+        ParamTable={};
     end
     
     properties (Access=public, Dependent)
@@ -162,23 +164,30 @@ classdef PPMatLib < handle
                 
         end
         
-        function NewMatLib=ExpandMatLib(MatLibInstance, PropVals, MatNum, PropName, PropCellIndex)
+        function NewMatLib=ExpandMatLib(MatLibInstance, PropVals, MatNum, PropName, PropCellIndex, ScalarValue)
             %The passed PropVal is the set of values of a single cell of
             %property named in PropName.
             NewMatLib=[];
             for Iml=1:length(MatLibInstance)
                 if ~isempty(PropVals)
-                    ThisMat=NewMatLib(end).GetMatNum(MatNum);
                     for Ipv=1:length(PropVals)
-                        NewMatLib=[NewMatLib MatLibInstance(Iml)];
-                        ThisMat.(PropName){PropCellIndex}=PropVals(Ipv);
-                        if NewMatLib(end).ReplMatl(MatNum, ThisMat)
-                            VarText=sprintf('%s.%s{%.0f}',ThisMat.Name, PropName, PropVals(Ipv));
+                        NewMatLib=[NewMatLib MatLibInstance(Iml).CreateCopy];
+                        ThisMat=NewMatLib(end).GetMatNum(MatNum);
+                        if ScalarValue
+                            ThisMat.(PropName)=PropVals(Ipv);
+                            VarText=sprintf('%s.%s=%g\n',ThisMat.Name, PropName, PropVals(Ipv));
                         else
+                            ThisMat.(PropName){PropCellIndex}=PropVals(Ipv);
+                            VarText=sprintf('%s.%s{%.0f}=%g\n',ThisMat.Name, PropName, PropCellindex, PropVals(Ipv));
+                        end
+                        if ~NewMatLib(end).ReplMatl(MatNum, ThisMat)
                             error('Can''t replace material %s', ThisMat.Name)
                             VarText='';
                         end
-                        NewMatLib(end).ParamVar=[NewMatLib(end).ParamVar char(10) VarText];
+                        if length(PropVals) > 1
+                            NewMatLib(end).ParamVar=[NewMatLib(end).ParamVar VarText];
+                            %disp(NewMatLib(end).ParamVar)  %DEBUG
+                        end
                     end
                 end
             end
@@ -869,13 +878,25 @@ classdef PPMatLib < handle
         end
         
         function NewMatLib=CreateCopy(obj)
+            PermissibleErrors={'MATLAB:class:noSetMethod'};
+
             NewMatLib=PPMatLib;
             for I=1:obj.NumMat
                 NewMatLib.AddMatl(obj.GetMatNum(I))
             end
+            Props=properties(obj);
+            for I=1:length(Props)
+                try
+                    NewMatLib.(Props{I})=obj.(Props{I});
+                catch ME
+                    if ~any(strcmpi(PermissibleErrors,ME.identifier))
+                        error(ME)
+                    end
+                end
+            end
         end
         
-        function MatLibArray=GenerateCases (obj, ParamTable)
+        function NewMatLib=GenerateCases (obj, ParamTable)
          %If parameters are numeric, or character they are assumed to be a
          %single value.  If they're a cell array, the cell array is stepped
          %through and eval'ed.
@@ -894,7 +915,7 @@ classdef PPMatLib < handle
                 eval(VarText)
             end
             BaseMatLib=obj.CreateCopy;
-            NewMatLib=PPMatLib;
+            NewMatLib=obj.CreateCopy;
             for Imat=1:BaseMatLib.NumMat
                 ThisMat=BaseMatLib.GetMatNum(Imat);
                 ParamList=ThisMat.ParamList;
@@ -912,14 +933,17 @@ classdef PPMatLib < handle
                                 if iscell(ThisPropVal{Ipv})
                                     ErrText=[ErrText char(10) 'Nest cell array not permitted for "' ThisPropName '" for material "' ThisMat.Name '" as "' ThisPropVal '"'];
                                 else
-                                    eval(sprintf('ThisPropVal{%.0f}=%s;',Ipv,ThisPropVal{Ipv}))
+                                    if ischar(ThisPropVal{Ipv})
+                                        eval(sprintf('ThisPropVal{%.0f}=%s;',Ipv,ThisPropVal{Ipv}))
+                                    end
                                 end
                             catch ME
                                 ErrText=[ErrText char(10) 'Cannot evaluate property "' ThisPropName '" for material "' ThisMat.Name '" as "' ThisPropVal '"'];
                                 ME.getReport
                                 ThisPropVal=NaN;
                             end
-                            NewMatLib=obj.ExpandMatLib(NewMatLib, ThisPropVal{Ipv}, MatName, PropName, Ipv);
+                            ScalarValue=length(ThisPropVal(:))==1; %If there is a single value it will be placed as a scalar not cell array
+                            NewMatLib=obj.ExpandMatLib(NewMatLib, ThisPropVal{Ipv}, Imat, ThisPropName, Ipv, ScalarValue);
                         end
                     end
                 end
