@@ -6,23 +6,27 @@ clear Features ExternalConditions Params PottingMaterial Descr
 Features.x=[]; Features.y=[]; Features.z=[]; Features.Matl=[]; Features.Q=[]; Features.Matl=''; 
 Features.dz=0; Features.dy=0; Features.dz=0;
 
-Desc='Test Case Template';  %Description of the test case
+Desc='ATTMO Model Definition Example';  %Description of the test case
 
     clear Features ExternalConditions Params PottingMaterial
     
-    ExternalConditions.h_Left=0;
-    ExternalConditions.h_Right=0;
-    ExternalConditions.h_Front=0;
-    ExternalConditions.h_Back=0;
-    ExternalConditions.h_Top=0;
-    ExternalConditions.h_Bottom=0;
-
-    ExternalConditions.Ta_Left=20;
-    ExternalConditions.Ta_Right=20;
-    ExternalConditions.Ta_Front=20;
-    ExternalConditions.Ta_Back=20;
-    ExternalConditions.Ta_Top=50;
-    ExternalConditions.Ta_Bottom=40;
+    
+    %MatLib=PPMatLib;  %instantiate empty material database object.
+    load('DefaultMaterials.mat');
+    
+    ExternalConditions.h_Xminus=0;
+    ExternalConditions.h_Xplus =0;
+    ExternalConditions.h_Yminus=0;
+    ExternalConditions.h_Yplus =0;
+    ExternalConditions.h_Zminus=0;
+    ExternalConditions.h_Zplus =0;
+    
+    ExternalConditions.Ta_Xminus=20;
+    ExternalConditions.Ta_Xplus =20;
+    ExternalConditions.Ta_Yminus=20;
+    ExternalConditions.Ta_Yplus =20;
+    ExternalConditions.Ta_Zminus=50;
+    ExternalConditions.Ta_Zplus =40;
 
     ExternalConditions.Tproc=280;
 
@@ -40,27 +44,34 @@ Desc='Test Case Template';  %Description of the test case
     ch_w = .004;
     ch_h = .004;
     ch_len = .1;
-    ibc_num = 1;
+    ibc_num = 10;
     ibc_div = 1;
     ibc_h = 500;
     ibc_Ta = 20;
-    
-    MatF=MaterialDatabase('nonmodal');
-    Mats=getappdata(MatF,'Materials');
-    close(MatF)
-    
-    cellmat=struct2cell(Mats);
+        
+
     
     for i=1:ibc_num
-        cellmat{1}{end+1}=['ibc_' num2str(i)];
-        cellmat{2}{end+1}='IBC';
-        for j=3:13
-            cellmat{j}(end+1)=NaN;
-        end
-        cellmat{14}(end+1)=ibc_h;
-        cellmat{15}(end+1)=ibc_Ta;
-        cellmat{16}=NaN;
+        MatLib.AddMatl(PPMatIBC('name'  , ['ibc_' num2str(i)]  ...
+            ,'h_ibc'   , ibc_h...
+            ,'t_ibc'     , ibc_Ta...
+            )) ;
     end
+    
+   MatLib.AddMatl(PPMatSCPCM(  'name'  , 'KNH'  ...
+                           ,'k_l'   , .2    ...
+                           ,'rho_l' , 6093  ...
+                           ,'cp_l'  , 397   ...
+                           ,'lf'    , 80300 ...
+                           ,'tmelt' , 28  ...
+                           ,'cte'   , 0     ...
+                           ,'E'     , 0     ...
+                           ,'nu'    , 0     ...
+                           ,'k'     , .2  ...
+                           ,'rho'   , 5903  ...
+                           ,'cp'    , 340   ...
+                           ,'dT_Nucl', 5 ...
+                        )) ;
     
     %MoreMats=cell2struct(cellmat,fieldnames(Mats),1);
     
@@ -81,7 +92,7 @@ Desc='Test Case Template';  %Description of the test case
     Features(2).dx   = 1;
     Features(2).dy   = 1;
     Features(2).dz   = 1;
-    Features(2).Matl = 'Ga';
+    Features(2).Matl = 'KNH';
     Features(2).Q    = 0;  %'0.3*sin(0.25*t)+0.3';
     
     ys=[0 ch_len/ibc_num];
@@ -117,4 +128,8 @@ TestCaseModel.Params=Params;
 TestCaseModel.PottingMaterial=PottingMaterial;
 TestCaseModel.ExternalConditions=ExternalConditions;
 TestCaseModel.Desc=Desc;
-TestCaseModel.MatLib=cell2struct(cellmat,fieldnames(Mats),1);
+TestCaseModel.MatLib=MatLib;
+TestCaseModel.Version='V2.1';
+
+MI=FormModel(TestCaseModel);
+MI.GlobalTime=[-1,-.01];  %hijinks so that ATTMO can take the first timestep to be at t=0
