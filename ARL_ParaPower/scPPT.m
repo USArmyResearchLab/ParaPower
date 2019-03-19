@@ -35,8 +35,15 @@ classdef scPPT < sPPT
                 return
             end
             prop_thres=0;                   %hardcode for testing.
-            T_nuc=obj.MI.MatLib.dT_Nucl(obj.Mat(obj.Map(sc_mask)));
-            T_nuc=obj.MI.MatLib.tmelt(obj.Mat(obj.Map(sc_mask)))-T_nuc;
+            T_nucM=obj.MI.MatLib.GetParamVector('dT_Nucl');
+            T_nucM=obj.MI.MatLib.GetParamVector('tmelt')-T_nucM;
+            
+            T_nuc=zeros(size(sc_mask));
+            T_nuc=T_nucM(obj.Mat(obj.Map));
+            
+            T_nuc=T_nuc(sc_mask);
+%            T_nuc=obj.MI.MatLib.dT_Nucl(obj.Mat(obj.Map(sc_mask)));
+%            T_nuc=obj.MI.MatLib.tmelt(obj.Mat(obj.Map(sc_mask)))-T_nuc;
             %T_nuc is a list of sc nucleation temps of size(sc_mask)
             priorPH=PH(:,it-1);
             newPH=PH(:,it); %zeros
@@ -64,9 +71,15 @@ classdef scPPT < sPPT
                 sc_trig=any(state,2); %if an element satisfies any of the three criteria, it is eligable for phch
                 
                 
-                [T_iter,newPH,sc_changing,obj.K,obj.CP,obj.RHO]=vec_Phase_Change(T_iter,priorPH,obj.Mat,obj.Map,sc_trig,...
-                    obj.MI.MatLib.k,obj.MI.MatLib.k_l,obj.MI.MatLib.cp,obj.MI.MatLib.cp_l,obj.MI.MatLib.rho,obj.MI.MatLib.rho_l,...
-                    obj.MI.MatLib.tmelt,obj.Lv,obj.K,obj.CP,obj.RHO);   %These arguments need to be restructured
+                [T_iter,newPH,sc_changing,obj.K,obj.CP,obj.RHO]=vec_Phase_Change(T_iter,priorPH,obj.Mat,obj.Map,sc_trig ...
+                    ,obj.MI.MatLib.GetParamVector('k') ...
+                    ,obj.MI.MatLib.GetParamVector('k_l') ...
+                    ,obj.MI.MatLib.GetParamVector('cp') ...
+                    ,obj.MI.MatLib.GetParamVector('cp_l') ...
+                    ,obj.MI.MatLib.GetParamVector('rho') ...
+                    ,obj.MI.MatLib.GetParamVector('rho_l') ...
+                    ,obj.MI.MatLib.GetParamVector('tmelt') ...
+                    ,obj.Lv,obj.K,obj.CP,obj.RHO);   %These arguments need to be restructured
                 
                 %did any new elements hit PH==0?
                 
