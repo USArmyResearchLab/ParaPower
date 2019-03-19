@@ -957,7 +957,8 @@ end
     Params.Tinit=(get(handles.Tinit,'String')); %Initial temp of all nodes
     Params.DeltaT=(get(handles.TimeStep,'String')); %Time Step Size
     if get(handles.Static,'value')==1
-        Params.Tsteps=''; %Number of time steps
+        Params.Tsteps=[]; %Number of time steps
+        MaxTime=0;
         FindEps = 0;
      elseif get(handles.transient,'value')==1
          Params.Tsteps=(get(handles.NumTimeSteps,'String')); %Number of time steps
@@ -1064,6 +1065,9 @@ else
                     DupTime=(Table(2:end,1)-Table(1:end-1,1)==0)*eps(FindEps)*10;
                     DupTime=[0; DupTime];
                     Table(:,1)=Table(:,1)+DupTime;
+                    if isempty(Params.Tsteps)
+                        AddStatusLine('Static analysis, Q will be evaluated at t=0...','warning');
+                    end
                     if min(Table(2:end,1)-Table(1:end-1,1)) <= 0
                         AddStatusLine(['Time must be increasing.  It is not for feature ' num2str(count)],'warning');
                         AddStatusLine('...')
@@ -1089,9 +1093,11 @@ else
                     Features(count).Q=0;
                 else
                     try
-                        Qtext=TestCaseModel.GenQFunction(QValue, Parameters);
-                        eval(['TestFn=@(t)' Qtext{1} ';']);
-                        TestFn(0);
+                        TestQ=@(t)eval(QValue)*(-1);
+                        TestQ(0);
+                        if isempty(Params.Tsteps)
+                            AddStatusLine('Static analysis, Q will be evaluated at t=0... ','warning');
+                        end
                     catch ErrTrap
                         ErrTrap.getReport
                         AddStatusLine('Error.', true);
