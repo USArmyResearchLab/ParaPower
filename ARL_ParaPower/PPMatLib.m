@@ -909,7 +909,11 @@ classdef PPMatLib < handle
                 VarText='';
                 for Ip=1:length(ParamTable(:,1))
                     if ~isempty(ParamTable{Ip,1})
-                        VarText=[VarText  ParamTable{Ip,1} '=' ParamTable{Ip,2} ';' char(10)];
+                        if isnumeric( ParamTable{Ip,2})
+                            VarText=[VarText  ParamTable{Ip,1} '=ParamTable{Ip,2};' char(10)];
+                        else
+                            VarText=[VarText  ParamTable{Ip,1} '=' ParamTable{Ip,2} ';' char(10)];
+                        end
                     end
                 end
                 eval(VarText)
@@ -931,14 +935,14 @@ classdef PPMatLib < handle
                         for Ipv=1:length(ThisPropVal(:))
                             try
                                 if iscell(ThisPropVal{Ipv})
-                                    ErrText=[ErrText char(10) 'Nest cell array not permitted for "' ThisPropName '" for material "' ThisMat.Name '" as "' ThisPropVal '"'];
+                                    ErrText=[ErrText newline 'Nest cell array not permitted for "' ThisPropName '" for material "' ThisMat.Name '" as "' ThisPropVal '"'];
                                 else
                                     if ischar(ThisPropVal{Ipv})
                                         eval(sprintf('ThisPropVal{%.0f}=%s;',Ipv,ThisPropVal{Ipv}))
                                     end
                                 end
                             catch ME
-                                ErrText=[ErrText char(10) 'Cannot evaluate property "' ThisPropName '" for material "' ThisMat.Name '" as "' ThisPropVal '"'];
+                                ErrText=[ErrText newline 'Cannot evaluate property "' ThisPropName '" for material "' ThisMat.Name '" as "' ThisPropVal '"'];
                                 ME.getReport
                                 ThisPropVal=NaN;
                             end
@@ -946,6 +950,11 @@ classdef PPMatLib < handle
                             NewMatLib=obj.ExpandMatLib(NewMatLib, ThisPropVal{Ipv}, Imat, ThisPropName, Ipv, ScalarValue);
                         end
                     end
+                end
+            end
+            for Iml=1:length(NewMatLib)
+                if NewMatLib(Iml).ParamVar(end)==newline
+                    NewMatLib(Iml).ParamVar=NewMatLib(Iml).ParamVar(1:end-1);
                 end
             end
         end
