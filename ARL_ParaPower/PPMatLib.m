@@ -57,7 +57,7 @@ classdef PPMatLib < handle
         ErrorText='';
         iNewMatF
         iMatableF
-        iExpanded
+        iExpanded = false;
     end
     
     properties
@@ -842,6 +842,10 @@ classdef PPMatLib < handle
             end
         end
         function Success=ReplMatl(obj, Mat2Repl, NewMat)
+            %function Success=ReplMatl(obj, Mat2Repl, NewMat)
+            %Mat2Repl is either a string (material name) or index number
+            %NewMat is the new material
+            
             if ischar(Mat2Repl)
                 MatNum=find(strcmpi(obj.iNameList,Mat2Repl));
             else
@@ -977,6 +981,7 @@ classdef PPMatLib < handle
                     end
                 end
             end
+            [NewMatLib.iExpanded]=deal(true);
         end
     end
 end

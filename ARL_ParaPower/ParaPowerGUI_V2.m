@@ -491,10 +491,11 @@ function loadbutton_Callback(hObject, eventdata, handles)
 
             ExternalConditions=TestCaseModel.ExternalConditions;
             Features=TestCaseModel.Features;
+            
             Params=TestCaseModel.Params;
             PottingMaterial=TestCaseModel.PottingMaterial;
             
-            if ~isempty(TestCaseModel.VariableList)
+            if isfield(TestCaseModel,'VariableList') && ~isempty(TestCaseModel.VariableList)
                 Data=TestCaseModel.VariableList;
                 Data(:,2:3)=Data;
                 Data(:,1)={false};
@@ -535,6 +536,12 @@ function loadbutton_Callback(hObject, eventdata, handles)
                 tabledata(2,5) =  mat2cell(ExternalConditions.Ta_Top,1,1);
                 tabledata(2,6) =  mat2cell(ExternalConditions.Ta_Bottom,1,1);
             end
+            
+            for I=1:length(tabledata(:))
+                if isnumeric(tabledata{I})
+                    tabledata{I}=num2str(tabledata{I});
+                end
+            end
 
            set(handles.ExtCondTable,'Data',tabledata)
 
@@ -554,7 +561,20 @@ function loadbutton_Callback(hObject, eventdata, handles)
                else
                    tabledata{count,FTC('desc')} = '';
                end
-               tabledata(count,FTC('x1'))  = Features(count).x(1);
+               if isnumeric(Features(count).x)  %Converting old file format to new one where x, y z must be cell arrays
+                   Features(count).x=num2cell(Features(count).x);
+                   Features(count).y=num2cell(Features(count).y);
+                   Features(count).z=num2cell(Features(count).z);
+               end
+               if iscell(Features(count).x) && ~ischar(Features(count).x{1})
+                   Features(count).x{1}=num2str(Features(count).x{1});
+                   Features(count).x{2}=num2str(Features(count).x{2});
+                   Features(count).y{1}=num2str(Features(count).y{1});
+                   Features(count).y{2}=num2str(Features(count).y{2});
+                   Features(count).z{1}=num2str(Features(count).z{1});
+                   Features(count).z{2}=num2str(Features(count).z{2});
+               end
+               tabledata(count,FTC('x1'))  = Features(count).x(1);   
                tabledata(count,FTC('y1'))  = Features(count).y(1);
                tabledata(count,FTC('z1'))  = Features(count).z(1);
                tabledata(count,FTC('x2'))  = Features(count).x(2);
@@ -575,7 +595,13 @@ function loadbutton_Callback(hObject, eventdata, handles)
                tabledata(count,FTC('divx')) = mat2cell(Features(count).dx,1,1);
                tabledata(count,FTC('divy')) = mat2cell(Features(count).dy,1,1);
                tabledata(count,FTC('divz')) = mat2cell(Features(count).dz,1,1);
-           end 
+           end
+           
+           for I=1:length(tabledata(:))
+                if isnumeric(tabledata{I})
+                    tabledata{I}=num2str(tabledata{I});
+                end
+            end
 
            set(handles.features,'Data',tabledata)
            if length(QData) < n
@@ -613,6 +639,28 @@ function loadbutton_Callback(hObject, eventdata, handles)
                AddStatusLine(' ');
                NewMatLibUpdate([], FeaturesHandle)
            end
+           NewMatName={};
+           for Imat=1:MatLib.NumMat
+               MatName=MatLib.GetMatNum(Imat).Name;
+               if any(~ismember(MatName, PPMat.ValidChars))
+                   NewMatName{end+1,1}=MatName;
+                   MatName(~ismember(MatName,PPMat.ValidChars))='_'
+                   NewMatName{end,2}=MatName;
+                   Mat=MatLib.GetMatNum(Imat);  %Extract material
+                   Mat.Name=MatName;  %Change name to one uses validchars
+                   MatLib.ReplMatl(Imat,Mat);
+               end
+           end
+           if ~isempty(NewMatName)
+               FeatureTable=get(handles.features,'Data');
+               InUseMatList=FeatureTable(:,FTC('mat'));
+               for Imat=1:length(NewMatName(:,1))
+                   InUseMatList(find(strcmp(InUseMatList,NewMatName{Imat,1})))=NewMatName(Imat,2);
+               end
+               FeatureTable(:,FTC('mat'))=InUseMatList;
+               set(handles.features,'Data',FeatureTable);
+               NewMatLibUpdate(MatLib, handles.features)
+           end
 
            %%%Set Parameters
            set(handles.Tinit,'String', Params.Tinit)
@@ -639,7 +687,7 @@ function NewMatLibUpdate(NewMatLib, FeaturesHandle)
         try 
             NewNewMatLib=PPMatLib;
             for I=1:length(NewMatLib.Type)
-                eval(['NewMat=PPMat' NewMatLib.Type{I} '(''' NewMatLib.Material{I} ''')'])
+                eval(['NewMat=PPMat' NewMatLib.Type{I} '(''' NewMatLib.Material{I} ''');'])
                 for I=1:length(NewMat.ParamList)
                     P=NewMat.ParamList{I};
                     oP=P;
@@ -1460,8 +1508,10 @@ ResultsReq=[get(handles.VisualTemp,'Value') get(handles.VisualStress,'Value') ge
 Cases=getappdata(handles.figure1,'RunCases');
 
 VarPlotTitle='';
-for II=1:length(Cases(ThisCase).ParamVar(:,1))
-    VarPlotTitle=[VarPlotTitle sprintf('%s: %s\n',Cases(ThisCase).ParamVar{II,1},Cases(ThisCase).ParamVar{II,2})];
+if ~isempty(Cases(ThisCase).ParamVar)
+    for II=1:length(Cases(ThisCase).ParamVar(:,1))
+        VarPlotTitle=[VarPlotTitle sprintf('%s: %s\n',Cases(ThisCase).ParamVar{II,1},Cases(ThisCase).ParamVar{II,2})];
+    end
 end
 
 if isempty(Results) || max(ResultsReq)==0 %no model results
