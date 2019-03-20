@@ -82,6 +82,9 @@ classdef PPMat
 % end
 
 %
+
+    %Note that some admin values are defined as static functions so that
+    %they do not appear as properties.
     
     properties (Access=public)
         Name    {mustBeChar(Name)} 
@@ -91,9 +94,12 @@ classdef PPMat
     end
     properties (SetAccess = immutable)
         Type  
-        NoExpandProps %Properties that will not be expanded by eval
+%        NoExpandProps %Properties that will not be expanded by eval
     end
     
+    %properties (SetAccess = immutable)
+    %    NoParam = {'NoExpandProps' 'NoParam' 'ValidChars'};
+    %end
 %     
 %     properties (SetAccess = protected) %This should also be immutable
 %         SClass
@@ -119,9 +125,15 @@ classdef PPMat
                 PV={};
             end
         end
+        
+        function P=NoExpandProps()  %Defined as a function so that it doesn't appear in properties.
+            P={'NoExpandProps'};
+        end
+        
         function C=ValidChars()
             C=char([char('0'):char('9') '_' char('a'):char('z') char('A'):char('Z')]);
         end
+        
      end
     
     methods (Access = protected)
@@ -231,7 +243,7 @@ classdef PPMat
 %             end
             obj.Name=Name;
             obj.Type=Type;
-            obj.NoExpandProps=NoExpandProps;
+            %obj.NoExpandProps=NoExpandProps;
             obj.CheckProperties(mfilename('class'));
 
         end
