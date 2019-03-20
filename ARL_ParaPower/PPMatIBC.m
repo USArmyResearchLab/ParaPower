@@ -11,9 +11,9 @@ classdef PPMatIBC < PPMat
             OutText='';
             switch lower(Param)
                 case 'h_ibc'
-                    OutText='IBC heat transfer coefficient - W/(m^2-K)';
+                    OutText='Ht Xfer Coeff (W/(m^2-K))';
                 case 't_ibc'
-                    OutText='IBC Temp.';
+                    OutText='Temp (C)';
                 otherwise
                     OutText=ParamDesc@PPMat(obj, Param);
             end
