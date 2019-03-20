@@ -62,7 +62,7 @@ classdef PPMatLib < handle
     
     properties
         GUIModFlag=false;
-        ParamVar='';
+        ParamVar={};
         ParamTable={};
     end
     
@@ -175,17 +175,17 @@ classdef PPMatLib < handle
                         ThisMat=NewMatLib(end).GetMatNum(MatNum);
                         if ScalarValue
                             ThisMat.(PropName)=PropVals(Ipv);
-                            VarText=sprintf('%s.%s=%g\n',ThisMat.Name, PropName, PropVals(Ipv));
+                            VarText={sprintf('%s.%s',ThisMat.Name, PropName) num2str(PropVals(Ipv))};
                         else
                             ThisMat.(PropName){PropCellIndex}=PropVals(Ipv);
-                            VarText=sprintf('%s.%s{%.0f}=%g\n',ThisMat.Name, PropName, PropCellindex, PropVals(Ipv));
+                            VarText={sprintf('%s.%s{%.0f}',ThisMat.Name, PropName, PropCellindex) num2str(PropVals(Ipv))};
                         end
                         if ~NewMatLib(end).ReplMatl(MatNum, ThisMat)
                             error('Can''t replace material %s', ThisMat.Name)
-                            VarText='';
+                            VarText={'' ''};
                         end
                         if length(PropVals) > 1
-                            NewMatLib(end).ParamVar=[NewMatLib(end).ParamVar VarText];
+                            NewMatLib(end).ParamVar(end+1,:)=VarText;
                             %disp(NewMatLib(end).ParamVar)  %DEBUG
                         end
                     end
@@ -950,11 +950,6 @@ classdef PPMatLib < handle
                             NewMatLib=obj.ExpandMatLib(NewMatLib, ThisPropVal{Ipv}, Imat, ThisPropName, Ipv, ScalarValue);
                         end
                     end
-                end
-            end
-            for Iml=1:length(NewMatLib)
-                if NewMatLib(Iml).ParamVar(end)==newline
-                    NewMatLib(Iml).ParamVar=NewMatLib(Iml).ParamVar(1:end-1);
                 end
             end
         end

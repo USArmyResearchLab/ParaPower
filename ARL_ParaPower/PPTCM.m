@@ -157,7 +157,18 @@ classdef PPTCM  %PP Test Case Model
             ErrText='';
             TCMmaster=obj;
             TCMout=obj;
+            MatLibList=TCMout.MatLib.GenerateCases(TCMout.VariableList);
+            
             TCMout.VariableList={}; %Since TCMout will contain no variables, strike the variable list from it.
+            NewTCM=[];
+            for Imat=1:length(MatLibList)
+                NewTCM=[NewTCM TCMout];
+                NewTCM(end).MatLib=MatLibList(Imat);
+                NewTCM(end).ParamVar=MatLibList(Imat).ParamVar;
+                %NewTCM(end).
+            end
+            TCMout=NewTCM;
+            clear NewTCM
             PropList=properties(TCMmaster);
             PropList=PropList(~strcmpi(PropList,'Version'));      %These properties will NOT be cycled through
             PropList=PropList(~strcmpi(PropList,'VariableList')); %These properties will NOT be cycled through
@@ -195,7 +206,7 @@ classdef PPTCM  %PP Test Case Model
                                 ThisFieldVal=ThisFieldVal(~strcmpi(ThisFieldVal,'XXXX'));
                                 TCMout=ExpandTCM(TCMout, ThisFieldVal, ThisPropName, Ipe, ThisFieldName);
                             elseif ismember(ThisFieldName,{'Q'})  %Q treated differently since they are more than 1 element
-                                if isnumeric(ThisFieldVal) && length(ThisFieldVal(1,:))==2 %Q is a table
+                                if isempty(ThisFieldVal) || (isnumeric(ThisFieldVal) && length(ThisFieldVal(1,:))==2) %Q is a table
                                     %Do Nothing at this point as tables don't allow parameters
                                 elseif isnumeric(ThisFieldVal) && isscalar(ThisFieldVal)
                                     %Do nothing, it's a scalar number

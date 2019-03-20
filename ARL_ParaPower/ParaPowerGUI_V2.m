@@ -270,10 +270,22 @@ function Out=GetResults()
         disp('No results available from current figure.')
     end
     if isappdata(Fhandle,'TestCaseModel')
-        Out.M=getappdata(Fhandle,'TestCaseModel');
+        Out.TCM=getappdata(Fhandle,'TestCaseModel');
     else
-        Out.M=[];
-        disp('No model available from current figure.')
+        Out.TCM=[];
+        disp('No test case model available from current figure.')
+    end
+    if isappdata(Fhandle,'MI')
+        Out.MI=getappdata(Fhandle,'MI');
+    else
+        Out.MI=[];
+        disp('No model information available from current figure.')
+    end
+    if isappdata(Fhandle,'RunCases')
+        Out.Cases=getappdata(Fhandle,'RunCases');
+    else
+        Out.Cases=[];
+        disp('No run cases available from current figure.')
     end
 end
 
@@ -2254,6 +2266,10 @@ function HelpButton_Callback(hObject, eventdata, handles)
 % hObject    handle to HelpButton (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+    OldHelp=findobj('name','Help');
+    if ishandle(OldHelp)
+        delete(OldHelp)
+    end
     Hf=dialog('WindowStyle','Normal','name','Help','units','normal');
     CloseCB=@(A,B,C)delete(Hf);
     U=uicontrol(Hf,'style','pushbutton','string','Close','Callback',CloseCB,'units','normal');
@@ -2273,9 +2289,12 @@ function HelpButton_Callback(hObject, eventdata, handles)
     HelpText{end+1}='';
     HelpText{end+1}='Developer/Programmer Information';
     HelpText{end+1}='   Material Database';
-    HelpText{end+1}='      The handle to the Materials Database figure is stored in userdata of the features table';
+    HelpText{end+1}='      The handle to the Materials Database figure is stored in userdata of the'
+    HelpText{end+1}='          features table';
     HelpText{end+1}='';
     HelpText{end+1}='   Data can be extracted with D=ParaPowerGUI_V2(''GetResults'');';
+    HelpText{end+1}='       The data includes the MI, TestCaseModel and RunCases structures';
+    HelpText{end+1}='       as well as available results.';
     HelpText{end+1}='';
     HelpText{end+1}='   APPDATA Stored in Main Figure';
     HelpText{end+1}='      Qtables (derefernced by TableDataName()): Tabular data containing time variant Q values.';
