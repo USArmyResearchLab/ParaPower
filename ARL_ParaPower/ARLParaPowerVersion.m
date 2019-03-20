@@ -6,9 +6,9 @@ function OutText=ARLParaPowerVersion(Entity)
     
     switch lower(Entity)
         case 'file'
-            OutText='V2.1';
+            OutText='V3.0';
         case 'program'
-            OutText='3.2.5';
+            OutText='4.0.0';
         otherwise
             OutText='';
             disp('Unknown entity for version info.')
@@ -45,7 +45,9 @@ function OutText=ARLParaPowerVersion(Entity)
 %               does not result in [-1 1] for all melt fractions @ 0
 %          Added test case for material initialization
 % 		   Timing for testcases validation changed to fraction
-% 
+% V4.0.0 - Initial implementation of parametric functionality (File version
+%          updated as all items in testcasemodel may be strings.
+%
 % Features to Add
 % 1. Enable 'stop' button on GUI
 % 2. Address the defined Q for features that are overwritten

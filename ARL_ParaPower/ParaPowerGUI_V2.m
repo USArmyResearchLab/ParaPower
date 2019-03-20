@@ -505,36 +505,43 @@ function loadbutton_Callback(hObject, eventdata, handles)
             %%% Set the External Conditions into the table 
             tabledata = get(handles.ExtCondTable,'data');
 
+            Convert{2}=@(Value){(Value)}; %Convert from String to Cell(String)
+            Convert{1}=@(Value){num2str(Value)}; %Convert from Numeric to Cell(String)
+            AutoVertNC=@(Value)Convert{isnumeric(Value) + 2*ischar(Value)}(Value);
+            Convert{3}=@(Value)AutoVertNC(Value{1});  %Convert from Cell(XX) to XX
+            AutoVert=@(Value)Convert{isnumeric(Value) + 2*ischar(Value) + 3*iscell(Value)}(Value);
+            
+            %isnumeric + 2*ischar + 3*iscell  Numeric = 1, Char = 2, Cell(Numeric) = 3 and use recursion
             if isfield(ExternalConditions,'h_Xminus')
-               tabledata(1,1) =  mat2cell(ExternalConditions.h_Xminus,1,1);
-               tabledata(1,2) =  mat2cell(ExternalConditions.h_Xplus,1,1);
-               tabledata(1,3) =  mat2cell(ExternalConditions.h_Yminus,1,1);
-               tabledata(1,4) =  mat2cell(ExternalConditions.h_Yplus,1,1);
-               tabledata(1,5) =  mat2cell(ExternalConditions.h_Zminus,1,1);
-               tabledata(1,6) =  mat2cell(ExternalConditions.h_Zplus,1,1);
+               tabledata(1,1) =  AutoVert(ExternalConditions.h_Xminus);
+               tabledata(1,2) =  AutoVert(ExternalConditions.h_Xplus);
+               tabledata(1,3) =  AutoVert(ExternalConditions.h_Yminus);
+               tabledata(1,4) =  AutoVert(ExternalConditions.h_Yplus);
+               tabledata(1,5) =  AutoVert(ExternalConditions.h_Zminus);
+               tabledata(1,6) =  AutoVert(ExternalConditions.h_Zplus);
 
-               tabledata(2,1) =  mat2cell(ExternalConditions.Ta_Xminus,1,1);
-               tabledata(2,2) =  mat2cell(ExternalConditions.Ta_Xplus,1,1);
-               tabledata(2,3) =  mat2cell(ExternalConditions.Ta_Yminus,1,1);
-               tabledata(2,4) =  mat2cell(ExternalConditions.Ta_Yplus,1,1);
-               tabledata(2,5) =  mat2cell(ExternalConditions.Ta_Zminus,1,1);
-               tabledata(2,6) =  mat2cell(ExternalConditions.Ta_Zplus,1,1);
+               tabledata(2,1) =  AutoVert(ExternalConditions.Ta_Xminus);
+               tabledata(2,2) =  AutoVert(ExternalConditions.Ta_Xplus);
+               tabledata(2,3) =  AutoVert(ExternalConditions.Ta_Yminus);
+               tabledata(2,4) =  AutoVert(ExternalConditions.Ta_Yplus);
+               tabledata(2,5) =  AutoVert(ExternalConditions.Ta_Zminus);
+               tabledata(2,6) =  AutoVert(ExternalConditions.Ta_Zplus);
             elseif isfield(ExternalConditions,'h_Left')
                 AddStatusLine('You are loading an older file version. Confirm that external BCs are correct,','warning')
                 warndlg('You are loading an older file version. Confirm that external BCs are correct,','File Version Warning','modal')
-                tabledata(1,1) =  mat2cell(ExternalConditions.h_Left,1,1);
-                tabledata(1,2) =  mat2cell(ExternalConditions.h_Right,1,1);
-                tabledata(1,3) =  mat2cell(ExternalConditions.h_Front,1,1);
-                tabledata(1,4) =  mat2cell(ExternalConditions.h_Back,1,1);
-                tabledata(1,5) =  mat2cell(ExternalConditions.h_Top,1,1);
-                tabledata(1,6) =  mat2cell(ExternalConditions.h_Bottom,1,1);
+                tabledata(1,1) =  AutoVert(ExternalConditions.h_Left);
+                tabledata(1,2) =  AutoVert(ExternalConditions.h_Right);
+                tabledata(1,3) =  AutoVert(ExternalConditions.h_Front);
+                tabledata(1,4) =  AutoVert(ExternalConditions.h_Back);
+                tabledata(1,5) =  AutoVert(ExternalConditions.h_Top);
+                tabledata(1,6) =  AutoVert(ExternalConditions.h_Bottom);
  
-                tabledata(2,1) =  mat2cell(ExternalConditions.Ta_Left,1,1);
-                tabledata(2,2) =  mat2cell(ExternalConditions.Ta_Right,1,1);
-                tabledata(2,3) =  mat2cell(ExternalConditions.Ta_Front,1,1);
-                tabledata(2,4) =  mat2cell(ExternalConditions.Ta_Back,1,1);
-                tabledata(2,5) =  mat2cell(ExternalConditions.Ta_Top,1,1);
-                tabledata(2,6) =  mat2cell(ExternalConditions.Ta_Bottom,1,1);
+                tabledata(2,1) =  AutoVert(ExternalConditions.Ta_Left);
+                tabledata(2,2) =  AutoVert(ExternalConditions.Ta_Right);
+                tabledata(2,3) =  AutoVert(ExternalConditions.Ta_Front);
+                tabledata(2,4) =  AutoVert(ExternalConditions.Ta_Back);
+                tabledata(2,5) =  AutoVert(ExternalConditions.Ta_Top);
+                tabledata(2,6) =  AutoVert(ExternalConditions.Ta_Bottom);
             end
             
             for I=1:length(tabledata(:))
@@ -561,40 +568,40 @@ function loadbutton_Callback(hObject, eventdata, handles)
                else
                    tabledata{count,FTC('desc')} = '';
                end
-               if isnumeric(Features(count).x)  %Converting old file format to new one where x, y z must be cell arrays
-                   Features(count).x=num2cell(Features(count).x);
-                   Features(count).y=num2cell(Features(count).y);
-                   Features(count).z=num2cell(Features(count).z);
-               end
-               if iscell(Features(count).x) && ~ischar(Features(count).x{1})
-                   Features(count).x{1}=num2str(Features(count).x{1});
-                   Features(count).x{2}=num2str(Features(count).x{2});
-                   Features(count).y{1}=num2str(Features(count).y{1});
-                   Features(count).y{2}=num2str(Features(count).y{2});
-                   Features(count).z{1}=num2str(Features(count).z{1});
-                   Features(count).z{2}=num2str(Features(count).z{2});
-               end
-               tabledata(count,FTC('x1'))  = Features(count).x(1);   
-               tabledata(count,FTC('y1'))  = Features(count).y(1);
-               tabledata(count,FTC('z1'))  = Features(count).z(1);
-               tabledata(count,FTC('x2'))  = Features(count).x(2);
-               tabledata(count,FTC('y2'))  = Features(count).y(2);
-               tabledata(count,FTC('z2'))  = Features(count).z(2);
+%                if isnumeric(Features(count).x)  %Converting old file format to new one where x, y z must be cell arrays
+%                    Features(count).x=num2cell(Features(count).x);
+%                    Features(count).y=num2cell(Features(count).y);
+%                    Features(count).z=num2cell(Features(count).z);
+%                end
+%                if iscell(Features(count).x) && ~ischar(Features(count).x{1})
+%                    Features(count).x{1}=num2str(Features(count).x{1});
+%                    Features(count).x{2}=num2str(Features(count).x{2});
+%                    Features(count).y{1}=num2str(Features(count).y{1});
+%                    Features(count).y{2}=num2str(Features(count).y{2});
+%                    Features(count).z{1}=num2str(Features(count).z{1});
+%                    Features(count).z{2}=num2str(Features(count).z{2});
+%                end
+               tabledata(count,FTC('x1'))  = AutoVert(Features(count).x(1));   
+               tabledata(count,FTC('y1'))  = AutoVert(Features(count).y(1));
+               tabledata(count,FTC('z1'))  = AutoVert(Features(count).z(1));
+               tabledata(count,FTC('x2'))  = AutoVert(Features(count).x(2));
+               tabledata(count,FTC('y2'))  = AutoVert(Features(count).y(2));
+               tabledata(count,FTC('z2'))  = AutoVert(Features(count).z(2));
                tabledata(count,FTC('mat'))  = cellstr(Features(count).Matl);
                if ischar(Features(count).Q)
                     tabledata(count,FTC('qtype'))  = {'Function(t)'};
-                    tabledata{count,FTC('qval')} = Features(count).Q;
+                    tabledata(count,FTC('qval')) = AutoVert(Features(count).Q);
                elseif isscalar(Features(count).Q)
                     tabledata(count,FTC('qtype'))  = {'Scalar'};
-                    tabledata{count,FTC('qval')} = num2str(Features(count).Q);
+                    tabledata(count,FTC('qval')) = AutoVert(num2str(Features(count).Q));
                elseif isnumeric(Features(count).Q) && length(Features(count).Q(1,:))==2
                     tabledata(count,FTC('qtype'))  = {'Table'};
                     tabledata{count,FTC('qval')} = TableShowDataText;
                     QData{count}=Features(count).Q;
                end
-               tabledata(count,FTC('divx')) = mat2cell(Features(count).dx,1,1);
-               tabledata(count,FTC('divy')) = mat2cell(Features(count).dy,1,1);
-               tabledata(count,FTC('divz')) = mat2cell(Features(count).dz,1,1);
+               tabledata(count,FTC('divx')) = AutoVert(Features(count).dx);
+               tabledata(count,FTC('divy')) = AutoVert(Features(count).dy);
+               tabledata(count,FTC('divz')) = AutoVert(Features(count).dz);
            end
            
            for I=1:length(tabledata(:))
@@ -607,7 +614,6 @@ function loadbutton_Callback(hObject, eventdata, handles)
            if length(QData) < n
                QData{n}=[];
            end
-           
            %It's a good idea to force a rebuild of TestCaseModel from the
            %GUI instead of assuming that the profile info translates
            %correctly.
@@ -644,7 +650,7 @@ function loadbutton_Callback(hObject, eventdata, handles)
                MatName=MatLib.GetMatNum(Imat).Name;
                if any(~ismember(MatName, PPMat.ValidChars))
                    NewMatName{end+1,1}=MatName;
-                   MatName(~ismember(MatName,PPMat.ValidChars))='_'
+                   MatName(~ismember(MatName,PPMat.ValidChars))='_';
                    NewMatName{end,2}=MatName;
                    Mat=MatLib.GetMatNum(Imat);  %Extract material
                    Mat.Name=MatName;  %Change name to one uses validchars
