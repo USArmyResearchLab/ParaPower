@@ -84,8 +84,8 @@ classdef PPMatLib < handle
             iPropValsBuf=num2cell(iPropValsBuf);
             iParamList=obj.iParamList;
             if find(strcmpi(obj.iParamList{1},BaseProps))==1  && ...
-               find(strcmpi(obj.iParamList{2},BaseProps))==2  && ...
-               find(strcmpi(obj.iParamList{3},BaseProps))==3
+               find(strcmpi(obj.iParamList{2},BaseProps))==2 % && ...
+               %find(strcmpi(obj.iParamList{3},BaseProps))==3
                 for Imat=1:obj.NumMat
                     ThisMat=obj.GetMatNum(Imat);
                     ThisMatProps=properties(ThisMat);
