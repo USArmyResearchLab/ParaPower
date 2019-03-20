@@ -15,15 +15,15 @@ classdef PPMatPCM < PPMatSolid
             %fprintf('%s sees %s: Sclass is %s\n',mfilename, class(obj), obj.SClass)
             switch lower(Param)
                 case 'k_l'
-                    OutText='Conductivity (liq)';
+                    OutText='Cond.-liq (W/m-K)';
                 case 'rho_l'
-                    OutText='Density (liq)';
+                    OutText='Density-liq (kg/m^3)';
                 case 'cp_l'
-                    OutText='Specific Heat (liq)';
+                    OutText='Spec. Ht-liq (J/kg-K)';
                 case 'lf'
-                    OutText='Liquid Fraction';
+                    OutText='Latent Ht Fusion (J/kg)';
                 case 'tmelt'
-                    OutText='Melt Temp';
+                    OutText='Melt Temp (C)';
                 otherwise
                     OutText=ParamDesc@PPMatSolid(obj, Param);
             end

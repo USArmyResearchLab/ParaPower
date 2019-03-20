@@ -75,7 +75,9 @@ classdef PPMatLib < handle
     
     properties (Access=private)
         ValidChars
+        NoParam
     end
+    
 
     methods (Access = protected)
         function PopulateProps(obj)
@@ -84,8 +86,7 @@ classdef PPMatLib < handle
             iPropValsBuf=num2cell(iPropValsBuf);
             iParamList=obj.iParamList;
             if find(strcmpi(obj.iParamList{1},BaseProps))==1  && ...
-               find(strcmpi(obj.iParamList{2},BaseProps))==2 % && ...
-               %find(strcmpi(obj.iParamList{3},BaseProps))==3
+               find(strcmpi(obj.iParamList{2},BaseProps))==2
                 for Imat=1:obj.NumMat
                     ThisMat=obj.GetMatNum(Imat);
                     ThisMatProps=properties(ThisMat);
@@ -318,6 +319,7 @@ classdef PPMatLib < handle
         end
         function obj =PPMatLib(varargin)
             obj.ValidChars=PPMat.ValidChars;
+            %obj.NoParam=PPMat.NoParam;
             obj.iParamList={}; 
             obj.iFilename='';
             obj.iMatTypeList={};
@@ -414,7 +416,17 @@ classdef PPMatLib < handle
                     
                     %disp(['Setting material type ' ThisType ':'])
                     NPl=get(H.Name,'posit');
-                    NPl_delta=get(H.Name,'posit')-get(H.Type,'posit');
+                    PLblX = NPl .* [1 0 0 0];
+                    PLblY = NPl .* [0 1 0 0];
+                    PLblW = NPl .* [0 0 1 0];
+                    PLblH = NPl .* [0 0 0 1];
+                    TempP=get(H.NameE, 'posit');
+                    PValX = TempP .* [1 0 0 0];
+                    PValY = TempP .* [0 1 0 0];
+                    PValW = TempP .* [0 0 1 0];
+                    PValH = TempP .* [0 0 0 1];
+                    
+                    %NPl_delta=get(H.Name,'posit')-get(H.Type,'posit');
                     FS=get(H.Name,'fontsize');
                     
                     if strcmpi(ThisType,'null')
@@ -434,14 +446,25 @@ classdef PPMatLib < handle
                         H.ParamL=[];
                         H.ParamE=[];
                     end
-                    
+                    CurVert = get(H.TypeE,'posit') .* [0 1 0 0];
+                    MoveHeightToY = [0 0 0 0;0 0 0 0; 0 0 0 0; 0 1 0 0];
                     for I=1:length(ParamList)
                         %disp(['Setting ' ParamList{I}])
-                        Posit=NPl - (I+1)*NPl_delta - [0 .005 0 0 ];
+%                        Posit=NPl - (I+1)*NPl_delta - [0 .005 0 0 ];
+                        Posit= PLblX + PLblY + PLblW + PLblH;  %This is a standard height and will be adjusted
                         Desc=NewMat.ParamDesc(ParamList{I});
-                        H.ParamL(I)=uicontrol('unit','normal','style','text','string',[Desc ':'],'posit',Posit,'fontsize',FS,'horiz','left');
-                        
-                        Posit=[Posit(1)+Posit(3)+0.01 Posit(2) 1-Posit(1)-Posit(3)-0.05 Posit(4)]; %[NP(1)+NP(3)+.01 NP(2) 1-NP(1)-NP(3)-.05 NP(4)]
+                        H.ParamL(I)=uicontrol('unit','normal','style','text','string',[Desc ':'],'posit',Posit,'fontsize',FS,'horiz','left','max',2);
+                        Extent = get(H.ParamL(I),'extent');
+                        CurVert = CurVert - (Extent .* [0 0 0 1])*MoveHeightToY - [0 .005 0 0];
+                        if Extent(3) > Posit(3)  %Text will wrap, so add space for second Line
+                            CurVert = CurVert - PLblH*MoveHeightToY;
+                            AdjustedLabelPosit = CurVert + Posit - PLblY + PLblH;
+                        else
+                            AdjustedLabelPosit = CurVert + Posit - PLblY ;
+                        end
+                        set(H.ParamL(I),'posit',AdjustedLabelPosit);
+                        Posit=CurVert + PValX + PValW + AdjustedLabelPosit.*[0 0 0 1];
+                        %Posit=[Posit(1)+Posit(3)+0.01 Posit(2) 1-Posit(1)-Posit(3)-0.05 Posit(4)]; %[NP(1)+NP(3)+.01 NP(2) 1-NP(1)-NP(3)-.05 NP(4)]
                         H.ParamE(I)=uicontrol('unit','norma','style','edit','string','','posit',Posit,'fontsize',FS,'horizon','left','user',ParamList{I});
                         OldParmI=find(strcmpi(OldParam,ParamList{I}));
                         if ~isempty(OldParmI)
@@ -473,12 +496,14 @@ classdef PPMatLib < handle
                             obj.AddError(sprintf('Parameter "%s" is empty.',ParamList{I}));
                             Value='NaN';
                             Success=false;
-                        elseif isempty(str2num(Value))
-                            obj.AddError(sprintf('Parameter "%s" is "%s" but must be a number.',ParamList{I},Value));
-                            Value='NaN';
-                            Success=false;
+                        elseif isnan(str2double(Value))
+                            %obj.AddError(sprintf('Parameter "%s" is "%s" but must be a number.',ParamList{I},Value));
+                            Success=true;
+                            ArgList=sprintf('%s, ''%s'', ''%s'' ',ArgList, ParamList{I}, Value);
+                        else
+                            Success=true;
+                            ArgList=sprintf('%s, ''%s'', %s ',ArgList, ParamList{I}, Value);
                         end
-                        ArgList=sprintf('%s, ''%s'', %s ',ArgList, ParamList{I}, Value);
                     end
                     eval(['NewMat=PPMat' ThisType '(' ArgList ');' ]);
                     %assignin('base','NewMat',NewMat)
