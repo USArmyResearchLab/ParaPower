@@ -261,7 +261,7 @@ function Out=GetResults()
     Fhandle= ParaPowerGUI_V2;
     if isappdata(Fhandle,'Results')
         Out.R=getappdata(Fhandle,'Results');
-        if ~isfield(Out.R,'Tprint')
+        if ~strcmp(class(Out.R),'PPResults')
             Out.R=[];
             disp('No results available from current figure.')
         end
