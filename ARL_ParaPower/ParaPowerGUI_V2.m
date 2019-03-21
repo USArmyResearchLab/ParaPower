@@ -489,6 +489,12 @@ function loadbutton_Callback(hObject, eventdata, handles)
                 AddStatusLine('Attempting to load data from previous version, profile may be corrupted.','warning')
             end
 
+            if ~isempty(TestCaseModel.VariableList)
+                ParamTable=TestCaseModel.VariableList;
+                ParamTable(:,2:3)=ParamTable;
+                [ParamTable{:,1}]=deal(false);
+                set(handles.ParamTable,'data',ParamTable);
+            end
             ExternalConditions=TestCaseModel.ExternalConditions;
             Features=TestCaseModel.Features;
             
@@ -1158,19 +1164,19 @@ else
                 if isempty(QValue)
                     Features(count).Q=0;
                 else
-                    try
-                        TestQ=@(t)eval(QValue)*(-1);
-                        TestQ(0);
-                        if isempty(Params.Tsteps)
-                            AddStatusLine('Static analysis, Q will be evaluated at t=0... ','warning');
-                        end
-                    catch ErrTrap
-                        ErrTrap.getReport
-                        AddStatusLine('Error.', true);
-                        AddStatusLine(['For feature ' num2str(count) ' "' QValue '" is not a valid function for Q.'],'error')
-                        GUIEnable
-                        return
-                    end
+%                     try
+%                         TestQ=@(t)eval(QValue)*(-1);
+%                         TestQ(0);
+%                         if isempty(Params.Tsteps)
+%                             AddStatusLine('Static analysis, Q will be evaluated at t=0... ','warning');
+%                         end
+%                     catch ErrTrap
+%                         ErrTrap.getReport
+%                         AddStatusLine('Error.', true);
+%                         AddStatusLine(['For feature ' num2str(count) ' "' QValue '" is not a valid function for Q.'],'error')
+%                         GUIEnable
+%                         return
+%                     end
                     Features(count).Q = QValue;
                 end
             otherwise
@@ -1400,6 +1406,9 @@ NumCols=length(get(handles.ExtCondTable,'columnwidth'));
 TableData{2,NumCols}=[];
 set(handles.ExtCondTable,'Data',TableData);
 
+set(handles.ParamTable,'data',{ false '' ''})
+
+ParamTable={ false '' ''};
 VisUpdateStatus(handles,false)
 CurTitle=get(handles.figure1,'name');
 Colon=strfind(CurTitle,':');

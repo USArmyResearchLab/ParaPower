@@ -62,12 +62,12 @@ classdef PPTCM  %PP Test Case Model
             if SymAvail
                 t=sym('t');
                 EvalText=[VarText 'QHFn=(-1)*' Qtext];
-                eval([EvalText ';']);
+                eval([EvalText ';']);  %if the Q function evaluates to multiple formulae it will be an array
                 for I=1:length(QHFn)
                     QTextOut{I}=char(QHFn(I));
                 end
             else
-                QTextOut{1}=['-1*' QText];
+                QTextOut{1}=['(-1)*' QText];
                 %EvalText=[VarText 'Qhandle{1}=@(t)(-1)*' Qtext ';'];
                 %eval([EvalText ';']);
             end
@@ -224,7 +224,9 @@ classdef PPTCM  %PP Test Case Model
                                         t=Old_t;
                                     catch ME
                                         try
-                                            ThisFieldVal=TCMmaster.GenQFunction(ThisFieldVal, VariableList);
+                                            %ThisFieldVal will be an array of functions if the functional form of Q evaluates to multiple functions
+                                            ThisFieldVal={ThisFieldVal}; %Esnures ThisFieldVal is a cell whether or not eval succedes.
+                                            ThisFieldVal=TCMmaster.GenQFunction(ThisFieldVal{1}, VariableList);  %Output will ALWAYS be a cell array
                                             eval(['TestFn=@(t)' ThisFieldVal{1} ';']);
                                             TestFn(0);
 
@@ -245,7 +247,7 @@ classdef PPTCM  %PP Test Case Model
 %                                                 ThisFieldVal={ThisFieldValTest};
 %                                             end
                                         catch ME
-                                            ErrText=[ErrText sprintf('Unknown equation form of Q in TCM.%s(%.0f).%s(%.0f).Q\n',ThisFieldValElement,ThisPropName, Ipe, ThisFieldName,Ife)];
+                                            ErrText=[ErrText sprintf('Unknown equation form of Q in TCM.%s(%.0f).%s=%s\n',ThisPropName, Ipe, ThisFieldName,ThisFieldVal{1})];
                                             ThisFieldVal=[];
                                         end
                                     end
