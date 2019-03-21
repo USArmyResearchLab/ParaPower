@@ -61,13 +61,13 @@ classdef PPTCM  %PP Test Case Model
             QTextOut={};
             if SymAvail
                 t=sym('t');
-                EvalText=[VarText 'QHFn=(-1)*' Qtext];
+                EvalText=[VarText 'QHFn=' Qtext];
                 eval([EvalText ';']);  %if the Q function evaluates to multiple formulae it will be an array
                 for I=1:length(QHFn)
                     QTextOut{I}=char(QHFn(I));
                 end
             else
-                QTextOut{1}=['(-1)*' QText];
+                QTextOut{1}=['' QText];
                 %EvalText=[VarText 'Qhandle{1}=@(t)(-1)*' Qtext ';'];
                 %eval([EvalText ';']);
             end
@@ -229,23 +229,6 @@ classdef PPTCM  %PP Test Case Model
                                             ThisFieldVal=TCMmaster.GenQFunction(ThisFieldVal{1}, VariableList);  %Output will ALWAYS be a cell array
                                             eval(['TestFn=@(t)' ThisFieldVal{1} ';']);
                                             TestFn(0);
-
-%                                             for Itfv=1:length(Qtext)
-%                                                 eval(sprintf('ThisFieldVal{%.0f}=@(t)%s;',Itfv,Qtext{Itfv}))
-%                                             end
-%                                             if obj.SymAvail
-%                                                 t=sym('t'); %Get expression as a function of t
-%                                                 eval(['ThisFieldValTest=' ThisFieldVal ''])
-%                                                 %if length(ThisFieldValTest)>1
-%                                                     ThisFieldVal={};
-%                                                     for Itfvt=1:length(ThisFieldValTest)
-%                                                         ThisFieldVal{Itfvt}=char(ThisFieldValTest(Itfvt));
-%                                                     end
-%                                                 %end
-%                                             else
-%                                                 eval(['ThisFieldValTest=' ThisFieldVal ''])
-%                                                 ThisFieldVal={ThisFieldValTest};
-%                                             end
                                         catch ME
                                             ErrText=[ErrText sprintf('Unknown equation form of Q in TCM.%s(%.0f).%s=%s\n',ThisPropName, Ipe, ThisFieldName,ThisFieldVal{1})];
                                             ThisFieldVal=[];

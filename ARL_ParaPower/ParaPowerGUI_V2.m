@@ -905,7 +905,7 @@ function slider1_Callback(hObject, eventdata, handles)
 TimeStepOutput = get(handles.slider1,'Value'); %value between 0 and 1 from the slider
 
 Results=getappdata(handles.figure1,'Results');
-if not(isfield(Results,'Tprint'))
+if ~any(strcmp(Results.listStates,'Thermal'))
     TimeStepString = []; %create output string
     set(handles.TextTimeStep,'String',TimeStepString)   %output string to GUI
     TimeString = 'No Model Results';
@@ -1531,7 +1531,7 @@ end
 
 if isempty(Results) || max(ResultsReq)==0 %no model results
 %    if ~isempty('MI')
-        AddStatusLine('No results exist or no results selected. Displaying Detailed Geometry','warning')
+        AddStatusLine('No results exist or no results selected. Displaying Detailed Geometry')
         NumPlot=NumPlot+1;
         Initialize_Callback(hObject, eventdata, handles, false)
         ThisCase=get(handles.CaseSelect,'value');

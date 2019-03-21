@@ -301,7 +301,7 @@ for Fi=1:length(Features)
      %Negate Q so that postive Q is corresponds to heat generation
      if strcmpi(class(Features(Fi).Q),'function_handle')
          ThisQ=@(t)Features(Fi).Q(t)*(-1);
-     elseif isscalar(Features(Fi).Q)
+     elseif isscalar(Features(Fi).Q) && isnumeric(Features(Fi).Q)
          if Features(Fi).Q==0
              ThisQ=[];
          else
