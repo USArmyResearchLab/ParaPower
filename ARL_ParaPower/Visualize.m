@@ -490,10 +490,10 @@ function Visualize (PlotTitle, MI, varargin)
                         Zt=mean([Z(Zi) Z(Zi+1)]);
                         text(Xt, Yt, Zt,T,'horiz','center')
                     end
-                    if ~isempty(PlotParms.EdgeColor) && NoHeat
-                        set(F,'EdgeColor',PlotParms.EdgeColor);
-    %                        set(F,'facealpha',PlotParms.Transparency);
-                    end
+                    %if ~isempty(PlotParms.EdgeColor) && NoHeat
+                    %    set(F,'EdgeColor',PlotParms.EdgeColor);
+    %               %         set(F,'facealpha',PlotParms.Transparency);
+                    %end
                 end
             end
         end

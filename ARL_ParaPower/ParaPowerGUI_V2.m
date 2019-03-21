@@ -905,13 +905,13 @@ function slider1_Callback(hObject, eventdata, handles)
 TimeStepOutput = get(handles.slider1,'Value'); %value between 0 and 1 from the slider
 
 Results=getappdata(handles.figure1,'Results');
-if ~any(strcmp(Results.listStates,'Thermal'))
+if ~strcmp(class(Results),'PPResults')
     TimeStepString = []; %create output string
     set(handles.TextTimeStep,'String',TimeStepString)   %output string to GUI
     TimeString = 'No Model Results';
     set(handles.InterestTime,'String',TimeString)
 else
-    GlobalTime=Results.Model.GlobalTime;
+    GlobalTime=Results(1).Model.GlobalTime;  %Take time only from 1st case
     
     if isempty(GlobalTime)      %Results represent Static Analysis
         StateN=round(TimeStepOutput)+1;
