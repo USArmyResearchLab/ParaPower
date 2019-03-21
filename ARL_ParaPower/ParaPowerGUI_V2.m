@@ -1216,7 +1216,7 @@ else
     end
     
     if KillInit
-        AddStatusLine('Unable to execute model due to errors.','error')
+        AddStatusLine('Unable to fully build model due to errors.','error')
         if ischar(Cases)
             AddStatusLine(Cases)
         end
@@ -2354,7 +2354,7 @@ function HelpButton_Callback(hObject, eventdata, handles)
     HelpText{end+1}='';
     HelpText{end+1}='Developer/Programmer Information';
     HelpText{end+1}='   Material Database';
-    HelpText{end+1}='      The handle to the Materials Database figure is stored in userdata of the'
+    HelpText{end+1}='      The handle to the Materials Database figure is stored in userdata of the';
     HelpText{end+1}='          features table';
     HelpText{end+1}='';
     HelpText{end+1}='   Data can be extracted with D=ParaPowerGUI_V2(''GetResults'');';

@@ -80,7 +80,8 @@ classdef PPMatLib < handle
     
 
     methods (Access = protected)
-        function PopulateProps(obj)
+        function PopulateProps(obj)  
+            %Generate matrix of all materials and all properties, NaN where non-exist
             BaseProps=properties(PPMat);  %Ignore properties that are part of PPMat
             iPropValsBuf=NaN(obj.NumMat, length(obj.iParamList));
             iPropValsBuf=num2cell(iPropValsBuf);
@@ -963,6 +964,7 @@ classdef PPMatLib < handle
                         end
                         for Ipv=1:length(ThisPropVal(:))
                             try
+                                OrigThisPropVal=ThisPropVal{Ipv};
                                 if iscell(ThisPropVal{Ipv})
                                     ErrText=[ErrText newline 'Nest cell array not permitted for "' ThisPropName '" for material "' ThisMat.Name '" as "' ThisPropVal '"'];
                                 else
@@ -976,7 +978,9 @@ classdef PPMatLib < handle
                                 ThisPropVal=NaN;
                             end
                             ScalarValue=length(ThisPropVal(:))==1; %If there is a single value it will be placed as a scalar not cell array
-                            NewMatLib=obj.ExpandMatLib(NewMatLib, ThisPropVal{Ipv}, Imat, ThisPropName, Ipv, ScalarValue);
+                            if ~isnumeric(ThisPropVal{Ipv}) || length(ThisPropVal{Ipv})~=1  %If the value changed on eval, then cycle through mats
+                                NewMatLib=obj.ExpandMatLib(NewMatLib, ThisPropVal{Ipv}, Imat, ThisPropName, Ipv, ScalarValue);
+                            end
                         end
                     end
                 end
