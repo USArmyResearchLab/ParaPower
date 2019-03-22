@@ -29,6 +29,7 @@ function varargout = ParaPowerGUI_V2(varargin)
 % Last Modified by GUIDE v2.5 12-Mar-2019 12:33:11
 
 % Begin initialization code - DO NOT EDIT
+
 gui_Singleton = 1;
 gui_State = struct('gui_Name',       mfilename, ...
     'gui_Singleton',  gui_Singleton, ...
@@ -40,10 +41,15 @@ if nargin && ischar(varargin{1})
     gui_State.gui_Callback = str2func(varargin{1});
 end
 ErrorStatus()
-if nargout
-    [varargout{1:nargout}] = gui_mainfcn(gui_State, varargin{:});
-else
-    gui_mainfcn(gui_State, varargin{:});
+try
+    if nargout
+        [varargout{1:nargout}] = gui_mainfcn(gui_State, varargin{:});
+    else
+        gui_mainfcn(gui_State, varargin{:});
+    end
+catch ME
+    GUIEnable
+    error(ME.getReport)
 end
 % End initialization code - DO NOT EDIT
 
