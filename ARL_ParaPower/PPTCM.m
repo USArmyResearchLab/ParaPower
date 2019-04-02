@@ -211,7 +211,7 @@ classdef PPTCM  %PP Test Case Model
                                 elseif isnumeric(ThisFieldVal) && isscalar(ThisFieldVal)
                                     %Do nothing, it's a scalar number
                                 elseif ischar(ThisFieldVal) %Could be a parameter or a function
-                                    try %Try without defining 't', should be numeric
+                                    try %Try without defining 't', should be numeric result if not dependent on t
                                         if exist('t','var')
                                             Old_t=t;
                                         else
@@ -222,7 +222,7 @@ classdef PPTCM  %PP Test Case Model
                                         EvalString=[EvalString sprintf('ThisFieldVal=%s;\n',ThisFieldVal)];
                                         eval(EvalString)
                                         t=Old_t;
-                                    catch ME
+                                    catch ME  %If it is dependent on 't' then use create array
                                         try
                                             %ThisFieldVal will be an array of functions if the functional form of Q evaluates to multiple functions
                                             ThisFieldVal={ThisFieldVal}; %Esnures ThisFieldVal is a cell whether or not eval succedes.
