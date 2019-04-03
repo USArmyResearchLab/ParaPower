@@ -1,12 +1,12 @@
 classdef PPMatSolid < PPMat
     
     properties (Access=public)
-        cte     {mustBeNumeric(cte), mustBeReal(cte)}   = NaN
-        E       {mustBeNumeric(E), mustBeReal(E)}     = NaN
-        nu      {mustBeNumeric(nu), mustBeReal(nu)}    = NaN
-        k       {mustBeNumeric(k), mustBeReal(k)}     = NaN
-        rho     {mustBeNumeric(rho), mustBeReal(rho)}   = NaN
-        cp      {mustBeNumeric(cp), mustBeReal(cp)}    = NaN
+        cte     = NaN %{mustBeNumeric(cte), mustBeReal(cte)}   = NaN
+        E       = NaN %{mustBeNumeric(E), mustBeReal(E)}     = NaN
+        nu      = NaN %{mustBeNumeric(nu), mustBeReal(nu)}    = NaN
+        k       = NaN %{mustBeNumeric(k), mustBeReal(k)}     = NaN
+        rho     = NaN %{mustBeNumeric(rho), mustBeReal(rho)}   = NaN
+        cp      = NaN %{mustBeNumeric(cp), mustBeReal(cp)}    = NaN
     end
     
     methods 
@@ -15,17 +15,17 @@ classdef PPMatSolid < PPMat
             %fprintf('%s sees %s: Sclass is %s\n',mfilename,class(obj),obj.SClass)
             switch lower(Param)
                 case 'cte'
-                    OutText='CTE deg';
+                    OutText='CTE (1/K)';
                 case 'e'
-                    OutText='Young''s Mod';
+                    OutText='Young''s Mod (Pa)';
                 case 'nu'
                     OutText='Poisson''s Ratio';
                 case 'k'
-                    OutText='Conductivity';
+                    OutText='Conductivity (W/m-K)';
                 case 'rho'
-                    OutText='Density';
+                    OutText='Density (kg/m^3)';
                 case 'cp'
-                    OutText='Specific Heat';
+                    OutText='Specific Heat (J/kg-K)';
                 otherwise
                     OutText=ParamDesc@PPMat(obj, Param);
             end

@@ -9,7 +9,7 @@ Yplus  = 4; %Y+ Face
 Zminus= 5; %Z- Face
 Zplus   = 6; %Z+ Face
 
-No_Matl='No Matl';
+No_Matl='NoMatl';
 
 if ischar(TestCaseModel) 
     if strcmpi('GetDirex',TestCaseModel) %this argument will return the directional index definitions
@@ -22,12 +22,15 @@ if ischar(TestCaseModel)
         return
     else
         error('Invalid optional argument');
+        return
     end
 else
-    if not(isfield(TestCaseModel,'Version')) 
+    if not(isfield(TestCaseModel,'Version') || max(strcmp('Version',properties(TestCaseModel))))
         error(['Incorrect TestCaseModel version.  No version is specified']);
     elseif strcmpi(TestCaseModel.Version,'V2.0')
         warning('Form Model is %s.  V2.0 -> V2.1 switched order of external BCs. Please confirm accuracy.', TestCaseModel.Version);
+    elseif strcmpi(TestCaseModel.Version,'V3.0')
+        %warning(['Object version of TestCaseModel is under development']);
     elseif not(strcmpi(TestCaseModel.Version,'V2.1'))
         error(['Incorrect TestCaseModel version.  V2.0 required, this data is ' TestCaseModel.Version]);
     end
@@ -35,10 +38,16 @@ else
     Features=TestCaseModel.Features;
     Params=TestCaseModel.Params;
     PottingMaterial=TestCaseModel.PottingMaterial;
+    Props=properties(TestCaseModel);
+    if any(strcmpi(Props,'ParamVar'))
+        Descriptor=TestCaseModel.ParamVar;
+    else
+        Descriptor={};
+    end
 end
 
 %Material Properties
-if isfield(TestCaseModel,'MatLib')
+if isfield(TestCaseModel,'MatLib') || ~isempty(find(strcmpi(properties(TestCaseModel),'MatLib')))
     MatLib=TestCaseModel.MatLib;
     if isempty(find(strcmp(MatLib.MatList,No_Matl), 1))
         MatLib.AddMatl(PPMatNull('Name',No_Matl));
@@ -292,7 +301,7 @@ for Fi=1:length(Features)
      %Negate Q so that postive Q is corresponds to heat generation
      if strcmpi(class(Features(Fi).Q),'function_handle')
          ThisQ=@(t)Features(Fi).Q(t)*(-1);
-     elseif isscalar(Features(Fi).Q)
+     elseif isscalar(Features(Fi).Q) && isnumeric(Features(Fi).Q)
          if Features(Fi).Q==0
              ThisQ=[];
          else
@@ -402,6 +411,7 @@ ModelInput.Q=Q;
 ModelInput.GlobalTime=GlobalTime;
 ModelInput.Tinit=Params.Tinit;
 ModelInput.MatLib=MatLib;
+ModelInput.Descriptor=Descriptor;
 %ModelInput.matprops=MatLib.matprops;
 %ModelInput.matlist=MatLib.matlist;
 ModelInput.Version='V2.0';

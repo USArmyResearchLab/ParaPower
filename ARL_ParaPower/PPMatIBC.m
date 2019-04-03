@@ -1,8 +1,8 @@
 classdef PPMatIBC < PPMat
     
     properties (Access=public)
-        h_ibc   {mustBeNumeric(h_ibc), mustBeReal(h_ibc)}   = NaN
-        T_ibc   {mustBeNumeric(T_ibc), mustBeReal(T_ibc)}     = NaN
+        h_ibc   = NaN %{mustBeNumeric(h_ibc), mustBeReal(h_ibc)}   = NaN
+        T_ibc   = NaN %{mustBeNumeric(T_ibc), mustBeReal(T_ibc)}     = NaN
     end
     
     methods
@@ -11,9 +11,9 @@ classdef PPMatIBC < PPMat
             OutText='';
             switch lower(Param)
                 case 'h_ibc'
-                    OutText='IBC heat transfer coefficient - W/(m^2-K)';
+                    OutText='Ht Xfer Coeff (W/(m^2-K))';
                 case 't_ibc'
-                    OutText='IBC Temp.';
+                    OutText='Temp (C)';
                 otherwise
                     OutText=ParamDesc@PPMat(obj, Param);
             end

@@ -1,11 +1,11 @@
 classdef PPMatPCM < PPMatSolid
     
     properties (Access=public)
-        k_l         {mustBeNumeric(k_l), mustBeReal(k_l)}   = NaN
-        rho_l       {mustBeNumeric(rho_l), mustBeReal(rho_l)}     = NaN
-        cp_l        {mustBeNumeric(cp_l), mustBeReal(cp_l)}    = NaN
-        lf          {mustBeNumeric(lf), mustBeReal(lf)}     = NaN
-        tmelt       {mustBeNumeric(tmelt), mustBeReal(tmelt)}   = NaN
+        k_l         = NaN %{mustBeNumeric(k_l), mustBeReal(k_l)}   = NaN
+        rho_l       = NaN %{mustBeNumeric(rho_l), mustBeReal(rho_l)}     = NaN
+        cp_l        = NaN %{mustBeNumeric(cp_l), mustBeReal(cp_l)}    = NaN
+        lf          = NaN %{mustBeNumeric(lf), mustBeReal(lf)}     = NaN
+        tmelt       = NaN %{mustBeNumeric(tmelt), mustBeReal(tmelt)}   = NaN
     end
     
     
@@ -15,15 +15,15 @@ classdef PPMatPCM < PPMatSolid
             %fprintf('%s sees %s: Sclass is %s\n',mfilename, class(obj), obj.SClass)
             switch lower(Param)
                 case 'k_l'
-                    OutText='Conductivity (liq)';
+                    OutText='Cond.-liq (W/m-K)';
                 case 'rho_l'
-                    OutText='Density (liq)';
+                    OutText='Density-liq (kg/m^3)';
                 case 'cp_l'
-                    OutText='Specific Heat (liq)';
+                    OutText='Spec. Ht-liq (J/kg-K)';
                 case 'lf'
-                    OutText='Liquid Fraction';
+                    OutText='Latent Ht Fusion (J/kg)';
                 case 'tmelt'
-                    OutText='Melt Temp';
+                    OutText='Melt Temp (C)';
                 otherwise
                     OutText=ParamDesc@PPMatSolid(obj, Param);
             end

@@ -14,6 +14,8 @@ classdef PPMatLib < handle
 %   MatList    - List of materials currently in the library
 %   GUIModFlag - Set to true if Library is modified under GUI Control.
 %                Must be manually reset.
+%   ParamVar   - List of changes made for parameterization
+%   ParamTable - List of parameters to be evaluated when parameterizing properties
 %
 %Access Methods:
 %   MatLib(index)  - Returns a new MatLib comprised of materials 
@@ -55,10 +57,13 @@ classdef PPMatLib < handle
         ErrorText='';
         iNewMatF
         iMatableF
+        iExpanded = false;
     end
     
     properties
         GUIModFlag=false;
+        ParamVar={};
+        ParamTable={};
     end
     
     properties (Access=public, Dependent)
@@ -67,22 +72,39 @@ classdef PPMatLib < handle
         MatList
         Source
     end
+    
+    properties (Access=private)
+        ValidChars
+        NoParam
+    end
+    
 
     methods (Access = protected)
-        function PopulateProps(obj)
+        function PopulateProps(obj)  
+            %Generate matrix of all materials and all properties, NaN where non-exist
+            BaseProps=properties(PPMat);  %Ignore properties that are part of PPMat
             iPropValsBuf=NaN(obj.NumMat, length(obj.iParamList));
-            if strcmpi(obj.iParamList{1},'Name') && strcmpi(obj.iParamList{2},'Type')
-                for Iprop=3:length(obj.iParamList)
-                    for Imat=1:obj.NumMat
-                        ThisMat=obj.GetMatNum(Imat);
-                        if isprop(ThisMat,obj.iParamList{Iprop})
-                            iPropValsBuf(Imat,Iprop)=ThisMat.(obj.iParamList{Iprop});
+            iPropValsBuf=num2cell(iPropValsBuf);
+            iParamList=obj.iParamList;
+            if find(strcmpi(obj.iParamList{1},BaseProps))==1  && ...
+               find(strcmpi(obj.iParamList{2},BaseProps))==2
+                for Imat=1:obj.NumMat
+                    ThisMat=obj.GetMatNum(Imat);
+                    ThisMatProps=properties(ThisMat);
+                    for Iprop=length(BaseProps)+1:length(iParamList)
+                        if any(strcmp(ThisMatProps,iParamList{Iprop}))
+                            iPropValsBuf{Imat,Iprop}=ThisMat.(iParamList{Iprop});
                         end
                     end
                 end
                 obj.iPropVals=iPropValsBuf;
             else
-                obj.AddError('First property name MUST be "Name" and second MUST be "Type"')
+                ErrText='Property list MUST start with';
+                for I=1:length(BaseProps)
+                    ErrText=[ErrText ' ' BaseProps{I}];
+                end
+                ErrText=[ErrText '.'];
+                obj.AddError(ErrText)
                 obj.ShowErrorText;
             end
         end
@@ -144,6 +166,35 @@ classdef PPMatLib < handle
                 
         end
         
+        function NewMatLib=ExpandMatLib(MatLibInstance, PropVals, MatNum, PropName, PropCellIndex, ScalarValue)
+            %The passed PropVal is the set of values of a single cell of
+            %property named in PropName.
+            NewMatLib=[];
+            for Iml=1:length(MatLibInstance)
+                if ~isempty(PropVals)
+                    for Ipv=1:length(PropVals)
+                        NewMatLib=[NewMatLib MatLibInstance(Iml).CreateCopy];
+                        ThisMat=NewMatLib(end).GetMatNum(MatNum);
+                        if ScalarValue
+                            ThisMat.(PropName)=PropVals(Ipv);
+                            VarText={sprintf('%s.%s',ThisMat.Name, PropName) num2str(PropVals(Ipv))};
+                        else
+                            ThisMat.(PropName){PropCellIndex}=PropVals(Ipv);
+                            VarText={sprintf('%s.%s{%.0f}',ThisMat.Name, PropName, PropCellindex) num2str(PropVals(Ipv))};
+                        end
+                        if ~NewMatLib(end).ReplMatl(MatNum, ThisMat)
+                            error('Can''t replace material %s', ThisMat.Name)
+                            VarText={'' ''};
+                        end
+                        if length(PropVals) > 1
+                            NewMatLib(end).ParamVar(end+1,:)=VarText;
+                            %disp(NewMatLib(end).ParamVar)  %DEBUG
+                        end
+                    end
+                end
+            end
+        end        
+        
         function Params=GetParamAvail
             Params={};
             MatTypes=PPMatLib.GetMatTypesAvail();
@@ -168,68 +219,9 @@ classdef PPMatLib < handle
                 obj.PopulateProps;
             end
             Iprop=find(strcmpi(obj.iParamList, Param));
-            OutParamVec=obj.iPropVals(:,Iprop);
+            OutParamVec=cell2mat(obj.iPropVals(:,Iprop));
             OutParamVec=reshape(OutParamVec,[],1);
         end
-        
-%         function varargout=subsref(obj,s) 
-%            switch s(1).type
-%               case '.'
-%                  if length(s) == 1 & ~isprop(obj,s.subs)
-%                     % Implement obj.PropertyName
-%                      varargout{1}=obj.GetParam(s.subs);
-%                  elseif length(s) == 2 && strcmp(s(2).type,'()') && any(strcmpi(obj.iParamList,s(1).subs)) 
-%                     % Implement obj.PropertyName(indices)
-%                       List=obj.GetParam(s(1).subs);
-%                       varargout{1}=List(s(2).subs{1});
-%                  else
-%                     [varargout{1:nargout}] = builtin('subsref',obj,s);
-%                  end
-%               case '()'
-%                  if length(s) == 1
-%                     % Implement obj(indices)
-%                     TempOut=PPMatLib;
-%                     for Mi=reshape(s.subs{1},1,[])
-%                         TempOut.AddMatl(obj.iMatObjList{Mi})
-%                     end
-%                     varargout{1}=TempOut;
-%                  elseif length(s) == 2 && strcmp(s(2).type,'.')
-%                      Implement this as a buffered property that is contruced on first use that gets wiped out when material changed/added
-%                      %Algorithm will be to construct material propery
-%                      %vectors on first call.  Then destroy them with any
-%                      %call to add/delete/replace material
-%                      %Vectors will be comprised of two parts.
-%                      %PropName - Cell Array of property name
-%                      %PropValue{Property Number} - Cell Array
-%                     % Implement obj(ind).PropertyName
-%                     TempLib=PPMatLib;
-%                     for Mi=reshape(s(1).subs{1},1,[])
-%                         TempLib.AddMatl(obj.iMatObjList{Mi});
-%                     end
-%                     varargout{1}=TempLib.GetParam(s(2).subs);
-% %                  elseif length(s) == 3 && strcmp(s(2).type,'.') && strcmp(s(3).type,'()')
-% %                     % Implement obj(indices).PropertyName(indices)
-% %                     ...
-%                  else
-%                     % Use built-in for any other expression
-%                     [varargout{1:nargout}] = builtin('subsref',obj,s);
-%                  end
-% %               case '{}'
-% %                  if length(s) == 1
-% %                     % Implement obj{indices}
-% %                     ...
-% %                  elseif length(s) == 2 && strcmp(s(2).type,'.')
-% %                     % Implement obj{indices}.PropertyName
-% %                     ...
-% %                  else
-% %                     % Use built-in for any other expression
-% %                     [varargout{1:nargout}] = builtin('subsref',obj,s);
-% %                  end
-%               otherwise
-%                  error('Not a valid indexing expression')
-%            end
-% 
-%        end
 
         function OutParam=GetParam(obj, Param)
             AvailParams=obj.Params;
@@ -257,7 +249,7 @@ classdef PPMatLib < handle
             obj.ShowErrorText
         end
         function ShowErrorText(obj, dest)
-            if ~exist('dest')
+            if ~exist('dest','var')
                 dest='';
             end
             if ~isempty(obj.ErrorText)
@@ -276,6 +268,7 @@ classdef PPMatLib < handle
                 MatObj=obj.iMatObjList{MatNum};
             else
                 obj.AddError(sprintf('Material named ''%s'' is not in library',MatName));
+                MatObj=[];
             end
             obj.ShowErrorText;
         end
@@ -285,6 +278,7 @@ classdef PPMatLib < handle
                 MatObj=obj.iMatObjList{MatNum};
             else
                 obj.AddError(sprintf('Material number ''%.0f'' does not exist.',MatNum));
+                MatObj=[];
             end
             obj.ShowErrorText;
         end
@@ -316,13 +310,17 @@ classdef PPMatLib < handle
         function P=get.Params(obj)
             P=reshape(obj.iParamList,[],1);
         end
+        
         function M=get.MatList(obj)
+            M={};
             for I=1:length(obj.iMatObjList)
                 M{I}=obj.iMatObjList{I}.Name;
             end
             
         end
         function obj =PPMatLib(varargin)
+            obj.ValidChars=PPMat.ValidChars;
+            %obj.NoParam=PPMat.NoParam;
             obj.iParamList={}; 
             obj.iFilename='';
             obj.iMatTypeList={};
@@ -419,7 +417,17 @@ classdef PPMatLib < handle
                     
                     %disp(['Setting material type ' ThisType ':'])
                     NPl=get(H.Name,'posit');
-                    NPl_delta=get(H.Name,'posit')-get(H.Type,'posit');
+                    PLblX = NPl .* [1 0 0 0];
+                    PLblY = NPl .* [0 1 0 0];
+                    PLblW = NPl .* [0 0 1 0];
+                    PLblH = NPl .* [0 0 0 1];
+                    TempP=get(H.NameE, 'posit');
+                    PValX = TempP .* [1 0 0 0];
+                    PValY = TempP .* [0 1 0 0];
+                    PValW = TempP .* [0 0 1 0];
+                    PValH = TempP .* [0 0 0 1];
+                    
+                    %NPl_delta=get(H.Name,'posit')-get(H.Type,'posit');
                     FS=get(H.Name,'fontsize');
                     
                     if strcmpi(ThisType,'null')
@@ -439,14 +447,25 @@ classdef PPMatLib < handle
                         H.ParamL=[];
                         H.ParamE=[];
                     end
-                    
+                    CurVert = get(H.TypeE,'posit') .* [0 1 0 0];
+                    MoveHeightToY = [0 0 0 0;0 0 0 0; 0 0 0 0; 0 1 0 0];
                     for I=1:length(ParamList)
                         %disp(['Setting ' ParamList{I}])
-                        Posit=NPl - (I+1)*NPl_delta - [0 .005 0 0 ];
+%                        Posit=NPl - (I+1)*NPl_delta - [0 .005 0 0 ];
+                        Posit= PLblX + PLblY + PLblW + PLblH;  %This is a standard height and will be adjusted
                         Desc=NewMat.ParamDesc(ParamList{I});
-                        H.ParamL(I)=uicontrol('unit','normal','style','text','string',[Desc ':'],'posit',Posit,'fontsize',FS,'horiz','left');
-                        
-                        Posit=[Posit(1)+Posit(3)+0.01 Posit(2) 1-Posit(1)-Posit(3)-0.05 Posit(4)]; %[NP(1)+NP(3)+.01 NP(2) 1-NP(1)-NP(3)-.05 NP(4)]
+                        H.ParamL(I)=uicontrol('unit','normal','style','text','string',[Desc ':'],'posit',Posit,'fontsize',FS,'horiz','left','max',2);
+                        Extent = get(H.ParamL(I),'extent');
+                        CurVert = CurVert - (Extent .* [0 0 0 1])*MoveHeightToY - [0 .005 0 0];
+                        if Extent(3) > Posit(3)  %Text will wrap, so add space for second Line
+                            CurVert = CurVert - PLblH*MoveHeightToY;
+                            AdjustedLabelPosit = CurVert + Posit - PLblY + PLblH;
+                        else
+                            AdjustedLabelPosit = CurVert + Posit - PLblY ;
+                        end
+                        set(H.ParamL(I),'posit',AdjustedLabelPosit);
+                        Posit=CurVert + PValX + PValW + AdjustedLabelPosit.*[0 0 0 1];
+                        %Posit=[Posit(1)+Posit(3)+0.01 Posit(2) 1-Posit(1)-Posit(3)-0.05 Posit(4)]; %[NP(1)+NP(3)+.01 NP(2) 1-NP(1)-NP(3)-.05 NP(4)]
                         H.ParamE(I)=uicontrol('unit','norma','style','edit','string','','posit',Posit,'fontsize',FS,'horizon','left','user',ParamList{I});
                         OldParmI=find(strcmpi(OldParam,ParamList{I}));
                         if ~isempty(OldParmI)
@@ -455,6 +474,7 @@ classdef PPMatLib < handle
                     end
                     set(get(handle,'parent'),'user',H);
                 case 'ok'
+                    %ValidChars=char([char('0'):char('9') '_' char('a'):char('z') char('A'):char('Z')]);
                     Success=true;
                     handle=varargin{1};
                     H=get(get(handle,'parent'),'user');
@@ -462,6 +482,10 @@ classdef PPMatLib < handle
                     ThisType=Types{get(H.TypeE,'value')};
                     eval(['NewMat=PPMat' ThisType ';' ]);
                     Name=get(H.NameE,'string');
+                    if ~all(ismember(Name,PPMat.ValidChars))
+                        obj.AddError(sprintf('Material name "%s" is invalid.  It can only contain alphanumerics',Name));
+                        Success=false;
+                    end
                     ArgList=sprintf('''Name'', ''%s'' ',Name);
                     ParamList=NewMat.ParamList;
                     if strcmpi(NewMat.Type,'null')
@@ -473,12 +497,14 @@ classdef PPMatLib < handle
                             obj.AddError(sprintf('Parameter "%s" is empty.',ParamList{I}));
                             Value='NaN';
                             Success=false;
-                        elseif isempty(str2num(Value))
-                            obj.AddError(sprintf('Parameter "%s" is "%s" but must be a number.',ParamList{I},Value));
-                            Value='NaN';
-                            Success=false;
+                        elseif isnan(str2double(Value))
+                            %obj.AddError(sprintf('Parameter "%s" is "%s" but must be a number.',ParamList{I},Value));
+                            Success=true;
+                            ArgList=sprintf('%s, ''%s'', ''%s'' ',ArgList, ParamList{I}, Value);
+                        else
+                            Success=true;
+                            ArgList=sprintf('%s, ''%s'', %s ',ArgList, ParamList{I}, Value);
                         end
-                        ArgList=sprintf('%s, ''%s'', %s ',ArgList, ParamList{I}, Value);
                     end
                     eval(['NewMat=PPMat' ThisType '(' ArgList ');' ]);
                     %assignin('base','NewMat',NewMat)
@@ -668,6 +694,7 @@ classdef PPMatLib < handle
                     if fname ~= 0
                         set(H.LoadBtn,'userdata',pathname);
                         load([pathname fname],'MatLib');
+                        obj.GUIModFlag=true;
                         FigHandle=obj.iMatableF;
                         obj.DelMatl([1:obj.NumMat]);
                         for I=1:MatLib.NumMat
@@ -685,7 +712,11 @@ classdef PPMatLib < handle
                     handle=varargin{1};
                     H=get(get(handle,'parent'),'user');
                     YES='Yes';
-                    Response=questdlg('Are you sure want to discard all changes?','Confirm',YES,'No','No');
+                    if  obj.GUIModFlag
+                        Response=questdlg('Are you sure want to discard all changes?','Confirm',YES,'No','No');
+                    else
+                        Response=YES;
+                    end
                     if strcmpi(Response,YES)
                         OrigMatLib=getappdata(obj.iMatableF,'OrigMatLib');
                         if obj.NumMat>0
@@ -703,7 +734,7 @@ classdef PPMatLib < handle
                     H=get(get(handle,'parent'),'user');
                     obj.DefineNewMaterial('init');
                     uiwait(obj.iNewMatF)
-                    obj.iSource=[obj.iSource '*']
+                    obj.iSource=[obj.iSource '*'];
                     obj.ShowTable('PopulateTable')
                     obj.GUIModFlag=true;
                 case 'save'
@@ -732,6 +763,7 @@ classdef PPMatLib < handle
                     ColData=Data(:,SortCol+1);
                     try
                         [NewCol, Index]=sort(ColData);
+                        obj.GUIModFlag=true;
                     catch ME
                         %ME.getReport
                         try
@@ -811,6 +843,10 @@ classdef PPMatLib < handle
             end
         end
         function Success=ReplMatl(obj, Mat2Repl, NewMat)
+            %function Success=ReplMatl(obj, Mat2Repl, NewMat)
+            %Mat2Repl is either a string (material name) or index number
+            %NewMat is the new material
+            
             if ischar(Mat2Repl)
                 MatNum=find(strcmpi(obj.iNameList,Mat2Repl));
             else
@@ -832,8 +868,20 @@ classdef PPMatLib < handle
         
         function AddMatl(obj, PPMatObject)
             obj.AddError;
+           % ValidChars=char([char('0'):char('9') '_' char('a'):char('z') char('A'):char('Z')]);
             if any(strcmpi(PPMatObject.Name, obj.iNameList))
                 obj.AddError(sprintf('Material "%s" already exists in library (material names MUST be unique).',PPMatObject.Name))
+            end
+            if ~all(ismember(PPMatObject.Name,PPMatObject.ValidChars))
+                NewName=PPMatObject.Name;
+                Spaces=find(NewName==' ');
+                NewName(Spaces)='_';
+                if ~all(ismember(NewName,PPMatObject.ValidChars))
+                    obj.AddError(sprintf('Material name "%s" can contain only alphanumerics.',PPMatObject.Name))
+                else
+                    disp(sprintf('Material name changed from %s to %s\n',PPMatObject.Name, NewName));
+                    PPMatObject.Name=NewName;
+                end
             end
             if strcmpi(PPMatObject.Type,'abstract')
                 obj.AddError(sprintf('Abstract materials cannot be added to the library. (%s)',PPMatObject.Name))
@@ -857,6 +905,87 @@ classdef PPMatLib < handle
                 obj.AddError('No material added.')
                 obj.ShowErrorText;
             end 
+        end
+        
+        function NewMatLib=CreateCopy(obj)
+            PermissibleErrors={'MATLAB:class:noSetMethod'};
+
+            NewMatLib=PPMatLib;
+            for I=1:obj.NumMat
+                NewMatLib.AddMatl(obj.GetMatNum(I))
+            end
+            Props=properties(obj);
+            for I=1:length(Props)
+                try
+                    NewMatLib.(Props{I})=obj.(Props{I});
+                catch ME
+                    if ~any(strcmpi(PermissibleErrors,ME.identifier))
+                        error(ME)
+                    end
+                end
+            end
+        end
+        
+        function NewMatLib=GenerateCases (obj, ParamTable)
+         %If parameters are numeric, or character they are assumed to be a
+         %single value.  If they're a cell array, the cell array is stepped
+         %through and eval'ed.
+         
+            ErrText='';
+            if ~exist('ParamTable','var')
+                ParamTable=obj.ParamTable;
+            end
+            if exist('ParamTable','var') && ~isempty(ParamTable)
+                VarText='';
+                for Ip=1:length(ParamTable(:,1))
+                    if ~isempty(ParamTable{Ip,1})
+                        if isnumeric( ParamTable{Ip,2})
+                            VarText=[VarText  ParamTable{Ip,1} '=ParamTable{Ip,2};' char(10)];
+                        else
+                            VarText=[VarText  ParamTable{Ip,1} '=' ParamTable{Ip,2} ';' char(10)];
+                        end
+                    end
+                end
+                eval(VarText)
+            end
+            BaseMatLib=obj.CreateCopy;
+            NewMatLib=obj.CreateCopy;
+            for Imat=1:BaseMatLib.NumMat
+                ThisMat=BaseMatLib.GetMatNum(Imat);
+                ParamList=ThisMat.ParamList;
+                for Iprop=1:length(ParamList)
+                    ThisPropName=ParamList{Iprop};
+                    ThisPropVal=ThisMat.(ThisPropName);
+                    if ~any(strcmpi(ThisPropName, ThisMat.NoExpandProps))
+                        if ischar(ThisPropVal)
+                            ThisPropVal={ThisPropVal};
+                        elseif isnumeric(ThisPropVal)
+                            ThisPropVal={ThisPropVal};
+                        end
+                        for Ipv=1:length(ThisPropVal(:))
+                            try
+                                OrigThisPropVal=ThisPropVal{Ipv};
+                                if iscell(ThisPropVal{Ipv})
+                                    ErrText=[ErrText newline 'Nest cell array not permitted for "' ThisPropName '" for material "' ThisMat.Name '" as "' ThisPropVal '"'];
+                                else
+                                    if ischar(ThisPropVal{Ipv})
+                                        eval(sprintf('ThisPropVal{%.0f}=%s;',Ipv,ThisPropVal{Ipv}))
+                                    end
+                                end
+                            catch ME
+                                ErrText=[ErrText newline 'Cannot evaluate property "' ThisPropName '" for material "' ThisMat.Name '" as "' ThisPropVal '"'];
+                                ME.getReport
+                                ThisPropVal=NaN;
+                            end
+                            ScalarValue=length(ThisPropVal(:))==1; %If there is a single value it will be placed as a scalar not cell array
+                            if ~isnumeric(ThisPropVal{Ipv}) || length(ThisPropVal{Ipv})~=1  %If the value changed on eval, then cycle through mats
+                                NewMatLib=obj.ExpandMatLib(NewMatLib, ThisPropVal{Ipv}, Imat, ThisPropName, Ipv, ScalarValue);
+                            end
+                        end
+                    end
+                end
+            end
+            [NewMatLib.iExpanded]=deal(true);
         end
     end
 end
