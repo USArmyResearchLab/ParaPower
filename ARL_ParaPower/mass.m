@@ -10,7 +10,8 @@ vol = reshape(reshape(dx'*dy,[],1)*dz,[],1);
 if ~exist('Mask','var')
     cap=RHO.*CP.*vol(Mat>0);
 else
-    cap=RHO(Mask).*CP(Mask).*vol(Mask);
+    solid_vol=vol(Mat>0);
+    cap=RHO(Mask).*CP(Mask).*solid_vol(Mask);
     %make sure your target output variable is also masked!
 end
 
