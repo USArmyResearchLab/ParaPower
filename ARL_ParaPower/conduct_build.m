@@ -68,7 +68,7 @@ end
 
 recip=@(x) 1./x;  %anonymous function handle
 Acond=A_areas.* spfun(recip,A_hLengths);
-Acond=spdiags(K(Map),0,size(Acon,1),size(Acon,2))*Acond;  %conductance from center of element i up to bdry of element j
+Acond=spdiags(K,0,size(Acon,1),size(Acon,2))*Acond;  %conductance from center of element i up to bdry of element j
 Acond=spfun(recip, (spfun(recip,Acond) + spfun(recip,Acond')) );
  
 
@@ -77,7 +77,7 @@ if ~issymmetric(Acond)
 end
 
 Bcond_out=B_areas.* spfun(recip,B_hLengths);
-Bcond_out=spdiags(K(Map),0,size(Acon,1),size(Acon,2))*sparse(Bcond_out);  %conductance from center of element i up to bdry of convection
+Bcond_out=spdiags(K,0,size(Acon,1),size(Acon,2))*sparse(Bcond_out);  %conductance from center of element i up to bdry of convection
 htcs=[hint(-header(header<0)) h(header(header>0))];  %build htcs from header and h lists
 Bcond_in = sparse(B_areas*diag(htcs));
 Bcond = spfun(recip, (spfun(recip,Bcond_out) + spfun(recip,Bcond_in)) );

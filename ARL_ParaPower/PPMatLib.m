@@ -219,7 +219,10 @@ classdef PPMatLib < handle
                 obj.PopulateProps;
             end
             Iprop=find(strcmpi(obj.iParamList, Param));
-            OutParamVec=cell2mat(obj.iPropVals(:,Iprop));
+            OutParamVec=(obj.iPropVals(:,Iprop));
+            if iscell(OutParamVec)
+                OutParamVec = cell2mat(OutParamVec);
+            end
             OutParamVec=reshape(OutParamVec,[],1);
         end
 

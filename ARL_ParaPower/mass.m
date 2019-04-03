@@ -8,7 +8,7 @@ function [cap,vol]=mass(dx,dy,dz,RHO,CP,Mat,Mask)
 
 vol = reshape(reshape(dx'*dy,[],1)*dz,[],1);    
 if ~exist('Mask','var')
-    cap=RHO(Mat>0).*CP(Mat>0).*vol(Mat>0);
+    cap=RHO.*CP.*vol(Mat>0);
 else
     cap=RHO(Mask).*CP(Mask).*vol(Mask);
     %make sure your target output variable is also masked!

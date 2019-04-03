@@ -102,17 +102,7 @@ classdef sPPT < matlab.System & matlab.system.mixin.Propagates ...
                 error(['Incorrect ModelInput version.  V2.0 required, this data is ' ModelInput.Version]);
             end
 
-            kond = MI.MatLib.GetParamVector('k'); %Thermal conductivity of the solid
-            rho = MI.MatLib.GetParamVector('rho'); %density of the solid state
-            spht = MI.MatLib.GetParamVector('cp'); %solid specific heat
 
-            K = zeros(size(Mat));
-            K = reshape(K,[],1);
-            CP=K; %Seeding with 0's, for Matl 0 = seed
-            RHO=K; %Seeding with 0's, for Matl 0 = seed
-            K(Mat ~=0 ) = kond(Mat(Mat~=0));
-            CP(Mat ~=0) = spht(Mat(Mat~=0));
-            RHO(Mat ~=0) = rho(Mat(Mat~=0));
 
 
 
@@ -141,7 +131,18 @@ classdef sPPT < matlab.System & matlab.system.mixin.Propagates ...
             T=zeros(nnz(Mat>0),1); % Temperature DOF vector, must hold at least initial cond and static/single result
             T(:,1)=T_init;
             %Tres=zeros(numel(Mat),size(T,2)); % Nodal temperature results
-
+            
+            kond = MI.MatLib.GetParamVector('k'); %Thermal conductivity of the solid
+            rho = MI.MatLib.GetParamVector('rho'); %density of the solid state
+            spht = MI.MatLib.GetParamVector('cp'); %solid specific heat
+            
+            K = zeros(nnz(Mat>0),1);  %These will have same size as state DOF vectors.
+            CP=K; %Seeding with 0's, for Matl 0 = seed
+            RHO=K; %Seeding with 0's, for Matl 0 = seed
+            K = kond(Mat(Mat>0));
+            CP = spht(Mat(Mat>0));
+            RHO = rho(Mat(Mat>0));
+            
             %% Phase Change Setup Hook
             %PHres=Tres;
             %[isPCM,kondl,rhol,sphtl,Lw,Tm,PH,PH_init] = PCM_init(Mat,matprops,Num_Row,Num_Col,Num_Lay,steps);
@@ -152,6 +153,8 @@ classdef sPPT < matlab.System & matlab.system.mixin.Propagates ...
             
             if any(meltable)
                 %Convert greater than zero mats into a vector for processing
+                kondl= MI.MatLib.GetParamVector('k_l');
+                sphtl = MI.MatLib.GetParamVector('cp_l');
                 rhol = MI.MatLib.GetParamVector('rho_l');
                 Lw = MI.MatLib.GetParamVector('lf');
                 Tmelt = MI.MatLib.GetParamVector('tmelt');
@@ -181,6 +184,9 @@ classdef sPPT < matlab.System & matlab.system.mixin.Propagates ...
             
             %here is where we should implement bottom-up element/material
             %contributions to assembly
+
+            
+            
             meltmask = PH(:,1)>0;
             if any(meltmask)
                 K(meltmask) = 1./( PH(meltmask)./kondl(Mat(Map(meltmask))) +(1-PH(meltmask))./kond(Mat(Map(meltmask))));  %update properties, K using series resistance
@@ -394,13 +400,13 @@ classdef sPPT < matlab.System & matlab.system.mixin.Propagates ...
                         touched=changing | (Aj.adj*changing)>0;  %find not only those elements changing, but those touched by changing elements
                         
                         %update capacitance (only those changing since internal to element)
-                        Cap(changing)=mass(MI.X,MI.Y,MI.Z,obj.RHO,obj.CP,Mat,Map(changing)); %units of J/K
+                        Cap(changing)=mass(MI.X,MI.Y,MI.Z,obj.RHO,obj.CP,Mat,changing); %units of J/K
                         
                         %Entire Rebuild, for testing
                         %[A,B,A_areas,B_areas,A_hLengths,B_hLengths,htcs] = conduct_build(Acon,Bcon,newMap,fullheader,K,hint,h,Mat,dx,dy,dz);
                         
                         %update A and B
-                        [A,B,~] = conduct_update(A,B,Aj.areas,Bj.areas,Aj.hLengths,Bj.hLengths,obj.htcs,obj.K(Map),touched);
+                        [A,B,~] = conduct_update(A,B,Aj.areas,Bj.areas,Aj.hLengths,Bj.hLengths,obj.htcs,obj.K,touched);
                     end
                     
                     

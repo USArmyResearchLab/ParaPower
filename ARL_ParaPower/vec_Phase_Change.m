@@ -36,7 +36,7 @@ if any(changing)  %things are changing phase, update
     %changing now expanded to size of meltmask for direct pass
     
     %Update DOF of changing elements
-    PH(changing) = PH(changing) + direction.*(abs(T(changing)-Tm(Mat(Map(changing))))).*(RHO(Map(changing)).*CP(Map(changing))./Lv(Mat(Map(changing))));  %increment PH according to excess sensible
+    PH(changing) = PH(changing) + direction.*(abs(T(changing)-Tm(Mat(Map(changing))))).*(RHO(changing).*CP(changing)./Lv(Mat(Map(changing))));  %increment PH according to excess sensible
     T(changing) = T(changing) - direction .* abs(T(changing)-Tm(Mat(Map(changing))));                %decrement T by temperature excess
     %Everything right unless overmelted/oversolidified  PH>1 || PH<0
     
@@ -46,13 +46,13 @@ if any(changing)  %things are changing phase, update
     PH(PH_ex~=0)=round(PH(PH_ex~=0));
     
     
-    K(Map(changing)) = 1./( PH(changing)./kondl(Mat(Map(changing))) +(1-PH(changing))./kond(Mat(Map(changing))));  %update properties, K using series resistance
-    CP(Map(changing)) = sphtl(Mat(Map(changing))).*PH(changing)+spht(Mat(Map(changing))).*(1-PH(changing));           %others using rule of mixtures
-    RHO(Map(changing)) = rhol(Mat(Map(changing))).*PH(changing)+rho(Mat(Map(changing))).*(1-PH(changing));
+    K(changing) = 1./( PH(changing)./kondl(Mat(Map(changing))) +(1-PH(changing))./kond(Mat(Map(changing))));  %update properties, K using series resistance
+    CP(changing) = sphtl(Mat(Map(changing))).*PH(changing)+spht(Mat(Map(changing))).*(1-PH(changing));           %others using rule of mixtures
+    RHO(changing) = rhol(Mat(Map(changing))).*PH(changing)+rho(Mat(Map(changing))).*(1-PH(changing));
     
     %walk back PH_ex into T using new properties
     if any(PH_ex)
-        T(changing) = T(changing) + direction .* PH_ex(changing) .* (Lv(Mat(Map(changing)))./(RHO(Map(changing)).*CP(Map(changing))));
+        T(changing) = T(changing) + direction .* PH_ex(changing) .* (Lv(Mat(Map(changing)))./(RHO(changing).*CP(changing)));
     end
     
 else %no change
