@@ -178,7 +178,18 @@ classdef sPPT < matlab.System & matlab.system.mixin.Propagates ...
             [Aj.adj,Bj.adj,~,Map]=Connect_Init(Mat,h);
             [Aj.adj,Bj.adj,Map,fullheader,Ta_vec]=null_void_init(Mat,h,hint,Aj.adj,Bj.adj,Map,Ta,Ta_void);
             %fullheader=[header find(h)];  %fullheader is a rowvector of negative matnums and a subset of 1 thru 6
+            
+            %here is where we should implement bottom-up element/material
+            %contributions to assembly
+            meltmask = PH(:,1)>0;
+            if any(meltmask)
+                K(meltmask) = 1./( PH(meltmask)./kondl(Mat(Map(meltmask))) +(1-PH(meltmask))./kond(Mat(Map(meltmask))));  %update properties, K using series resistance
+                CP(Map(meltmask)) = sphtl(Mat(Map(meltmask))).*PH(meltmask)+spht(Mat(Map(meltmask))).*(1-PH(meltmask));           %others using rule of mixtures
+                RHO(Map(meltmask)) = rhol(Mat(Map(meltmask))).*PH(meltmask)+rho(Mat(Map(meltmask))).*(1-PH(meltmask));
+            end
+                
             [A,B,Aj.areas,Bj.areas,Aj.hLengths,Bj.hLengths,htcs] = conduct_build(Aj.adj,Bj.adj,Map,fullheader,K,hint,h,Mat,MI.X,MI.Y,MI.Z);
+           
             if isempty(B)
                 B=spalloc(size(C,1),size(C,2),0);
                 fullheader=1;
@@ -258,6 +269,12 @@ classdef sPPT < matlab.System & matlab.system.mixin.Propagates ...
               %element, and is the basis of the timestepping.   Time-dep
               %conditions are still referenced by the absolute time of GT.
            
+              
+              %Big changes need to be had here
+              %Time stationary iteration can be performed if the simulation
+              %can revert to earlier time steps and recompute.  This
+              %iterative looping will be done external to the object
+              %(repeated calls).
             else
               disp('Using absolute time input')
               if isempty(GlobalTime) || any(isnan(GlobalTime))
@@ -265,6 +282,17 @@ classdef sPPT < matlab.System & matlab.system.mixin.Propagates ...
                   time_in=[];
               else
                   time_in=obj.GlobalTime(end);
+                  %three cases
+                  % 1. advance time... all(GlobalTime > time_in) == 1 
+                  % 2. time reversal to beyond stored record
+                  %        ...  all(GlobalTime < obj.GlobalTime(1)) == 1
+                  %        THROW ERROR
+                  % 3. resume simulation from prior state e.g. to iterative
+                  % update    ... 
+                  
+                  
+                  
+                  
                   if ~(time_in < GlobalTime(1))
                       error('non-positive initial step')
                   end
@@ -456,7 +484,7 @@ classdef sPPT < matlab.System & matlab.system.mixin.Propagates ...
         function resetImpl(obj)
             % Initialize / reset discrete-state properties
         end
-
+        
         %% Backup/restore functions
         function s = saveObjectImpl(obj)
             % Set properties in structure s to values in object obj
@@ -605,4 +633,17 @@ classdef sPPT < matlab.System & matlab.system.mixin.Propagates ...
             group = matlab.system.display.Section(mfilename("class"));
         end
     end
+    
+    methods(Access = public)
+         function obj=load_T_init(obj,T_init)
+            % Load Predefined T_init distribution into internal state
+            obj.T(:,end)=T_init(obj.Map);
+         end
+        
+         function obj=load_PH_init(obj,PH_init)
+         % Load Predefined T_init distribution into internal state
+            obj.PH(:,end)=PH_init(obj.Map);
+         end
+    end
+    
 end

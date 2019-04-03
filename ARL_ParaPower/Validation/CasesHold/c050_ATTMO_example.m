@@ -133,3 +133,6 @@ TestCaseModel.Version='V2.1';
 
 MI=FormModel(TestCaseModel);
 MI.GlobalTime=[-1,-.01];  %hijinks so that ATTMO can take the first timestep to be at t=0
+
+s1 = sPPT('MI',MI);
+[T_out,T_in,PH_out,PH_in]=s1();
