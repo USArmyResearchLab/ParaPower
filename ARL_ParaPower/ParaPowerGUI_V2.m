@@ -797,7 +797,7 @@ function RunAnalysis_Callback(hObject, eventdata, handles)
                 setup(S1,[]);
                 StepsToEstimate=2;
                 tic
-                [Tprnt, T_in, MeltFrac,MeltFrac_in]=S1(ComputeTime(1:min(StepsToEstimate,length(ComputeTime))));  %Compute states at times in ComputeTime (S1 must be called with 1 arg in 2017b)
+                [Tprnt, T_in, MeltFrac,MeltFrac_in]=S1([InitTime ComputeTime(1:min(StepsToEstimate,length(ComputeTime)))]);  %Compute states at times in ComputeTime (S1 must be called with 1 arg in 2017b)
                 EstTime=toc;
                 if length(ComputeTime)>StepsToEstimate
                     AddStatusLine(sprintf(' (est. %.1fs)... ',EstTime*(length(ComputeTime)-StepsToEstimate)/StepsToEstimate), true)

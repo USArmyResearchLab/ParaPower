@@ -388,10 +388,11 @@ classdef sPPT < matlab.System & matlab.system.mixin.Propagates ...
             PH_in(Mat>0,:)=PH(:,1);
             PHres(Mat>0,:)=PH(:,2:end);
             
-            T_in=reshape(T_in,size(MI.Model));
-            Tres=reshape(Tres,[size(MI.Model) length(GlobalTime)-1]);
-            PH_in=reshape(PH_in,size(MI.Model));
-            PHres=reshape(PHres,[size(MI.Model) length(GlobalTime)-1]);
+            [modelsize(1),modelsize(2),modelsize(3)]=size(MI.Model);
+            T_in=reshape(T_in,modelsize);
+            Tres=reshape(Tres,[modelsize length(GlobalTime)-1]);
+            PH_in=reshape(PH_in,modelsize);
+            PHres=reshape(PHres,[modelsize length(GlobalTime)-1]);
             
             obj.T_in=T_in;
             obj.Tres=Tres;

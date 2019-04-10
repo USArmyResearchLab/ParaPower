@@ -67,7 +67,7 @@ classdef PPTCM  %PP Test Case Model
                     QTextOut{I}=char(QHFn(I));
                 end
             else
-                QTextOut{1}=['' QText];
+                QTextOut{1}=['' Qtext];
                 %EvalText=[VarText 'Qhandle{1}=@(t)(-1)*' Qtext ';'];
                 %eval([EvalText ';']);
             end
