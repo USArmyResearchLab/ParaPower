@@ -36,7 +36,7 @@ function Visualize (PlotTitle, MI, varargin)
     DeltaCoord=  {MI.X MI.Y MI.Z};
     ModelMatrix=MI.Model;
 	
-	SzModel=size(ModelMatrix);
+	[SzModel(1),SzModel(2),SzModel(3)]=size(ModelMatrix);
 	if (length(MI.X) ~= SzModel(1)) || (length(MI.Y) ~=SzModel(2)) || (length(MI.Z) ~= SzModel(3))
 		fprintf(' %10s %9s %9s %9s \n %10s %9i %9i %9i \n %10s %9i %9i %9i\n', ...
 		           '','Rows(X)','Columns(Y)','Layers(Z)', ...

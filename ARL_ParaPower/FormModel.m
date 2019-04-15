@@ -201,7 +201,7 @@ ModelMatrix=nan*zeros(length(DeltaCoord.X),length(DeltaCoord.Y),length(DeltaCoor
 %Q=zeros([size(ModelMatrix) Params.Tsteps]);
 S=size(ModelMatrix);
 if length(S)<3
-    error(['Model cannot be planar. It must have a minimum of 2 elements in each direction.'])
+    %error(['Model cannot be planar. It must have a minimum of 2 elements in each direction.'])
 end
 Q=cell(S);
 %Q=zeros([size(ModelMatrix) Params.Tsteps]);
