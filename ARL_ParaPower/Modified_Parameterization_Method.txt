@@ -1,0 +1,12 @@
+Loop over parameter cell array
+	Eval Param_N
+	If Param_N is vector, clear and store it in VectorParamCellArray
+	If Param_N is a scalar, store it in ScalarParamCellArray
+End Loop
+Loop Over VecParam1
+ Store 1st Value of VecParm1 into ThisVecParm1 and put in ScalarParamCellArray
+ Eval material at scalarparamcellarray
+ Eval rest at ScalarParamcellarray
+Workspace has scalar Parameters defined defined.
+Loop over props.
+

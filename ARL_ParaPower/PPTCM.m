@@ -67,7 +67,7 @@ classdef PPTCM  %PP Test Case Model
                     QTextOut{I}=char(QHFn(I));
                 end
             else
-                QTextOut{1}=['' QText];
+                QTextOut{1}=['' Qtext];
                 %EvalText=[VarText 'Qhandle{1}=@(t)(-1)*' Qtext ';'];
                 %eval([EvalText ';']);
             end
@@ -134,169 +134,187 @@ classdef PPTCM  %PP Test Case Model
             else
                 VariableList=obj.VariableList;
             end
-            if ~isempty(VariableList)
-                VarEval='';
-                for Row=1:length(VariableList(:,1))
-                    try
-                        if isnumeric(VariableList{Row,2})
-                            VarEval=[VariableList{Row,1} '=VariableList{Row,2}; '];
-                        elseif isempty(VariableList{Row,1})
-                            VarEval='';
-                        else
-                            VarEval=[VariableList{Row,1} '=' VariableList{Row,2} ';'];
-                        end
-                        eval(VarEval);
-                    catch ME
-                        ErrText=[ErrText sprintf('Variable ''%s'' must be a string that evaluates to a numeric scalar or vector (''%s'')\n',VariableList{Row,1}, VariableList{Row,2})];
-                    end
-                end
+            VectorParamList={};
+            ScalarParamList={};
+            if exist('TestVar','var')
+                error('TestVar is a reserved variable name for this subroutine and cannot be use externally')
             end
+            [ScalarParamList, VectorParamList]=SeparateScalarVector(VariableList);
+
             if ~isempty(ErrText)
                 error(ErrText)
             end
-            ErrText='';
-            TCMmaster=obj;
-            TCMout=obj;
-            MatLibList=TCMout.MatLib.GenerateCases(TCMout.VariableList);
             
-            TCMout.VariableList={}; %Since TCMout will contain no variables, strike the variable list from it.
-            NewTCM=[];
-            for Imat=1:length(MatLibList)
-                NewTCM=[NewTCM TCMout];
-                NewTCM(end).MatLib=MatLibList(Imat);
-                NewTCM(end).ParamVar=MatLibList(Imat).ParamVar;
-                %NewTCM(end).
-            end
-            TCMout=NewTCM;
-            clear NewTCM
-            PropList=properties(TCMmaster);
-            PropList=PropList(~strcmpi(PropList,'Version'));      %These properties will NOT be cycled through
-            PropList=PropList(~strcmpi(PropList,'VariableList')); %These properties will NOT be cycled through
-            PropList=PropList(~strcmpi(PropList,'MatLib'));       %These properties will NOT be cycled through
-            PropList=PropList(~strcmpi(PropList,'ParamVar'));     %These properties will NOT be cycled through
-            for Ip=1:length(PropList)  %go through list of properties
-                ThisPropName=PropList{Ip}; %DEBUG
-                ThisPropVal=TCMmaster.(ThisPropName);
-                if iscell(ThisPropVal)
-                    error('Cell valued properties are not yet addressed.')
-                elseif isstruct(ThisPropVal)
-                    for Ipe=1:length(ThisPropVal)   %go through each element when a property is an array
-                        ThisPropValElement=ThisPropVal(Ipe);
-                        FieldList=fieldnames(ThisPropValElement);
-                        FieldList=FieldList(~strcmpi(FieldList,'Desc'));  %These fields will NOT be cycled through
-                        %FieldList=FieldList(~strcmpi(FieldList,'Q'));     %These fields will NOT be cycled through
-                        for Ifl=1:length(FieldList)
-                            ThisFieldName=FieldList{Ifl};
-                            ThisFieldVal=ThisPropValElement.(ThisFieldName);
-                            if strcmpi(ThisFieldName,'Matl')  %Materials must be treated differently becasue they are a cell array of strings
-                                if isempty(ThisFieldVal)                            %Specificly for Matieral Field
-                                    ThisFieldVal={''};                                 %Specificly for Matieral Field
-                                elseif ischar(ThisFieldVal)                         %Specificly for Matieral Field
-                                    ThisFieldVal=ThisFieldVal(ThisFieldVal~=' '); %Remove spaces     %Specificly for Matieral Field
-                                    ThisFieldVal=split(ThisFieldVal,','); %Separate by commas     %Specificly for Matieral Field
-                                elseif iscell(ThisFieldVal)                         %Specificly for Matieral Field
-                                    ThisFieldVal=ThisFieldVal;                         %Specificly for Matieral Field
-                                end                                                 %Specificly for Matieral Field
-                                for Imat=1:length(ThisFieldVal)
-                                    if isempty(TCMmaster.MatLib.GetMatName(ThisFieldVal{Imat}))
-                                        ErrText=[ErrText sprintf('Material ''%s'' does not exist in the library\n',ThisFieldVal{Imat})];
-                                        ThisFieldVal{Imat}='XXXX';
-                                    end
-                                end
-                                ThisFieldVal=ThisFieldVal(~strcmpi(ThisFieldVal,'XXXX'));
-                                TCMout=ExpandTCM(TCMout, ThisFieldVal, ThisPropName, Ipe, ThisFieldName);
-                            elseif ismember(ThisFieldName,{'Q'})  %Q treated differently since they are more than 1 element
-                                if isempty(ThisFieldVal) || (isnumeric(ThisFieldVal) && length(ThisFieldVal(1,:))==2) %Q is a table
-                                    %Do Nothing at this point as tables don't allow parameters
-                                elseif isnumeric(ThisFieldVal) && isscalar(ThisFieldVal)
-                                    %Do nothing, it's a scalar number
-                                elseif ischar(ThisFieldVal) %Could be a parameter or a function
-                                    try %Try without defining 't', should be numeric result if not dependent on t
-                                        if exist('t','var')
-                                            Old_t=t;
-                                        else
-                                            Old_t=[];
-                                        end
-                                        clear t
-                                        EvalString='';
-                                        EvalString=[EvalString sprintf('ThisFieldVal=%s;\n',ThisFieldVal)];
-                                        eval(EvalString)
-                                        t=Old_t;
-                                    catch ME  %If it is dependent on 't' then use create array
-                                        try
-                                            %ThisFieldVal will be an array of functions if the functional form of Q evaluates to multiple functions
-                                            ThisFieldVal={ThisFieldVal}; %Esnures ThisFieldVal is a cell whether or not eval succedes.
-                                            ThisFieldVal=TCMmaster.GenQFunction(ThisFieldVal{1}, VariableList);  %Output will ALWAYS be a cell array
-                                            eval(['TestFn=@(t)' ThisFieldVal{1} ';']);
-                                            TestFn(0);
-                                        catch ME
-                                            ErrText=[ErrText sprintf('Unknown equation form of Q in TCM.%s(%.0f).%s=%s\n',ThisPropName, Ipe, ThisFieldName,ThisFieldVal{1})];
-                                            ThisFieldVal=[];
-                                        end
-                                    end
-                                    TCMout=ExpandTCM(TCMout, ThisFieldVal, ThisPropName, Ipe, ThisFieldName);
-                                else
-                                    ErrText=[ErrText sprintf('Unknown form of Q in TCM.%s(%.0f).%s(%.0f).Q\n',ThisFieldValElement,ThisPropName, Ipe, ThisFieldName,Ife)];
-                                end
-                            elseif ismember(ThisFieldName,{'x', 'y', 'z'})  %X, Y, Z treated differently since they are more than 1 element
-                                if isnumeric(ThisFieldVal)
-                                    ThisFieldVal=num2cell(ThisFieldVal);
-                                end
-                                for Ife=1:length(ThisFieldVal)  %Go through each element of the field
-                                    ThisFieldValElement=ThisFieldVal{Ife};
-                                    if ischar(ThisFieldValElement)
-                                        try
-                                            eval(['ThisFieldValElement=' ThisFieldValElement ';'])
-                                            if ~isnumeric(ThisFieldValElement)
-                                                ErrText=[ErrText sprintf('Non-numeric: "%s" for TCM.%s(%.0f).%s(%.0f)\n',ThisFieldValElement,ThisPropName, Ipe, ThisFieldName,Ife)];
-                                                ThisFieldValElement=[];
-                                            end
-                                        catch ME
-                                            ErrText=[ErrText sprintf('Cannot evaluate "%s" for TCM.%s(%.0f).%s(%.0f)\n',ThisFieldValElement,ThisPropName, Ipe, ThisFieldName,Ife)];
-                                            ThisFieldValElement=[];
-                                        end
-                                    end
-                                    TCMout=ExpandTCM(TCMout, ThisFieldValElement, ThisPropName, Ipe, ThisFieldName, Ife);
-                                end
-                            else %Single valued fields
-                                if ischar(ThisFieldVal)
-                                    try
-                                        eval(['ThisFieldVal=' ThisFieldVal ';'])
-                                        if  ~isnumeric(ThisFieldVal)
-                                            ErrText=[ErrText sprintf('Non-numeric: "%s" for TCM.%s(%.0f).%s\n',ThisFieldVal,ThisPropName, Ipe, ThisFieldName)];
-                                            ThisFieldVal=[];
-                                        end
-                                    catch ME
-                                        ErrText=[ErrText sprintf('Cannot evaluate "%s" for TCM.%s(%.0f).%s\n',ThisFieldVal,ThisPropName, Ipe, ThisFieldName)];
-                                        ThisFieldVal=[];
-                                    end
-                                end
-                                TCMout=ExpandTCM(TCMout, ThisFieldVal, ThisPropName, Ipe, ThisFieldName);
-                            end
-                        end
-                    end
-                else
-                    if ischar(ThisPropVal)
-                        try
-                            eval(['ThisPropVal=' ThisPropVal ';']) 
-                            if  ~isnumeric(ThisPropVal)
-                                ErrText=[ErrText sprintf('Non-numeric value: "%s" for TCM.%s\n',ThisFieldVal,ThisPropName)];
-                                ThisPropVal=[];
-                            end
-                        catch ME
-                            ErrText=[ErrText sprintf('Cannot evaluate "%s" for TCM.%s\n',ThisPropVal,ThisPropName)];
-                            ErrText=[ErrText 'Cannot evaluate element ' ThisPropName ' = ' ThisPropVal char(10)  ];
-                            ThisPropVal=[];
-                        end
-                    end
-                    TCMout=ExpandTCM(TCMout, ThisPropVal, ThisPropName);
+            %Evaluate and error check the scalar parameter list
+            for Row=1:length(ScalarParamList(:,1))
+                if length(ScalarParamList{Row,2}) ~= 1
+                    ErrText=[ErrText sprintf('Variable ''%s'' does not evaluate to scalar.',ScalarParamList{Row,1}) ];
                 end
             end
-            [TCMout.iExpanded]=deal(true);
-            if ~isempty(ErrText)
-                warning([char(10) ErrText])
-                TCMout=ErrText;
+            
+            ErrText='';
+            TCMmaster=obj;  %Preserve the PPTCM object that's passed into the fuction.
+            TCMout=obj;     %Set the starting point for the permuations of the PPTCM
+            TCMout.VariableList={}; %Since TCMout will contain no variables, strike the variable list from it.  This will hold the final permutations w/o any variable elements
+            
+            
+            for Ivp=1:length(VectorParamList(:,1))
+                VecParamName=VectorParamList{Ivp,1};
+                VecParamVal=VectorParamList{Ivp,2};
+                for CurVecParamVal=VecParamVal
+                    %try
+                    %    eval([VecParamName '=CurVecParamVal;']);
+                    %catch ME
+                    %    ME.getReport
+                    %end
+                    TempScalarParamList=[ScalarParamList; {VecParamName CurVecParamVal}];
+                    NewTCM=[];  %Buffer to hold the material perturbation (Im)
+                    for Itcm=1:length(TCMout)
+                        MatLibList=TCMout(Itcm).MatLib.GenerateCases(TempScalarParamList); %Develop the material permutations
+                        for Imat=1:length(MatLibList)
+                            NewTCM=[NewTCM TCMout(Itcm)];
+                            NewTCM(end).MatLib=MatLibList(Imat);
+                            NewTCM(end).ParamVar=[MatLibList(Imat).ParamVar; {VecParamName CurVecParamVal}];
+                            %NewTCM(end).
+                        end
+                    end
+                    TCMout=NewTCM;
+                    clear NewTCM NewNewTCM
+                    PropList=properties(TCMmaster);
+                    PropList=PropList(~strcmpi(PropList,'Version'));      %These properties will NOT be cycled through
+                    PropList=PropList(~strcmpi(PropList,'VariableList')); %These properties will NOT be cycled through
+                    PropList=PropList(~strcmpi(PropList,'MatLib'));       %These properties will NOT be cycled through
+                    PropList=PropList(~strcmpi(PropList,'ParamVar'));     %These properties will NOT be cycled through
+                    for Ip=1:length(PropList)  %go through list of properties
+                        ThisPropName=PropList{Ip}; %DEBUG
+                        ThisPropVal=TCMmaster.(ThisPropName);
+                        if iscell(ThisPropVal)
+                            error('Cell valued properties are not yet addressed.')
+                        elseif isstruct(ThisPropVal)
+                            for Ipe=1:length(ThisPropVal)   %go through each element when a property is an array
+                                ThisPropValElement=ThisPropVal(Ipe);
+                                FieldList=fieldnames(ThisPropValElement);
+                                FieldList=FieldList(~strcmpi(FieldList,'Desc'));  %These fields will NOT be cycled through
+                                %FieldList=FieldList(~strcmpi(FieldList,'Q'));     %These fields will NOT be cycled through
+                                for Ifl=1:length(FieldList)
+                                    ThisFieldName=FieldList{Ifl};
+                                    ThisFieldVal=ThisPropValElement.(ThisFieldName);
+                                    if strcmpi(ThisFieldName,'Matl')  %Materials must be treated differently becasue they are a cell array of strings
+                                        if isempty(ThisFieldVal)                            %Specificly for Matieral Field
+                                            ThisFieldVal={''};                                 %Specificly for Matieral Field
+                                        elseif ischar(ThisFieldVal)                         %Specificly for Matieral Field
+                                            ThisFieldVal=ThisFieldVal(ThisFieldVal~=' '); %Remove spaces     %Specificly for Matieral Field
+                                            ThisFieldVal=split(ThisFieldVal,','); %Separate by commas     %Specificly for Matieral Field
+                                        elseif iscell(ThisFieldVal)                         %Specificly for Matieral Field
+                                            ThisFieldVal=ThisFieldVal;                         %Specificly for Matieral Field
+                                        end                                                 %Specificly for Matieral Field
+                                        for Imat=1:length(ThisFieldVal)
+                                            if isempty(TCMmaster.MatLib.GetMatName(ThisFieldVal{Imat}))
+                                                ErrText=[ErrText sprintf('Material ''%s'' does not exist in the library\n',ThisFieldVal{Imat})];
+                                                ThisFieldVal{Imat}='XXXX';
+                                            end
+                                        end
+                                        ThisFieldVal=ThisFieldVal(~strcmpi(ThisFieldVal,'XXXX'));
+                                        TCMout=ExpandTCM(TCMout, ThisFieldVal, ThisPropName, Ipe, ThisFieldName);
+                                    elseif ismember(ThisFieldName,{'Q'})  %Q treated differently since they are more than 1 element
+                                        if isempty(ThisFieldVal) || (isnumeric(ThisFieldVal) && length(ThisFieldVal(1,:))==2) %Q is a table
+                                            %Do Nothing at this point as tables don't allow parameters
+                                        elseif isnumeric(ThisFieldVal) && isscalar(ThisFieldVal)
+                                            %Do nothing, it's a scalar number
+                                        elseif ischar(ThisFieldVal) %Could be a parameter or a function
+                                            try %Try without defining 't', should be numeric result if not dependent on t
+                                                if exist('t','var')
+                                                    Old_t=t;
+                                                else
+                                                    Old_t=[];
+                                                end
+                                                clear t
+                                                %EvalString='';
+                                                %EvalString=[EvalString sprintf('ThisFieldVal=%s;\n',ThisFieldVal)];
+                                                %eval(EvalString)
+                                                ThisFieldVal=ProtectedEval(ThisFieldVal, TempScalarParamList);
+                                                t=Old_t;
+                                            catch ME  %If it is dependent on 't' then use create array
+                                                try
+                                                    %ThisFieldVal will be an array of functions if the functional form of Q evaluates to multiple functions
+                                                    ThisFieldVal={ThisFieldVal}; %Esnures ThisFieldVal is a cell whether or not eval succedes.
+                                                    ThisFieldVal=TCMmaster.GenQFunction(ThisFieldVal{1}, VariableList);  %Output will ALWAYS be a cell array
+                                                    eval(['TestFn=@(t)' ThisFieldVal{1} ';']);
+                                                    TestFn(0);
+                                                catch ME
+                                                    ErrText=[ErrText sprintf('Unknown equation form of Q in TCM.%s(%.0f).%s=%s\n',ThisPropName, Ipe, ThisFieldName,ThisFieldVal{1})];
+                                                    ThisFieldVal=[];
+                                                end
+                                            end
+                                            TCMout=ExpandTCM(TCMout, ThisFieldVal, ThisPropName, Ipe, ThisFieldName);
+                                        else
+                                            ErrText=[ErrText sprintf('Unknown form of Q in TCM.%s(%.0f).%s(%.0f).Q\n',ThisFieldValElement,ThisPropName, Ipe, ThisFieldName,Ife)];
+                                        end
+                                    elseif ismember(ThisFieldName,{'x', 'y', 'z'})  %X, Y, Z treated differently since they are more than 1 element
+                                        if isnumeric(ThisFieldVal)
+                                            ThisFieldVal=num2cell(ThisFieldVal);
+                                        end
+                                        for Ife=1:length(ThisFieldVal)  %Go through each element of the field
+                                            ThisFieldValElement=ThisFieldVal{Ife};
+                                            if ischar(ThisFieldValElement)
+                                                try
+                                                    ThisFieldValElement=ProtectedEval(ThisFieldValElement,TempScalarParamList);
+                                                    %eval(['ThisFieldValElement=' ThisFieldValElement ';'])
+                                                    if ~isnumeric(ThisFieldValElement)
+                                                        ErrText=[ErrText sprintf('Non-numeric: "%s" for TCM.%s(%.0f).%s(%.0f)\n',ThisFieldValElement,ThisPropName, Ipe, ThisFieldName,Ife)];
+                                                        ThisFieldValElement=[];
+                                                    end
+                                                catch ME
+                                                    ErrText=[ErrText sprintf('Cannot evaluate "%s" for TCM.%s(%.0f).%s(%.0f)\n',ThisFieldValElement,ThisPropName, Ipe, ThisFieldName,Ife)];
+                                                    ThisFieldValElement=[];
+                                                end
+                                            end
+                                            TCMout=ExpandTCM(TCMout, ThisFieldValElement, ThisPropName, Ipe, ThisFieldName, Ife);
+                                        end
+                                    else %Single valued fields
+                                        if ischar(ThisFieldVal)
+                                            try
+                                                %eval(['ThisFieldVal=' ThisFieldVal ';'])
+                                                ThisFieldVal=ProtectedEval(ThisFieldVal,TempScalarParamList);
+                                                if  ~isnumeric(ThisFieldVal)
+                                                    ErrText=[ErrText sprintf('Non-numeric: "%s" for TCM.%s(%.0f).%s\n',ThisFieldVal,ThisPropName, Ipe, ThisFieldName)];
+                                                    ThisFieldVal=[];
+                                                end
+                                            catch ME
+                                                ErrText=[ErrText sprintf('Cannot evaluate "%s" for TCM.%s(%.0f).%s\n',ThisFieldVal,ThisPropName, Ipe, ThisFieldName)];
+                                                ThisFieldVal=[];
+                                            end
+                                        end
+                                        TCMout=ExpandTCM(TCMout, ThisFieldVal, ThisPropName, Ipe, ThisFieldName);
+                                    end
+                                end
+                            end
+                        else
+                            if ischar(ThisPropVal)
+                                try
+                                    ThisPropVal=ProtectedEval(ThisPropVal,TempScalarParamList);
+                                    %eval(['ThisPropVal=' ThisPropVal ';']) 
+                                    if  ~isnumeric(ThisPropVal)
+                                        ErrText=[ErrText sprintf('Non-numeric value: "%s" for TCM.%s\n',ThisFieldVal,ThisPropName)];
+                                        ThisPropVal=[];
+                                    end
+                                catch ME
+                                    ErrText=[ErrText sprintf('Cannot evaluate "%s" for TCM.%s\n',ThisPropVal,ThisPropName)];
+                                    ErrText=[ErrText 'Cannot evaluate element ' ThisPropName ' = ' ThisPropVal char(10)  ];
+                                    ThisPropVal=[];
+                                end
+                            end
+                            TCMout=ExpandTCM(TCMout, ThisPropVal, ThisPropName);
+                        end
+                    end
+                    [TCMout.iExpanded]=deal(true);
+                    if ~isempty(ErrText)
+                        warning([char(10) ErrText])
+                        TCMout=ErrText;
+                    end
+                end
             end
+            
         end
         
         function FeaturesOut=get.ExternalConditions(obj)
@@ -545,6 +563,76 @@ function VA=ComputeVA(DCoord)
 
     %Combine the areas of the zero thickness elements and make them imag.
     VA=VA + (Ax+Ay+Az)*1i;
+end
+
+function OutVar=ProtectedEval(InString, VarList)
+    ErrText='';
+    OutVar=[];
+    EvalText='';
+    for Ivar=1:length(VarList)
+        if exist(VarList{Ivar,1},'var')
+            Stxt=sprintf('''%s'' variable already exists in the namespace. Please change your variable name.\n',VarName);
+            ErrText=[ErrText Stxt];
+        else
+            EvalText=[EvalText VarList{Ivar,1} '=VarList{Ivar,2};'];
+        end
+    end
+    EvalText=[EvalText 'OutVar=' InString ';'];
+    if length(ErrText)==0
+        eval(EvalText)
+    else
+        error(ErrText)
+    end
+    
+end
+        
+function [Scalar, Vector]=SeparateScalarVector(VariableList)
+    Scalar={};
+    Vector={};
+    ErrText='';
+    if ~isempty(VariableList)
+        VarEval='';
+        for Row=1:length(VariableList(:,1))
+            VarName=VariableList{Row,1};
+            if exist(VarName,'var')
+                Stxt=sprintf('''%s'' variable already exists in the namespace. Please change your variable name.',VarName);
+                ErrText=[ErrText Stxt];
+                warning(Stxt);
+                VariableList{Row,1}='';
+                VariableList{Row,2}=[];
+            else
+                try
+                    if isnumeric(VariableList{Row,2})
+                        VarEval=[VarEval sprintf('%s=VariableList{%i,2};',VariableList{Row,1}, Row)];
+                    elseif isempty(VariableList{Row,1})
+                        VarEval=[VarEval VariableList{Row,1} '=[];'];
+                    elseif iscell(VariableList{Row,2})
+                        VarEval=[VarEval sprintf('%s=VariableList{%i,2};',VariableList{Row,1 }, Row)];
+                    else
+                        VarEval=[VarEval VariableList{Row,1} '=' VariableList{Row,2} ';' ];
+                    end
+                catch ME
+                    ErrText=[ErrText sprintf('Variable ''%s'' cannot be evaluated\n',VariableList{Row,1})];
+                end
+            end
+        end
+        eval(VarEval); %Evaluate all the variables in order given.
+        for Row=1:length(VariableList(:,1))
+            if ~isempty(VariableList{Row,1})
+                eval(['TestVar=' VariableList{Row,1} ';'])
+                if ischar(TestVar)
+                    Scalar=[Scalar; {VariableList{Row,1} TestVar}];
+                elseif length(TestVar)==1
+                    Scalar=[Scalar; {VariableList{Row,1} TestVar}];
+                else
+                    Vector=[Vector; {VariableList{Row,1} TestVar}];
+                end
+            end
+        end
+    end   
+    if ~isempty(ErrText)
+        error(ErrText)
+    end
 end
 
 function TCMnew=ExpandTCM(TCMinstance, Values, Prop, Iprop, Field, Ifield)
