@@ -5,6 +5,11 @@ classdef hookPPT < scPPT
     end
     
     methods (Access = protected)
+        function setupImpl(obj)
+            setupImpl@scPPT(obj);
+            obj.GlobalTime = [-1];
+        end
+        
         function [bdry_watts] = stepImpl(obj,GlobalTime,htcs,Ta_vec)
             obj.htcs=htcs;
             obj.Ta_vec=Ta_vec;
@@ -37,8 +42,12 @@ classdef hookPPT < scPPT
         
         function outsz = getOutputSizeImpl(obj)
             numsteps = propagatedInputSize(obj,1);
-            outsz = [10 numsteps(2)];  %10 being the number of nodes in the input model
-        end        
+            if isempty(obj.GlobalTime)
+                outsz = [10 1];  %Need to case-handle first iteration.
+            else
+                outsz = [10 numsteps(2)];  %10 being the number of nodes in the input model
+            end
+        end
         
         function outtype = isOutputFixedSizeImpl(obj)
             outtype = propagatedInputFixedSize(obj,1);
