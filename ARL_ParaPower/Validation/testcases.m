@@ -99,7 +99,7 @@ for Icase=1:length(testcasefiles)
         MI.GlobalTime=GlobalTimeOrig(1);  %Setup initialization
         S1=scPPT('MI',MI); %Initialize object
         setup(S1,[]);
-        [Tprnt, T_in, MeltFrac,MeltFrac_in]=S1(GlobalTimeOrig(2:end));  %Compute states at times in ComputeTime (S1 must be called with 1 arg in 2017b)
+        [Tprnt, T_in, MeltFrac,MeltFrac_in]=S1(GlobalTimeOrig(1:end));  %Compute states at times in ComputeTime (S1 must be called with 1 arg in 2017b)
         NewResults.Tprnt   =cat(4, T_in        , Tprnt  );
         NewResults.MeltFrac=cat(4, MeltFrac_in , MeltFrac);
         MI.GlobalTime = GlobalTimeOrig; %Reassemble MI's global time to match initialization and computed states.
