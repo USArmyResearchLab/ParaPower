@@ -134,8 +134,6 @@ classdef PPTCM  %PP Test Case Model
             else
                 VariableList=obj.VariableList;
             end
-            VectorParamList={};
-            ScalarParamList={};
             if exist('TestVar','var')
                 error('TestVar is a reserved variable name for this subroutine and cannot be use externally')
             end
@@ -146,9 +144,11 @@ classdef PPTCM  %PP Test Case Model
             end
             
             %Evaluate and error check the scalar parameter list
-            for Row=1:length(ScalarParamList(:,1))
-                if length(ScalarParamList{Row,2}) ~= 1
-                    ErrText=[ErrText sprintf('Variable ''%s'' does not evaluate to scalar.',ScalarParamList{Row,1}) ];
+            if ~isempty(ScalarParamList)
+                for Row=1:length(ScalarParamList(:,1))
+                    if length(ScalarParamList{Row,2}) ~= 1
+                        ErrText=[ErrText sprintf('Variable ''%s'' does not evaluate to scalar.',ScalarParamList{Row,1}) ];
+                    end
                 end
             end
             
@@ -595,7 +595,7 @@ function OutVar=ProtectedEval(InString, VarList)
     ErrText='';
     OutVar=[];
     EvalText='';
-    for Ivar=1:length(VarList)
+    for Ivar=1:length(VarList(:,1))
         if exist(VarList{Ivar,1},'var')
             Stxt=sprintf('''%s'' variable already exists in the namespace. Please change your variable name.\n',VarName);
             ErrText=[ErrText Stxt];
