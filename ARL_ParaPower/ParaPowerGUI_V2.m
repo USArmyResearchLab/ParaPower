@@ -26,7 +26,7 @@ function varargout = ParaPowerGUI_V2(varargin)
 
 % Edit the above text to modify the response to help ParaPowerGUI_V2
 
-% Last Modified by GUIDE v2.5 12-Mar-2019 12:33:11
+% Last Modified by GUIDE v2.5 16-Apr-2019 13:51:29
 
 % Begin initialization code - DO NOT EDIT
 
@@ -106,6 +106,7 @@ function InitializeGUI(handles)
     hObject=handles.figure1;
 
     handles.InitComplete=0;
+    set(handles.RepeatWaveForm,'enable','off')
     % Update handles structure
     guidata(hObject, handles);
     GUIDisable(handles.figure1)
@@ -2826,4 +2827,14 @@ function CaseSelect_CreateFcn(hObject, eventdata, handles)
     if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
         set(hObject,'BackgroundColor','white');
     end
+end
+
+
+% --- Executes on button press in RepeatWaveForm.
+function RepeatWaveForm_Callback(hObject, eventdata, handles)
+% hObject    handle to RepeatWaveForm (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of RepeatWaveForm
 end

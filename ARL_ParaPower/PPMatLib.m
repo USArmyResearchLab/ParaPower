@@ -938,19 +938,22 @@ classdef PPMatLib < handle
             if ~exist('ParamTable','var')
                 ParamTable=obj.ParamTable;
             end
-            if exist('ParamTable','var') && ~isempty(ParamTable)
-                VarText='';
-                for Ip=1:length(ParamTable(:,1))
-                    if ~isempty(ParamTable{Ip,1})
-                        if isnumeric( ParamTable{Ip,2})
-                            VarText=[VarText  ParamTable{Ip,1} '=ParamTable{Ip,2};' char(10)];
-                        else
-                            VarText=[VarText  ParamTable{Ip,1} '=' ParamTable{Ip,2} ';' char(10)];
-                        end
-                    end
-                end
-                eval(VarText)
-            end
+%             if exist('ParamTable','var') && ~isempty(ParamTable)
+%                 VarText='';
+%                 for Ip=1:length(ParamTable(:,1))
+%                     if ~isempty(ParamTable{Ip,1})
+%                         if isnumeric( ParamTable{Ip,2})
+%                             VarText=[VarText  ParamTable{Ip,1} '=ParamTable{Ip,2};' newline];
+%                         elseif ischar( ParamTable{Ip,2})
+%                             VarText=[VarText  ParamTable{Ip,1} '=''' ParamTable{Ip,2} ''';' newline];
+%                         else
+%                             VarText=[VarText  ParamTable{Ip,1} '=' ParamTable{Ip,2} ';' newline];
+%                         end
+%                     end
+%                 end
+%                 VarText  %DEBUG
+%                 eval(VarText)
+%             end
             BaseMatLib=obj.CreateCopy;
             NewMatLib=obj.CreateCopy;
             for Imat=1:BaseMatLib.NumMat
@@ -972,7 +975,9 @@ classdef PPMatLib < handle
                                     ErrText=[ErrText newline 'Nest cell array not permitted for "' ThisPropName '" for material "' ThisMat.Name '" as "' ThisPropVal '"'];
                                 else
                                     if ischar(ThisPropVal{Ipv})
-                                        eval(sprintf('ThisPropVal{%.0f}=%s;',Ipv,ThisPropVal{Ipv}))
+                                        %change to protected eval
+                                        ThisPropVal{Ipv}=ProtectedEval(ThisPropVal{Ipv}, ParamTable);
+                                        %eval(sprintf('ThisPropVal{%.0f}=%s;',Ipv,ThisPropVal{Ipv}))
                                     end
                                 end
                             catch ME
@@ -981,9 +986,9 @@ classdef PPMatLib < handle
                                 ThisPropVal=NaN;
                             end
                             ScalarValue=length(ThisPropVal(:))==1; %If there is a single value it will be placed as a scalar not cell array
-                            if ~isnumeric(ThisPropVal{Ipv}) || length(ThisPropVal{Ipv})~=1  %If the value changed on eval, then cycle through mats
+%                            if ~isnumeric(ThisPropVal{Ipv}) || length(ThisPropVal{Ipv})~=1  %If the value changed on eval, then cycle through mats
                                 NewMatLib=obj.ExpandMatLib(NewMatLib, ThisPropVal{Ipv}, Imat, ThisPropName, Ipv, ScalarValue);
-                            end
+%                            end
                         end
                     end
                 end
@@ -991,6 +996,27 @@ classdef PPMatLib < handle
             [NewMatLib.iExpanded]=deal(true);
         end
     end
+end
+
+function OutVar=ProtectedEval(InString, VarList)
+    ErrText='';
+    OutVar=[];
+    EvalText='';
+    for Ivar=1:length(VarList)
+        if exist(VarList{Ivar,1},'var')
+            Stxt=sprintf('''%s'' variable already exists in the namespace. Please change your variable name.\n',VarName);
+            ErrText=[ErrText Stxt];
+        else
+            EvalText=[EvalText VarList{Ivar,1} '=VarList{' num2str(Ivar) ',2};'];
+        end
+    end
+    EvalText=[EvalText 'OutVar=' InString ';'];
+    if length(ErrText)==0
+        eval(EvalText)
+    else
+        error(ErrText)
+    end
+    
 end
 
 function mustBeChar(Value)
