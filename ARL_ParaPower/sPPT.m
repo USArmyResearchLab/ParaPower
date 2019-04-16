@@ -185,8 +185,8 @@ classdef sPPT < matlab.System & matlab.system.mixin.Propagates ...
             meltmask = PH(:,1)>0;
             if any(meltmask)
                 K(meltmask) = 1./( PH(meltmask)./kondl(Mat(Map(meltmask))) +(1-PH(meltmask))./kond(Mat(Map(meltmask))));  %update properties, K using series resistance
-                CP(Map(meltmask)) = sphtl(Mat(Map(meltmask))).*PH(meltmask)+spht(Mat(Map(meltmask))).*(1-PH(meltmask));           %others using rule of mixtures
-                RHO(Map(meltmask)) = rhol(Mat(Map(meltmask))).*PH(meltmask)+rho(Mat(Map(meltmask))).*(1-PH(meltmask));
+                CP(meltmask) = sphtl(Mat(Map(meltmask))).*PH(meltmask)+spht(Mat(Map(meltmask))).*(1-PH(meltmask));           %others using rule of mixtures
+                RHO(meltmask) = rhol(Mat(Map(meltmask))).*PH(meltmask)+rho(Mat(Map(meltmask))).*(1-PH(meltmask));
             end
                 
             [A,B,Aj.areas,Bj.areas,Aj.hLengths,Bj.hLengths,htcs] = obj.conduct_build(Aj.adj,Bj.adj,Map,fullheader,K,hint,h,Mat,MI.X,MI.Y,MI.Z);
@@ -593,7 +593,7 @@ classdef sPPT < matlab.System & matlab.system.mixin.Propagates ...
                     Map=Map(1:remain);
                     Mat=Mat(1:remain);
                     
-                    header=[-voidnum*ones(1,mt) header]
+                    header=[-voidnum*ones(1,mt) header];
                 end
             end
             
