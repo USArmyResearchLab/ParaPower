@@ -75,12 +75,14 @@
     Mats=getappdata(MatF,'Materials');
     delete(MatF);
     
-    TestCaseModel.ExternalConditions=ExternalConditions;
-    TestCaseModel.Features=Features;
-    TestCaseModel.Params=Params;
-    TestCaseModel.PottingMaterial=PottingMaterial;
-    TestCaseModel.MatLib=Mats;
-    TestCaseModel.Version='V2.0';
+TestCaseModel.Desc=Desc;
+TestCaseModel.TCM=PPTCM;
+TestCaseModel.TCM.Features=Features;
+TestCaseModel.TCM.Params=Params;
+TestCaseModel.TCM.PottingMaterial=PottingMaterial;
+TestCaseModel.TCM.ExternalConditions=ExternalConditions;
+TestCaseModel.TCM.MatLib=MatLib;
+TestCaseModel.TCM.VariableList=ParamList;
     
     
     

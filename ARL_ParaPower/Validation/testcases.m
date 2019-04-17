@@ -78,15 +78,15 @@ for Icase=1:length(testcasefiles)
         clear VarsOrig VarsNew
     
         %Material Properties
-        if isfield(TestCaseModel,'MatLib')
-            MatLib=TestCaseModel.MatLib;
+        if isfield(TestCaseModel.TCM,'MatLib') || isprop(TestCaseModel.TCM,'MatLib')
+            MatLib=TestCaseModel.TCM.MatLib;
         else
             disp('Adding default materials from the material database to the model')
-            TestCaseModel.MatLib=OrigMatLib;
+            TestCaseModel.TCM.MatLib=OrigMatLib;
             %return
         end        
         %save([MFILE '.ppmodel'], '-mat', 'TestCaseModel');
-        MI=FormModel(TestCaseModel);
+        MI=FormModel(TestCaseModel.TCM);
         if length(testcasefiles)==Icase
             figure(1);clf; figure(2);clf; figure(1)
             Visualize ('Model Input', MI, 'modelgeom','ShowQ')

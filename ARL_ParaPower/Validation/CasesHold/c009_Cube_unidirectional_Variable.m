@@ -94,17 +94,18 @@ Features(2).Matl = 'No_Matl';
 %     Define Q as @(T,Q,Ti)interp1(T,Q,Ti,'spline');
 %     if Q is cell then do interp, otherwise 
 %         Q{ii,jj,kk}(Arg1 Arg2 Arg3)
-
-TestCaseModel=PPTCM;
-TestCaseModel.Features=Features;
-TestCaseModel.Params=Params;
-TestCaseModel.PottingMaterial=PottingMaterial;
-TestCaseModel.ExternalConditions=ExternalConditions;
-%TestCaseModel.Desc=Desc;
-TestCaseModel.MatLib=MatLib;
-%TestCaseModel.Version='V2.1';
-TestCaseModel.VariableList=ParamList;
-
-TestCaseModels=TestCaseModel.GenerateCases;
+TestCaseModel.Desc=Desc;
+TestCaseModel.TCM=PPTCM;
+TestCaseModel.TCM.Features=Features;
+TestCaseModel.TCM.Params=Params;
+TestCaseModel.TCM.PottingMaterial=PottingMaterial;
+TestCaseModel.TCM.ExternalConditions=ExternalConditions;
+TestCaseModel.TCM.MatLib=MatLib;
+TestCaseModel.TCM.VariableList=ParamList;
+TestCaseModel.TCMs=TestCaseModel.TCM.GenerateCases;
+TestCaseModel.CaseNumber=1;
+if length(TestCaseModel.TCMs) > 1
+    TestCaseModel.TCM=TestCaseModel.TCMs(TestCaseModel.CaseNumber);
+end
 
 MFILE=mfilename('fullpath');

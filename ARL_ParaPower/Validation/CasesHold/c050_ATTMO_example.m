@@ -123,13 +123,14 @@ Desc='ATTMO Model Definition Example';  %Description of the test case
 %Assemble the above definitions into a single variablel that will be used
 %to run the analysis.  This is the only variable that is used from this
 %M-file.  
-TestCaseModel.Features=Features;
-TestCaseModel.Params=Params;
-TestCaseModel.PottingMaterial=PottingMaterial;
-TestCaseModel.ExternalConditions=ExternalConditions;
 TestCaseModel.Desc=Desc;
-TestCaseModel.MatLib=MatLib;
-TestCaseModel.Version='V2.1';
+TestCaseModel.TCM=PPTCM;
+TestCaseModel.TCM.Features=Features;
+TestCaseModel.TCM.Params=Params;
+TestCaseModel.TCM.PottingMaterial=PottingMaterial;
+TestCaseModel.TCM.ExternalConditions=ExternalConditions;
+TestCaseModel.TCM.MatLib=MatLib;
+TestCaseModel.TCM.VariableList=ParamList;
 
 MI=FormModel(TestCaseModel);
 MI.GlobalTime=[-1,-.01];  %hijinks so that ATTMO can take the first timestep to be at t=0

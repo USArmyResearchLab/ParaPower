@@ -98,13 +98,14 @@ Features(3).Matl = 'SiC';
 %     if Q is cell then do interp, otherwise 
 %         Q{ii,jj,kk}(Arg1 Arg2 Arg3)
 
-TestCaseModel.Features=Features;
-TestCaseModel.Params=Params;
-TestCaseModel.PottingMaterial=PottingMaterial;
-TestCaseModel.ExternalConditions=ExternalConditions;
 TestCaseModel.Desc=Desc;
-TestCaseModel.MatLib=MatLib;
-TestCaseModel.Version='V2.1';
+TestCaseModel.TCM=PPTCM;
+TestCaseModel.TCM.Features=Features;
+TestCaseModel.TCM.Params=Params;
+TestCaseModel.TCM.PottingMaterial=PottingMaterial;
+TestCaseModel.TCM.ExternalConditions=ExternalConditions;
+TestCaseModel.TCM.MatLib=MatLib;
+TestCaseModel.TCM.VariableList=ParamList;
 
 
 MFILE=mfilename('fullpath');
