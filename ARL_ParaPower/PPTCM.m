@@ -60,9 +60,10 @@ classdef PPTCM  %PP Test Case Model
             end
             QTextOut={};
             if SymAvail
-                t=sym('t');
-                EvalText=[VarText 'QHFn=' Qtext];
-                eval([EvalText ';']);  %if the Q function evaluates to multiple formulae it will be an array
+                QHFn=ProtectedEval(Qtext,Parameters, 't=sym(''t'');');
+                %t=sym('t');
+                %EvalText=[VarText 'QHFn=' Qtext];
+                %eval([EvalText ';']);  %if the Q function evaluates to multiple formulae it will be an array
                 for I=1:length(QHFn)
                     QTextOut{I}=char(QHFn(I));
                 end
@@ -264,7 +265,7 @@ classdef PPTCM  %PP Test Case Model
                                             try
                                                 %ThisFieldVal will be an array of functions if the functional form of Q evaluates to multiple functions
                                                 ThisFieldVal={ThisFieldVal}; %Esnures ThisFieldVal is a cell whether or not eval succedes.
-                                                ThisFieldVal=TCMmaster.GenQFunction(ThisFieldVal{1}, VariableList);  %Output will ALWAYS be a cell array
+                                                ThisFieldVal=TCMmaster.GenQFunction(ThisFieldVal{1}, TempScalarParamList);  %Output will ALWAYS be a cell array
                                                 eval(['TestFn=@(t)' ThisFieldVal{1} ';']);
                                                 TestFn(0);
                                             catch ME
@@ -591,10 +592,15 @@ function VA=ComputeVA(DCoord)
     VA=VA + (Ax+Ay+Az)*1i;
 end
 
-function OutVar=ProtectedEval(InString, VarList)
+function OutVar=ProtectedEval(InString, VarList, StartString)
     ErrText='';
     OutVar=[];
-    EvalText='';
+    if exist('StartString','var')
+        EvalText=StartString;
+    else
+        EvalText='';
+    end
+    
     for Ivar=1:length(VarList(:,1))
         if exist(VarList{Ivar,1},'var')
             Stxt=sprintf('''%s'' variable already exists in the namespace. Please change your variable name.\n',VarName);
