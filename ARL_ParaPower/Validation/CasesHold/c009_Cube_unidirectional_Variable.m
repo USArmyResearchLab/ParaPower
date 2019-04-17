@@ -4,7 +4,9 @@
 %Clear the main variables that are passed out from it.
 clear Features ExternalConditions Params PottingMaterial Descr MatLib
 
-ParamList={'B' '[2 3]'};
+ParamList={'B'  '[2 3]' ...
+          ;'Ta' '20' ...
+          };
 
 MatLib=PPMatLib;
 MatLib.AddMatl(PPMatPCM(  'name'  , 'Ga'  ...
@@ -43,7 +45,7 @@ MatLib.AddMatl(PPMatSolid('name'  , 'SiC'  ...
 Features.x=[]; Features.y=[]; Features.z=[]; Features.Matl=[]; Features.Q=[]; Features.Matl=''; 
 Features.dz=0; Features.dy=0; Features.dz=0;
 
-Desc='1D_UniD';  %Description of the test case
+Desc='1D_ParamList';  %Description of the test case
 
 ExternalConditions.h_Xminus=0;
 ExternalConditions.h_Xplus =0;
@@ -52,12 +54,12 @@ ExternalConditions.h_Yplus =0;
 ExternalConditions.h_Zminus=0;
 ExternalConditions.h_Zplus = 25000;
 
-ExternalConditions.Ta_Xminus=20;
-ExternalConditions.Ta_Xplus =20;
-ExternalConditions.Ta_Yminus=20;
-ExternalConditions.Ta_Yplus =20;
-ExternalConditions.Ta_Zminus=20;
-ExternalConditions.Ta_Zplus =20;
+ExternalConditions.Ta_Xminus='Ta';
+ExternalConditions.Ta_Xplus ='Ta';
+ExternalConditions.Ta_Yminus='Ta';
+ExternalConditions.Ta_Yplus ='Ta';
+ExternalConditions.Ta_Zminus='Ta';
+ExternalConditions.Ta_Zplus ='Ta';
 
 ExternalConditions.Tproc=280; %Processing temperature, used for stress analysis
 

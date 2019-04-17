@@ -208,6 +208,7 @@ for I=1:length(DOFDesc)
     subplot(NumRows,NumCols,I+1)
     barh(PlotCompare(:,I));
     set(gca,'yticklabel',strrep(CaseDesc,'_',' '))
+    xlabel('Sum[RMS(Cur-Canon)]')
     title(DOFDesc{I})
     set(gca,'xscal','log')
 end

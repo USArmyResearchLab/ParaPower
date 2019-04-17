@@ -317,6 +317,7 @@ for Fi=1:length(Features)
      elseif isempty(Features(Fi).Q)
          ThisQ=[];
      elseif length(Features(Fi).Q(1,:))==2
+         ADD REPEATING PULSE INFO HERE IF THE LAST ELEMENTS ARE -inf, -inf
          ThisQ=@(t)(-1)*interp1(Features(Fi).Q(:,1),Features(Fi).Q(:,2),t);
          if ~isempty(Params.Tsteps)  %Only add to global time if Tsteps is not empty indicating a transient solution
             GlobalTime=[GlobalTime Features(Fi).Q(:,1)'];

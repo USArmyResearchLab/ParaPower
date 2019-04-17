@@ -1928,6 +1928,8 @@ function H=TableEditHandles(Description)
             H=Cp(strcmpi(get(Cp,'tag'),'FeatureLabel'));
         case 'table'
             H=Cp(strcmpi(get(Cp,'type'),'uitable'));
+        case 'repeatwaveform'
+            H=Cp(strcmpi(get(Cp,'tag'),'RepeatWaveForm'));
         case 'sourcetable'
             F=C(strcmpi(get(C,'tag','DefineFeatures')));
             Fc=get(F,'children');
@@ -1954,6 +1956,7 @@ function TableOpenClose(Action, Index)
     %HList=get(FrameHandle,'children');
     LabelH=TableEditHandles('label');
     TableH=TableEditHandles('table');
+    RepeatBoxH=TableEditHandles('RepeatWaveForm');
     if strcmpi(Action,'open')
         Childs=get(gcf,'children');
         ChildVisState=get(Childs,'visible');
@@ -1969,7 +1972,14 @@ function TableOpenClose(Action, Index)
                 Data=Data{Index};
             end
         end
+        if all(Data(end,1:2)==[-inf -inf])
+            Data=Data(1:end-1,:);
+            set(RepeatBoxH,'value',1);
+        else
+            set(RepeatBoxH,'value',0);
+        end
         TableData(:,2:3)=num2cell(Data);
+
         for I=1:length(TableData(:,1))
             TableData{I,1}=false;
         end
@@ -1982,6 +1992,9 @@ function TableOpenClose(Action, Index)
         TableData=get(TableH,'data');
         TableData=TableData(:,2:3);
         TableData=cell2mat(TableData);
+        if get(RepeatBoxH,'value')
+            TableData=[TableData; -inf -inf];
+        end
         Data{Index}=TableData;
         setappdata(gcf,TableDataName,Data)
         C_States=getappdata(gcf,'ChildVisState');
@@ -2034,6 +2047,9 @@ function TableClose_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 T=get(TableEditHandles('table'),'data');
 TimeValue=cell2mat(T(:,2));
+if TimeValue(end)==-inf
+    TimeValue=TimeValue(1:end-1)
+end
 if min(TimeValue(2:end)-TimeValue(1:end-1))<0
     msgbox('The time values must be monotonically increasing.','Information','modal')
 else
@@ -2051,14 +2067,31 @@ function TableGraph(hObject, eventdata, handles)
 % hObject    handle to TableGraph (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+
     TableH=TableEditHandles('table');
     AxesH=TableEditHandles('axes');
     Table=get(TableH,'data');
     Table=Table(:,2:3);
     Table(find(cellfun(@isempty,Table)))={NaN};  %Any empty cells get replaced with 0's
     NTable=cell2mat(Table);
+    if get(TableEditHandles('RepeatWaveForm'),'value')==1
+%ADD ABILITY TO HANDLE REPEATING VALUES IN HERE BASED ON CHECKBOX STATE
+        Segment=[]
+        NTable=NTable(1:end-1,:);
+        Pulse=NTable;
+        %MaxTime=get(handles.TimeStep,'value')*get(handles.NumTimeSteps,'value');
+        Pulse(:,1)=Pulse(:,1)-Pulse(1,1);  %Ensure 0 based pulse time axis
+        NumPulses=3; %Generate 3 pulses arbitrarily
+        PulseMin=min(Pulse(:,2));
+        PulseMax=max(Pulse(:,2));
+        PulseOver=(PulseMax-PulseMin)*0.10;
+        for I=1:NumPulses
+            Segment=[Segment; NTable(end,1) min(Pulse(:,2))-PulseOver; NTable(end,1) max(Pulse(:,2))+PulseOver; nan nan];
+            NTable=[NTable; [NTable(end,1) 0]+Pulse];
+        end
+    end
     if ~isempty(NTable)
-        plot(AxesH,NTable(:,1),NTable(:,2))
+        plot(AxesH,NTable(:,1),NTable(:,2), Segment(:,1), Segment(:,2),':')
         YLim=get(AxesH,'ylim');
         if min(NTable(:,2))==YLim(1)
             YLim(1)=YLim(1)-(YLim(2)-YLim(1))*.05;
@@ -2380,6 +2413,7 @@ function HelpButton_Callback(hObject, eventdata, handles)
     HelpText{end+1}='   Time Variant Q';
     HelpText{end+1}='      The main interface to get/retrieve time variant Q values is TableOpenClose()';
     HelpText{end+1}='      The function TableEditHandles() is used to gain access to handles relevant for table handling';
+    HelpText{end+1}='      If the final row of a table is time=-Inf, Amp=-Inf, then the pulse is assumed to repeat.';
     HelpText{end+1}='      The programmer MUST adjust the table data if the features table change!';
     HelpText{end+1}='';
     HelpText{end+1}='   Stress Models';
@@ -2829,12 +2863,3 @@ function CaseSelect_CreateFcn(hObject, eventdata, handles)
     end
 end
 
-
-% --- Executes on button press in RepeatWaveForm.
-function RepeatWaveForm_Callback(hObject, eventdata, handles)
-% hObject    handle to RepeatWaveForm (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of RepeatWaveForm
-end

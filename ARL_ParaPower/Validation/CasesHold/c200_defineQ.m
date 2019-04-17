@@ -3,6 +3,8 @@
 %********************************************************
 
     clear Features ExternalConditions Params PottingMaterial
+    
+    Desc='Defined Q';
 
     ExternalConditions.h_Xminus=0;
     ExternalConditions.h_Xplus=0;
@@ -13,7 +15,7 @@
 
     ExternalConditions.Ta_Xminus=20;
     ExternalConditions.Ta_Xplus=20;
-    ExternalConditions.Ta_Yminux=20;
+    ExternalConditions.Ta_Yminus=20;
     ExternalConditions.Ta_Yplus=20;
     ExternalConditions.Ta_Zminus=20;
     ExternalConditions.Ta_Zplus=20;
@@ -71,9 +73,10 @@
     %Features(end).Q(:,2)=[100 200];
     Features(end).Q=1;
 
-    MatF=MaterialDatabase('nonmodal');
-    Mats=getappdata(MatF,'Materials');
-    delete(MatF);
+    load('../DefaultMaterials');
+    %MatF=MaterialDatabase('nonmodal');
+    %Mats=getappdata(MatF,'Materials');
+    %delete(MatF);
     
 TestCaseModel.Desc=Desc;
 TestCaseModel.TCM=PPTCM;
@@ -82,7 +85,7 @@ TestCaseModel.TCM.Params=Params;
 TestCaseModel.TCM.PottingMaterial=PottingMaterial;
 TestCaseModel.TCM.ExternalConditions=ExternalConditions;
 TestCaseModel.TCM.MatLib=MatLib;
-TestCaseModel.TCM.VariableList=ParamList;
     
-    
+MFILE=mfilename('fullpath');
+
     
