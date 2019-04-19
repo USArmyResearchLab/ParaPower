@@ -54,7 +54,7 @@
     Features(end).z =Features(end).z(2)*[1 1] + [0 1]*(Features(end).z(2)-Features(end).z(1));
     %Features(end).dz=Features(end).dz*2;
     Features(end).Matl='SiC';
-    Features(end).Q=0;
+    Features(end).Q=1;
 
     Features(end+1)=Features(end);
     Features(end).x = [0 .5] .* Features(end).x;
@@ -62,7 +62,7 @@
     Features(end).Matl='Air';
     %Features(end).Q(:,1)=[.001 .002];
     %Features(end).Q(:,2)=[100 200];
-    Features(end).Q=1;
+    Features(end).Q=[0 0; 0.1 0; 0.1 1; 0.2 1; 0.2 0; 0.25 0];
     
     Features(end+1)=Features(end);
     Features(end).x = [.5 1] .* Features(end-2).x(2);
@@ -71,7 +71,7 @@
     Features(end).Matl='Al';
     %Features(end).Q(:,1)=[.001 .002];
     %Features(end).Q(:,2)=[100 200];
-    Features(end).Q=1;
+    Features(end).Q=[0 0; 0.1 0; 0.1 1; 0.2 1; 0.2 0; 0.25 0; -inf -inf];
 
     load('../DefaultMaterials');
     %MatF=MaterialDatabase('nonmodal');

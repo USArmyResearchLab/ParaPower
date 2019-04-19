@@ -106,7 +106,7 @@ function InitializeGUI(handles)
     hObject=handles.figure1;
 
     handles.InitComplete=0;
-    set(handles.RepeatWaveForm,'enable','off')
+    set(handles.RepeatWaveForm,'enable','on')
     % Update handles structure
     guidata(hObject, handles);
     GUIDisable(handles.figure1)
@@ -2075,23 +2075,43 @@ function TableGraph(hObject, eventdata, handles)
     Table(find(cellfun(@isempty,Table)))={NaN};  %Any empty cells get replaced with 0's
     NTable=cell2mat(Table);
     if get(TableEditHandles('RepeatWaveForm'),'value')==1
+         Pulse=NTable;
+         NumPulses=3;
+         Lpulse=length(Pulse(:,1));
+         RepPulse=zeros(NumPulses*Lpulse,2);
+         RepPulse(1:Lpulse,:)=Pulse;
+         Segment=[];
+         PulseMin=min(Pulse(:,2));
+         PulseMax=max(Pulse(:,2));
+         PulseOver=(PulseMax-PulseMin)*0.15;
+         for I=Lpulse+1:Lpulse:(NumPulses)*Lpulse
+             RepPulse(I:I+Lpulse-1,:)=[[RepPulse(I-1,1) 0]+Pulse];
+             Segment=[Segment; RepPulse(I,1) min(Pulse(:,2))-PulseOver; RepPulse(I,1) max(Pulse(:,2))+PulseOver; nan nan];
+             %RepPulse(I,1)=RepPulse(I,1)+DeltaToAdd;
+         end
+         %TimeValues=unique([RepPulse(:,1); max(GlobalTime)]); %Ensure theres a point the end of global time
+         %TimeValues=TimeValues(TimeValues<=max(GlobalTime));
+         %RepPulse=[TimeValues interp1(RepPulse(:,1),RepPulse(:,2),TimeValues)];
+         NTable=RepPulse;
 %ADD ABILITY TO HANDLE REPEATING VALUES IN HERE BASED ON CHECKBOX STATE
-        Segment=[]
-        NTable=NTable(1:end-1,:);
-        Pulse=NTable;
-        %MaxTime=get(handles.TimeStep,'value')*get(handles.NumTimeSteps,'value');
-        Pulse(:,1)=Pulse(:,1)-Pulse(1,1);  %Ensure 0 based pulse time axis
-        NumPulses=3; %Generate 3 pulses arbitrarily
-        PulseMin=min(Pulse(:,2));
-        PulseMax=max(Pulse(:,2));
-        PulseOver=(PulseMax-PulseMin)*0.10;
-        for I=1:NumPulses
-            Segment=[Segment; NTable(end,1) min(Pulse(:,2))-PulseOver; NTable(end,1) max(Pulse(:,2))+PulseOver; nan nan];
-            NTable=[NTable; [NTable(end,1) 0]+Pulse];
-        end
+% %         Segment=[];
+% %         NTable=NTable(1:end-1,:);
+% %         Pulse=NTable;
+% %         %MaxTime=get(handles.TimeStep,'value')*get(handles.NumTimeSteps,'value');
+% %         Pulse(:,1)=Pulse(:,1)-Pulse(1,1);  %Ensure 0 based pulse time axis
+% %         NumPulses=3; %Generate 3 pulses arbitrarily
+% %         PulseMin=min(Pulse(:,2));
+% %         PulseMax=max(Pulse(:,2));
+% %         PulseOver=(PulseMax-PulseMin)*0.15;
+% %         for I=1:NumPulses
+% %             Segment=[Segment; NTable(end,1) min(Pulse(:,2))-PulseOver; NTable(end,1) max(Pulse(:,2))+PulseOver; nan nan];
+% %             NTable=[NTable; [NTable(end,1) 0]+Pulse];
+% %         end
+    else
+        Segment=[0 0];
     end
     if ~isempty(NTable)
-        plot(AxesH,NTable(:,1),NTable(:,2), Segment(:,1), Segment(:,2),':')
+        plot(AxesH, Segment(:,1), Segment(:,2),'R--',NTable(:,1),NTable(:,2),'b')
         YLim=get(AxesH,'ylim');
         if min(NTable(:,2))==YLim(1)
             YLim(1)=YLim(1)-(YLim(2)-YLim(1))*.05;
@@ -2863,3 +2883,12 @@ function CaseSelect_CreateFcn(hObject, eventdata, handles)
     end
 end
 
+function RepeatWaveForm_Callback (hObject, eventdata, handles)
+% hObject    handle to CaseSelect (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+    TableGraph(hObject)
+end

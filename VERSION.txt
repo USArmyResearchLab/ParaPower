@@ -29,10 +29,13 @@ V3.2.5 - Materials melt fraction is now initialized to be consistent with
               color scale is set to [plotstate(1) Inf]. This ensure it
               does not result in [-1 1] for all melt fractions @ 0
          Added test case for material initialization
+VX.X.X - Parameterization added (both vector and scalar).  Not implemented for table defined Q's yet
+		 Repeated waveforms based on tables implemented with a checkbox in the GUI and 
+			  flagged by the last row of tabled defined Q as [-inf, -inf]
+		 Testcases updated for PPTCM
 		 
 
 Features to Add
 1. Enable 'stop' button on GUI
-2. Address the defined Q for features that are overwritten
 3. Ensure potting material in testmodelcase structure is 0
 

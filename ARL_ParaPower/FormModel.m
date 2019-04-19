@@ -317,8 +317,28 @@ for Fi=1:length(Features)
      elseif isempty(Features(Fi).Q)
          ThisQ=[];
      elseif length(Features(Fi).Q(1,:))==2
-         ADD REPEATING PULSE INFO HERE IF THE LAST ELEMENTS ARE -inf, -inf
-         ThisQ=@(t)(-1)*interp1(Features(Fi).Q(:,1),Features(Fi).Q(:,2),t);
+         %Generate new pulse table
+         DeltaToAdd=eps(max(GlobalTime))*1000; %This is the value added to ensure time values are not repeated.
+         Pulse=Features(Fi).Q;
+         PulseTimeAdjust=[0; Pulse(2:end,1)==Pulse(1:end-1,1)];
+         Pulse(:,1)=Pulse(:,1)+PulseTimeAdjust*DeltaToAdd;
+         RepPulse=Pulse;
+         if all(Pulse(end,:)==[-inf -inf])  %If flag value of [-inf, -inf] then repeat pulse to end
+             Pulse=Pulse(1:end-1,:);
+             NumPulses=ceil(max(GlobalTime)/Pulse(end,1));  %Repeat pulse to exceed the max global time
+             Lpulse=length(Pulse(:,1));
+             RepPulse=zeros(NumPulses*Lpulse,2);
+             RepPulse(1:Lpulse,:)=Pulse;
+             for I=Lpulse+1:Lpulse:(NumPulses)*Lpulse
+                 RepPulse(I:I+Lpulse-1,:)=[[RepPulse(I-1,1) 0]+Pulse];
+                 RepPulse(I,1)=RepPulse(I,1)+DeltaToAdd;
+             end
+             TimeValues=unique([RepPulse(:,1); max(GlobalTime)]); %Ensure theres a point the end of global time
+             TimeValues=TimeValues(TimeValues<=max(GlobalTime));
+             RepPulse=[TimeValues interp1(RepPulse(:,1),RepPulse(:,2),TimeValues)];
+         end
+         ThisQ=@(t)(-1)*interp1(RepPulse(:,1),RepPulse(:,2),t);
+         %ThisQ=@(t)(-1)*interp1(Features(Fi).Q(:,1),Features(Fi).Q(:,2),t);
          if ~isempty(Params.Tsteps)  %Only add to global time if Tsteps is not empty indicating a transient solution
             GlobalTime=[GlobalTime Features(Fi).Q(:,1)'];
          end

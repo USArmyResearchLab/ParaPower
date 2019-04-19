@@ -600,13 +600,14 @@ function OutVar=ProtectedEval(InString, VarList, StartString)
     else
         EvalText='';
     end
-    
-    for Ivar=1:length(VarList(:,1))
-        if exist(VarList{Ivar,1},'var')
-            Stxt=sprintf('''%s'' variable already exists in the namespace. Please change your variable name.\n',VarName);
-            ErrText=[ErrText Stxt];
-        else
-            EvalText=[EvalText VarList{Ivar,1} '=VarList{' num2str(Ivar) ',2};'];
+    if ~isempty(VarList)
+        for Ivar=1:length(VarList(:,1))
+            if exist(VarList{Ivar,1},'var')
+                Stxt=sprintf('''%s'' variable already exists in the namespace. Please change your variable name.\n',VarName);
+                ErrText=[ErrText Stxt];
+            else
+                EvalText=[EvalText VarList{Ivar,1} '=VarList{' num2str(Ivar) ',2};'];
+            end
         end
     end
     EvalText=[EvalText 'OutVar=' InString ';'];
@@ -632,7 +633,7 @@ function [Scalar, Vector]=SeparateScalarVector(VariableList)
                 warning(Stxt);
                 VariableList{Row,1}='';
                 VariableList{Row,2}=[];
-            else
+            elseif ~isempty(VarName)
                 try
                     if isnumeric(VariableList{Row,2})
                         VarEval=[VarEval sprintf('%s=VariableList{%i,2};',VariableList{Row,1}, Row)];
