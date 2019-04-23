@@ -160,17 +160,20 @@ function Visualize (PlotTitle, MI, varargin)
         end
 
     end
-    OrigAxis=gca;
     if exist('Parent','var')
         PanelH=Parent;
         ThisAxis=findobj(PanelH,'type','axes');
-    elseif strcmpi(class(get(OrigAxis,'parent')),'matlab.ui.Figure')
+        ThisAxis=ThisAxis(1);
+        OrigAxis=ThisAxis;
+    elseif strcmpi(class(get(gca,'parent')),'matlab.ui.Figure')
+        OrigAxis=gca;
         PanelH=uipanel('foregroundcolor','green','bordertype','line');
         APosit=get(gca,'outerposit');
         set(PanelH,'posit',APosit);
         ThisAxis=axes(PanelH);
     else
-        ThisAxis=OrigAxis;
+        ThisAxis=gca;
+        OrigAxis=ThisAxis;
         PanelH=gcf;
     end
     AxisParent=get(ThisAxis,'parent');
@@ -181,7 +184,7 @@ function Visualize (PlotTitle, MI, varargin)
         end
     end
     axes(ThisAxis)
-    cla;drawnow
+    cla(ThisAxis);drawnow
     DrawStatus=text(.5,.5,'Drawing...','fontsize',40,'userdata','REMOVE','horizontal','center','vertical','middle','unit','normal'); drawnow
     
     Direx=FormModel('GetDirex');

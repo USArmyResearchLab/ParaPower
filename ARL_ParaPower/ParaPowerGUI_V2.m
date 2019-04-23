@@ -22,7 +22,7 @@ function varargout = ParaPowerGUI_V2(varargin)
 
 % Edit the above text to modify the response to help ParaPowerGUI_V2
 
-% Last Modified by GUIDE v2.5 16-Apr-2019 13:51:29
+% Last Modified by GUIDE v2.5 23-Apr-2019 16:20:03
 
 % Begin initialization code - DO NOT EDIT
 
@@ -1290,15 +1290,23 @@ else
         end
 
         MI=getappdata(handles.figure1,'MI');
-        axes(handles.GeometryVisualization)
+        %axes(handles.GeometryVisualization)
         %figure(2)
 
         if DrawModel
+            OldVis=get(handles.figure1,'handlevisibility');
+            set(handles.figure1,'handlevisibility','on');
             AddStatusLine('drawing...',true)
-            Visualize ('', MI, 'modelgeom','ShowQ','ShowExtent')
+            Visualize ('', MI, 'modelgeom','ShowQ','ShowExtent','parent',handles.VisualizePanel)
             VisUpdateStatus(handles,false);
             AddStatusLine('Done',true)
+%             ThisAxis=findobj(handles.VisualizePanel,'type','axes');
+%             if length(ThisAxis)>1
+%                 delete(ThisAxis(2:end))
+%             end
+
             drawnow
+            set(handles.figure1,'handlevisibility',OldVis)
         end
     end
 end
@@ -1382,7 +1390,7 @@ if Confirm
 end
 GUIDisable(handles.figure1)
 axes(handles.GeometryVisualization)
-cla reset;
+cla reset;  
 
 %Clear figures external to GUI 
 %Figures = findobj( 'Type', 'Figure' , '-not' , 'Tag' , get(ParaPowerGUI_V2, 'Tag' ) );
@@ -1394,7 +1402,7 @@ for nFigures = 1 : NFigures
     end
 end
 
-Kids=get(handles.uipanel5,'children');
+Kids=get(handles.VisualizePanel,'children');
 for i=1:length(Kids)
     if strcmpi(get(Kids(i),'type'),'uicontrol') || strcmpi(get(Kids(i),'userdata'),'REMOVE');
         delete(Kids(i))
@@ -1858,10 +1866,11 @@ function AddStatusLine(textline,varargin)% Optional args are AddToLastLine,Flag,
     end
     drawnow
 end
-    
+
 function VisUpdateStatus(handles, NeedsUpdate)
     %handles=guidata(gcf);
-    AxisHandle=handles.GeometryVisualization;
+    %AxisHandle=handles.GeometryVisualization;
+    AxisHandle=GetVisAxis(handles.VisualizePanel);
     if not(isfield(handles,'VisualUpdateText')) || not(isvalid(handles.VisualUpdateText))
         handles.VisualUpdateText=text(AxisHandle,0.5,0.85,'Geometry Visualization Needs to be Updated',...
             'unit','normal',...
@@ -1890,7 +1899,7 @@ function ErrorStatus(ErrorFlag)
     if ~isempty(ThisFig) 
         handles=guidata(ThisFig);
         if isfield(handles,'GeometryVisualization')
-            AxisHandle=handles.GeometryVisualization;
+            AxisHandle=GetVisAxis(handles.VisualizePanel);
             if not(isfield(handles,'ErrorStatus')) || not(isvalid(handles.ErrorStatus))
                 handles.ErrorStatus=text(AxisHandle,0.5,0.65,'ErrorStatus',...
                     'unit','normal',...
@@ -1915,11 +1924,11 @@ function ErrorStatus(ErrorFlag)
 end
     
 % --- Executes during object creation, after setting all properties.
-function GeometryVisualization_CreateFcn(hObject, eventdata, handles)
+%function GeometryVisualization_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to GeometryVisualization (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
-end
+%end
 % Hint: place code in OpeningFcn to populate GeometryVisualization
 
 function T=TableShowDataText
@@ -2920,4 +2929,14 @@ function RepeatWaveForm_Callback (hObject, eventdata, handles)
 % Hint: popupmenu controls usually have a white background on Windows.
 %       See ISPC and COMPUTER.
     TableGraph(hObject)
+end
+    
+function AH=GetVisAxis(PanelHandle)
+    AxisInPanel=findall(PanelHandle,'type','axes');
+    if ~isempty(AxisInPanel)
+        AH=AxisInPanel(1);
+    else
+        error('no axis')
+    end
+
 end
