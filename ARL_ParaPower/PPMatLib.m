@@ -933,7 +933,7 @@ classdef PPMatLib < handle
          %If parameters are numeric, or character they are assumed to be a
          %single value.  If they're a cell array, the cell array is stepped
          %through and eval'ed.
-         
+    
             ErrText='';
             if ~exist('ParamTable','var')
                 ParamTable=obj.ParamTable;
@@ -996,6 +996,7 @@ classdef PPMatLib < handle
             [NewMatLib.iExpanded]=deal(true);
         end
     end
+
 end
 
 function OutVar=ProtectedEval(InString, VarList)

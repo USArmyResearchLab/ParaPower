@@ -8,6 +8,7 @@ Yminus = 3; %Y- Face
 Yplus  = 4; %Y+ Face
 Zminus= 5; %Z- Face
 Zplus   = 6; %Z+ Face
+WarnText='';
 
 No_Matl='NoMatl';
 
@@ -28,7 +29,8 @@ else
     if not(isfield(TestCaseModel,'Version') || max(strcmp('Version',properties(TestCaseModel))))
         error(['Incorrect TestCaseModel version.  No version is specified']);
     elseif strcmpi(TestCaseModel.Version,'V2.0')
-        warning('Form Model is %s.  V2.0 -> V2.1 switched order of external BCs. Please confirm accuracy.', TestCaseModel.Version);
+        Stxt=sprintf('Form Model is %s.  V2.0 -> V2.1 switched order of external BCs. Please confirm accuracy.', TestCaseModel.Version);
+        WarnText=[WarnText Stxt newline];
     elseif strcmpi(TestCaseModel.Version,'V3.0')
         %warning(['Object version of TestCaseModel is under development']);
     elseif not(strcmpi(TestCaseModel.Version,'V2.1'))
@@ -53,7 +55,7 @@ if isfield(TestCaseModel,'MatLib') || ~isempty(find(strcmpi(properties(TestCaseM
         MatLib.AddMatl(PPMatNull('Name',No_Matl));
     end
 else
-    warning('MatLib needs to be included in the TestCaseModel structure')
+    WarnText=[WarnText 'MatLib needs to be included in the TestCaseModel structure' newline];
     msgbox('MatLib needs to be included in the TestCaseModel structure','Warning');
     return
 end
@@ -76,7 +78,7 @@ if isfield(ExternalConditions,'h_Xminus')
     Ta(Zminus)=ExternalConditions.Ta_Zminus;
     Ta(Zplus)=ExternalConditions.Ta_Zplus;
 elseif isfield(ExternalConditions,'h_Left')
-    warning('You are using the previous version of TestCaseModel.  External condition direction names have changed.  Check to be sure that you''re applying the BCs you intend to be applying')
+    WarnText=[WarnText 'You are using the previous version of TestCaseModel.  External condition direction names have changed.  Check to be sure that you''re applying the BCs you intend to be applying' newline];
     h(Xminus)=ExternalConditions.h_Left;
     h(Xplus)=ExternalConditions.h_Right;
     h(Yplus)=ExternalConditions.h_Front;
@@ -320,8 +322,8 @@ for Fi=1:length(Features)
          %Generate new pulse table
          DeltaToAdd=eps(max(GlobalTime))*1000; %This is the value added to ensure time values are not repeated.
          Pulse=Features(Fi).Q;
-         PulseTimeAdjust=[0; Pulse(2:end,1)==Pulse(1:end-1,1)];
-         Pulse(:,1)=Pulse(:,1)+PulseTimeAdjust*DeltaToAdd;
+         PulseTimeAdjust=[0; Pulse(2:end,1)==Pulse(1:end-1,1)]; %Construct a vector (L=#time points) which has a "1" at each index where a time value is repeated
+         Pulse(:,1)=Pulse(:,1)+PulseTimeAdjust*DeltaToAdd; %Add DeltaToAdd time to each repeated time point so that time is now not repeated.
          RepPulse=Pulse;
          if all(Pulse(end,:)==[-inf -inf])  %If flag value of [-inf, -inf] then repeat pulse to end
              Pulse=Pulse(1:end-1,:);
@@ -333,14 +335,24 @@ for Fi=1:length(Features)
                  RepPulse(I:I+Lpulse-1,:)=[[RepPulse(I-1,1) 0]+Pulse];
                  RepPulse(I,1)=RepPulse(I,1)+DeltaToAdd;
              end
-             TimeValues=unique([RepPulse(:,1); max(GlobalTime)]); %Ensure theres a point the end of global time
-             TimeValues=TimeValues(TimeValues<=max(GlobalTime));
-             RepPulse=[TimeValues interp1(RepPulse(:,1),RepPulse(:,2),TimeValues)];
+             TimeValues=unique([RepPulse(:,1); max(GlobalTime)]); %Ensure theres a point at the end of global time
+             TimeValues=TimeValues(TimeValues<=max(GlobalTime)); %Keep only time less than global time.
+             RepPulse=[TimeValues interp1(RepPulse(:,1),RepPulse(:,2),TimeValues)]; %Linearly interpolate for all time points
+         else
+             if RepPulse(end,1)< max(GlobalTime)
+                 WarnText=sprintf('Q(t) for feature %2i (%s) ends at t=%f s, Global time ends at t=%f s.  Q(t) is being extended to t=%f s.\n', ...
+                     Fi, Features(Fi).Desc, RepPulse(end,1), max(GlobalTime), max(GlobalTime));
+                 
+                 RepPulse(end+1,2)=RepPulse(end,2);
+                 RepPulse(end,1)=max(GlobalTime);
+             end
          end
-         ThisQ=@(t)(-1)*interp1(RepPulse(:,1),RepPulse(:,2),t);
+         ThisQ=@(t)(-1)*interp1(RepPulse(:,1),RepPulse(:,2),t); %Construct the function handle for the heat source
          %ThisQ=@(t)(-1)*interp1(Features(Fi).Q(:,1),Features(Fi).Q(:,2),t);
          if ~isempty(Params.Tsteps)  %Only add to global time if Tsteps is not empty indicating a transient solution
-            GlobalTime=[GlobalTime Features(Fi).Q(:,1)'];
+            TimeToAddToGlobal=Features(Fi).Q(:,1)';
+            TimeToAddToGlobal=TimeToAddToGlobal(TimeToAddToGlobal<=max(GlobalTime));
+            GlobalTime=[GlobalTime TimeToAddToGlobal];
          end
      else
          error(['Unknown form of Q for feature ' num2str(Fi)])
@@ -433,9 +445,13 @@ ModelInput.GlobalTime=GlobalTime;
 ModelInput.Tinit=Params.Tinit;
 ModelInput.MatLib=MatLib;
 ModelInput.Descriptor=Descriptor;
+ModelInput.WarnText=WarnText;
 %ModelInput.matprops=MatLib.matprops;
 %ModelInput.matlist=MatLib.matlist;
 ModelInput.Version='V2.0';
+if ~isempty(WarnText)
+    warning(WarnText)
+end
 
 return
 

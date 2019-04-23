@@ -1,7 +1,3 @@
-%Wish List
-%   Got to figure out how to change cell edit callback to invoke update
-%   status.
-
 function varargout = ParaPowerGUI_V2(varargin)
 % PARAPOWERGUI_V2 MATLAB code for ParaPowerGUI_V2.fig
 %      PARAPOWERGUI_V2, by itself, creates a new PARAPOWERGUI_V2 or raises the existing
@@ -49,6 +45,7 @@ try
     end
 catch ME
     GUIEnable
+    disp(ME.getReport)
     AddStatusLine(['Unanticipated error. Check MATLAB command window for details' char(10) ME.message],'error')
     error(ME.getReport)
 end
@@ -422,7 +419,7 @@ function savebutton_Callback(hObject, eventdata, handles)
 end
 
 % --- Executes on button press in loadbutton.
-function loadbutton_Callback(hObject, eventdata, handles)
+function loadbutton_Callback(hObject, eventdata, handles, InputFilename)
 % hObject    handle to loadbutton (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
@@ -431,7 +428,18 @@ function loadbutton_Callback(hObject, eventdata, handles)
     if isnumeric(oldpathname)
         oldpathname='';
     end
-    [filename, pathname]= uigetfile({'*.ppmodel' 'Models'; '*.guistate' 'GUI State'; '*.*' 'All Files'},'',oldpathname);
+    if exist('InputFilename')
+        if exist(InputFilename,'file')==2
+            [filepath, name, ext]=fileparts(InputFilename);
+            pathname=filepath;
+            filename=[name ext];
+        else
+            disp(['"' InputFilename '" doesn''t exist.'])
+            return
+        end
+    else
+        [filename, pathname]= uigetfile({'*.ppmodel' 'Models'; '*.guistate' 'GUI State'; '*.*' 'All Files'},'',oldpathname);
+    end
     %[filename,pathname] = uigetfile([oldpathname '*.mat']);
     CurTitle=get(handles.figure1,'name');
     Colon=strfind(CurTitle,':');
@@ -440,10 +448,11 @@ function loadbutton_Callback(hObject, eventdata, handles)
     end
     CurTitle=[CurTitle ': ' filename];
     if filename~=0
-        set(gcf,'name',CurTitle);
+        ThisFig=handles.figure1;
+        set(ThisFig,'name',CurTitle);
         set(hObject,'userdata',pathname);
         try %Load file not knowing if it's a guistate or model. If it's not a GUI state it will kick out an error and be trapped.
-            F_Old=gcf;
+            F_Old=ThisFig;
             OldVersion=getappdata(handles.figure1,'Version');
             Fnew=hgload([pathname filename]);
             NewVersion=getappdata(Fnew,'Version');
@@ -481,7 +490,7 @@ function loadbutton_Callback(hObject, eventdata, handles)
                 TestCaseModel.PottingMaterial=PottingMaterial;
             end
             OldVersion=false;
-            if isfield(TestCaseModel,'Version')
+            if isfield(TestCaseModel,'Version') || isprop(TestCaseModel,'Version')
                if not(strcmpi(TestCaseModel.Version,ARLParaPowerVersion('file')) )
                    OldVersion=true;
                end
@@ -781,6 +790,10 @@ function RunAnalysis_Callback(hObject, eventdata, handles)
             else
                 AddStatusLine(sprintf('Case %g',ThisCase));
                 MI=FormModel(RunCases(ThisCase));
+            end
+
+            if ~isempty(MI.WarnText)
+                AddStatusLine(['Warning: ' MI.WarnText])
             end
 
             AddStatusLine('Thermal ',true)
@@ -1731,8 +1744,16 @@ function AddStatusLine(textline,varargin)% Optional args are AddToLastLine,Flag,
 
     AddToLastLine=false;
     Flag='';
-    ThisFig=findobj(0,'-depth',1,'tag','figure1');
-    
+    ThisFig=findall(0,'-depth',1,'tag','figure1');
+    if isempty(ThisFig)
+        Objects=findall(0,'-depth',1,'type','figure');
+        LookFor=mfilename;
+        for I=1:length(Objects)
+            if strcmpi(mfilename,Objects(I).Name(1:length(mfilename)))
+                ThisFig=Objects(I);
+            end
+        end
+    end
     if nargin==2
         if ishandle(varargin{1})
             ThisFig=varargin{1};
@@ -1918,6 +1939,8 @@ end
 function H=TableEditHandles(Description)
     C=get(gcf,'children');
     Panel=C(strcmpi(get(C,'tag'),'TableEdit'));
+    TimePanel=C(strcmpi(get(C,'tag'),'uipanel1'));
+    Tp=get(TimePanel,'children');
     Cp=get(Panel,'children');
     switch lower(Description)
         case 'panel'
@@ -1934,6 +1957,12 @@ function H=TableEditHandles(Description)
             F=C(strcmpi(get(C,'tag','DefineFeatures')));
             Fc=get(F,'children');
             H=cp(strcmpi(get(Cp,'tag'),'Features'));
+        case 'istransient'
+            H=findobj(Tp,'tag','transient');
+        case 'tsteps'
+            H=Tp(strcmpi(get(Tp,'tag'),'NumTimeSteps'));
+        case 'deltat'
+            H=Tp(strcmpi(get(Tp,'tag'),'TimeStep'));
         otherwise
             warning([Description 'Unknown handle requested.'])
                 
@@ -2070,10 +2099,19 @@ function TableGraph(hObject, eventdata, handles)
 
     TableH=TableEditHandles('table');
     AxesH=TableEditHandles('axes');
+    TStepsH=TableEditHandles('Tsteps');
+    DeltaTH=TableEditHandles('DeltaT');
+    IsTransientH=TableEditHandles('IsTransient');
     Table=get(TableH,'data');
     Table=Table(:,2:3);
     Table(find(cellfun(@isempty,Table)))={NaN};  %Any empty cells get replaced with 0's
     NTable=cell2mat(Table);
+    MaxT=NaN;
+    if get(IsTransientH,'value')==1
+         Tsteps=str2double(get(TStepsH,'String')); %
+         DeltaT=str2double(get(DeltaTH,'String')); %Time Step Size
+         MaxT=Tsteps*DeltaT;
+    end
     if get(TableEditHandles('RepeatWaveForm'),'value')==1
          Pulse=NTable;
          NumPulses=3;
@@ -2093,25 +2131,14 @@ function TableGraph(hObject, eventdata, handles)
          %TimeValues=TimeValues(TimeValues<=max(GlobalTime));
          %RepPulse=[TimeValues interp1(RepPulse(:,1),RepPulse(:,2),TimeValues)];
          NTable=RepPulse;
-%ADD ABILITY TO HANDLE REPEATING VALUES IN HERE BASED ON CHECKBOX STATE
-% %         Segment=[];
-% %         NTable=NTable(1:end-1,:);
-% %         Pulse=NTable;
-% %         %MaxTime=get(handles.TimeStep,'value')*get(handles.NumTimeSteps,'value');
-% %         Pulse(:,1)=Pulse(:,1)-Pulse(1,1);  %Ensure 0 based pulse time axis
-% %         NumPulses=3; %Generate 3 pulses arbitrarily
-% %         PulseMin=min(Pulse(:,2));
-% %         PulseMax=max(Pulse(:,2));
-% %         PulseOver=(PulseMax-PulseMin)*0.15;
-% %         for I=1:NumPulses
-% %             Segment=[Segment; NTable(end,1) min(Pulse(:,2))-PulseOver; NTable(end,1) max(Pulse(:,2))+PulseOver; nan nan];
-% %             NTable=[NTable; [NTable(end,1) 0]+Pulse];
-% %         end
+
     else
         Segment=[0 0];
     end
     if ~isempty(NTable)
-        plot(AxesH, Segment(:,1), Segment(:,2),'R--',NTable(:,1),NTable(:,2),'b')
+        plot(AxesH, Segment(:,1), Segment(:,2),'R--',NTable(:,1),NTable(:,2),'b',[MaxT MaxT], [min([Segment(:,2); NTable(:,2)]) max([Segment(:,2); NTable(:,2)])],'G--')
+        xlabel(AxesH, sprintf('Time (s), Global Time End = %g s',MaxT))
+        %text(MaxT, min(NTable(:,2)),'Global Time End');
         YLim=get(AxesH,'ylim');
         if min(NTable(:,2))==YLim(1)
             YLim(1)=YLim(1)-(YLim(2)-YLim(1))*.05;
@@ -2119,7 +2146,7 @@ function TableGraph(hObject, eventdata, handles)
         if max(NTable(:,2))==YLim(2)
             YLim(2)=YLim(2)+(YLim(2)-YLim(1))*.05;
         end
-        set(AxesH,'ylim',YLim)
+        set(AxesH,'ylim',YLim,'xlim',[min(NTable(:,1)) max(NTable(:,1))])
     end
 end
 
@@ -2435,6 +2462,8 @@ function HelpButton_Callback(hObject, eventdata, handles)
     HelpText{end+1}='      The function TableEditHandles() is used to gain access to handles relevant for table handling';
     HelpText{end+1}='      If the final row of a table is time=-Inf, Amp=-Inf, then the pulse is assumed to repeat.';
     HelpText{end+1}='      The programmer MUST adjust the table data if the features table change!';
+    HelpText{end+1}='      If a table defined Q does not extent to the end of global time, then the last value is extended';
+    HelpText{end+1}='         to the end of global time.';
     HelpText{end+1}='';
     HelpText{end+1}='   Stress Models';
     HelpText{end+1}='';
