@@ -68,6 +68,9 @@ for Icase=1:length(testcasefiles)
     end
     
     if CaseExists
+        if length(Results)>1
+            Results=Results(1)
+        end
         %[Tprnt, T_in, MeltFrac,MeltFrac_in]=S1(GlobalTimeOrig(1:end));  %Compute states at times in ComputeTime (S1 must be called with 1 arg in 2017b)
         NewResults.Tprnt   =Results.getState('Thermal');
         NewResults.MeltFrac=Results.getState('MeltFrac');%cat(4, MeltFrac_in , MeltFrac);

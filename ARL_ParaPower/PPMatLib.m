@@ -140,7 +140,7 @@ classdef PPMatLib < handle
             if ~exist('Text','var')
                 obj.ErrorText='';
             else
-                obj.ErrorText=sprintf('%s\n%s',obj.ErrorText,Text);
+                obj.ErrorText=[obj.ErrorText newline Text];
             end
         end
     end
@@ -251,9 +251,11 @@ classdef PPMatLib < handle
             OutParam=reshape(OutParam,[],1);
             obj.ShowErrorText
         end
-        function ShowErrorText(obj, dest)
-            if ~exist('dest','var')
+        function ShowErrorText(obj, varargin) %ShowErrorText(obj, dest)
+            if isempty(varargin)
                 dest='';
+            else
+                dest=varargin{1};
             end
             if ~isempty(obj.ErrorText)
                 if strcmpi(dest,'gui')
@@ -978,6 +980,9 @@ classdef PPMatLib < handle
                                         %change to protected eval
                                         ThisPropVal{Ipv}=ProtectedEval(ThisPropVal{Ipv}, ParamTable);
                                         %eval(sprintf('ThisPropVal{%.0f}=%s;',Ipv,ThisPropVal{Ipv}))
+                                        OrigChar=true;
+                                    else
+                                        OrigChar=false;
                                     end
                                 end
                             catch ME
@@ -986,9 +991,9 @@ classdef PPMatLib < handle
                                 ThisPropVal=NaN;
                             end
                             ScalarValue=length(ThisPropVal(:))==1; %If there is a single value it will be placed as a scalar not cell array
-%                            if ~isnumeric(ThisPropVal{Ipv}) || length(ThisPropVal{Ipv})~=1  %If the value changed on eval, then cycle through mats
+                            if OrigChar || length(ThisPropVal{Ipv})~=1  %If the value changed on eval, then cycle through mats
                                 NewMatLib=obj.ExpandMatLib(NewMatLib, ThisPropVal{Ipv}, Imat, ThisPropName, Ipv, ScalarValue);
-%                            end
+                            end
                         end
                     end
                 end
@@ -1008,7 +1013,11 @@ function OutVar=ProtectedEval(InString, VarList)
             Stxt=sprintf('''%s'' variable already exists in the namespace. Please change your variable name.\n',VarName);
             ErrText=[ErrText Stxt];
         else
-            EvalText=[EvalText VarList{Ivar,1} '=VarList{' num2str(Ivar) ',2};'];
+            if ischar(VarList{Ivar,2})
+                EvalText=[EvalText VarList{Ivar,1} '=' VarList{Ivar,2} ';'];
+            else
+                EvalText=[EvalText VarList{Ivar,1} '=VarList{' num2str(Ivar) ',2};'];
+            end
         end
     end
     EvalText=[EvalText 'OutVar=' InString ';'];
