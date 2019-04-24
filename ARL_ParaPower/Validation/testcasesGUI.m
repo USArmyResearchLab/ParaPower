@@ -19,43 +19,47 @@ if exist('TestCaseWildCard')
     disp(['Only running casing meeting the following wildcard (TestCaseWildCard): ' TestCaseWildCard])
 else
     disp('TestCaseWildCard variable doesn''t exist, running all testcases.')
-    TestCaseWildCard='c*.m';
+    TestCaseWildCard='g*';
 end
 TestCasesFspec=[CaseDir '/' TestCaseWildCard ];
 TestCasesFspec=strrep(TestCasesFspec,'**','*');
 
-testcasefiles=dir([TestCasesFspec '.m']);
+testcasefiles=dir([TestCasesFspec '.ppmodel']);
 if ispc
     testcasefiles=[testcasefiles dir([TestCasesFspec '.lnk'])];
 end
 
-fprintf('\n')
-figure(1);clf
-figure(2);clf
-drawnow
-
-load('DefaultMaterials.mat')
-OrigMatLib=MatLib;
-clear MatLib
-
 Compare=[];
+WinHandle=[];
      
 for Icase=1:length(testcasefiles)
     
-    clearvars -EXCEPT TestCaseWildCard Icase testcasefiles Compare
     CaseName=char(testcasefiles(Icase).name);
     if ispc && strcmpi(CaseName(end-3:end),'.lnk')
       [path,name,ext]=fileparts(getTargetFromLink([testcasefiles(Icase).folder '\' CaseName]));
       CaseName=[name ext];
       testcasefiles(Icase).folder=path;
     end
-    CaseName=CaseName(1:end-2);
+    %CaseName=CaseName(1:end-2);
     
     if isempty(str2num(CaseName(1))) 
         fprintf('Executing test case %s...\n',CaseName)
-        VarsOrig=who;
         addpath(testcasefiles(Icase).folder);
-        eval(CaseName)
+        if ishandle(WinHandle)
+            delete(WinHandle)
+        else
+           delete(findall(0,'tag','figure1'));
+        end
+        WinHandle=ParaPowerGUI_V2;
+        Handles=guidata(WinHandle);
+        hObject=Handles.loadbutton;
+        EventData=[];
+        ParaPowerGUI_V2('loadbutton_Callback',hObject,EventData,Handles,CaseName);
+        Handles=guidata(WinHandle);
+        tic
+        ParaPowerGUI_V2('RunAnalysis_Callback',hObject,EventData,Handles);
+        ExecTime=toc;
+        Results=getappdata(WinHandle,'Results');
         rmpath(testcasefiles(Icase).folder)
         CaseExists=true;
     else
@@ -64,58 +68,24 @@ for Icase=1:length(testcasefiles)
     end
     
     if CaseExists
-        %Erase all newly created variables in the test case M file
-        VarsNew=who;
-        VarsOrig=[VarsOrig; 'VarsOrig'; 'TestCaseModel'; 'VarsNew'; 'Vi'; 'MFILE'];
-        for Vi=1:length(VarsNew)
-            if isempty(cell2mat(regexp(VarsOrig,['^' VarsNew{Vi} '$'])))
-    %            fprintf('Clearing %s\n',VarsNew{Vi});
-                clear (VarsNew{Vi})
-    %        else
-    %            fprintf('Leaving %s\n',VarsNew{Vi});
-            end
-        end
-        clear VarsOrig VarsNew
-    
-        %Material Properties
-        if isfield(TestCaseModel.TCM,'MatLib') || isprop(TestCaseModel.TCM,'MatLib')
-            MatLib=TestCaseModel.TCM.MatLib;
-        else
-            disp('Adding default materials from the material database to the model')
-            TestCaseModel.TCM.MatLib=OrigMatLib;
-            %return
-        end        
-        %save([MFILE '.ppmodel'], '-mat', 'TestCaseModel');
-        MI=FormModel(TestCaseModel.TCM);
-        if length(testcasefiles)==Icase
-            figure(1);clf; figure(2);clf; figure(1)
-            Visualize ('Model Input', MI, 'modelgeom','ShowQ')
-        end
-        fprintf('Analysis executing...')
-
-
-        tic;
-        GlobalTimeOrig=MI.GlobalTime;
-        MI.GlobalTime=GlobalTimeOrig(1);  %Setup initialization
-        S1=scPPT('MI',MI); %Initialize object
-        setup(S1,[]);
-        [Tprnt, T_in, MeltFrac,MeltFrac_in]=S1(GlobalTimeOrig(1:end));  %Compute states at times in ComputeTime (S1 must be called with 1 arg in 2017b)
-        NewResults.Tprnt   =cat(4, T_in        , Tprnt  );
-        NewResults.MeltFrac=cat(4, MeltFrac_in , MeltFrac);
-        MI.GlobalTime = GlobalTimeOrig; %Reassemble MI's global time to match initialization and computed states.
+        %[Tprnt, T_in, MeltFrac,MeltFrac_in]=S1(GlobalTimeOrig(1:end));  %Compute states at times in ComputeTime (S1 must be called with 1 arg in 2017b)
+        NewResults.Tprnt   =Results.getState('Thermal');
+        NewResults.MeltFrac=Results.getState('MeltFrac');%cat(4, MeltFrac_in , MeltFrac);
+        MI=Results.Model;
+        %MI.GlobalTime = GlobalTimeOrig; %Reassemble MI's global time to match initialization and computed states.
         Fi=1; %Could be used to mask for features; (Tprnt would be Tprnt(Mask)
         NewResults.DoutT(:,1+Fi)=max(reshape(NewResults.Tprnt,[],length(MI.GlobalTime)),[],1);
         NewResults.DoutM(:,1+Fi)=max(reshape(NewResults.Tprnt,[],length(MI.GlobalTime)),[],1);
         NewResults.DoutT(:,1)=MI.GlobalTime;
         NewResults.DoutM(:,1)=MI.GlobalTime;
-        ExecTime=toc;
+%        ExecTime=toc;
         NewResults.ExecTime=ExecTime;
         NewResults.DateTime=datetime;
-        NewResults.Desc=TestCaseModel.Desc;
+        NewResults.Desc=CaseName(1:max(find(CaseName=='.'))-1); %TestCaseModel.Desc;
         NewResults.Computer=computer();
         NewResults.Matlab=ver('matlab');
-        if exist([MFILE '.m'],'file')
-            ResultsFile=[MFILE, '_Results.ppmodel'];
+        if exist([testcasefiles(Icase).folder '/' name '.ppmodel'],'file')
+            ResultsFile=[testcasefiles(Icase).folder '/' name, '_Results.ppmodel'];
             if exist(ResultsFile,'file')
                 OldResults=load(ResultsFile,'-mat');
                 if ~isfield(OldResults,'NewResults')
@@ -124,7 +94,7 @@ for Icase=1:length(testcasefiles)
                 else
                     OldResults=OldResults.('NewResults');
                 end
-                Compare{Icase}.Desc=TestCaseModel.Desc;
+                Compare{Icase}.Desc=NewResults.Desc;
                 Compare{Icase}.DeltaTime=NewResults.ExecTime / OldResults.ExecTime;
                 Compare{Icase}.GlobalTime=MI.GlobalTime;
                 DoFList={'Tprnt' 'MeltFrac'};
@@ -146,7 +116,7 @@ for Icase=1:length(testcasefiles)
                     else
                         Compare{Icase}.DOFdesc={'N/A'};
                         Compare{Icase}.DOFdelt=[];
-                        disp(['Saved case does not match current case for ' TestCaseModel.Desc ]);
+                        disp(['Saved case does not match current case for ' NewResults.Desc ]);
                     end
                 catch ME
                     Compare{Icase}=[];
@@ -157,7 +127,8 @@ for Icase=1:length(testcasefiles)
                 end
             else
                 fprintf('Results file not found.  A new one will be created (%s)\n', ResultsFile);
-                save (ResultsFile,'-mat','NewResults','TestCaseModel')
+                TestCaseModel=Results.Case;
+                save (ResultsFile,'-mat','NewResults', 'TestCaseModel')
             end
         else
             disp('Results file not requested.')

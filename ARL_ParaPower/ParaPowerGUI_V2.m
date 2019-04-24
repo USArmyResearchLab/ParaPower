@@ -56,7 +56,7 @@ if 0
     if not(isempty(varargin)) && not(strcmpi(varargin{1}(end-14:end),'CloseRequestFcn'))
         ThisFig=gcf; 
         if ishandle(ThisFig) && isempty(getappdata(ThisFig,'Initialized')) && isempty(varargin{4})
-            handles = guihandles(ThisFig);
+            handles = guidata(ThisFig);
             guidata(ThisFig, handles);
             InitializeGUI(handles);
         end
@@ -1389,7 +1389,7 @@ if Confirm
     set(handles.figure1,'posit',NewPosit)
 end
 GUIDisable(handles.figure1)
-axes(handles.GeometryVisualization)
+axes(GetVisAxis(handles.VisualizePanel))
 cla reset;  
 
 %Clear figures external to GUI 
@@ -1421,7 +1421,7 @@ set(handles.Tinit,'String',zero);
 set(handles.TimeStep,'String',num2str(0.1)); 
 set(handles.NumTimeSteps,'String',num2str(10));
 set(handles.Tprocess,'String',zero);
-set(handles.GeometryVisualization,'visi','off')
+set(GetVisAxis(handles.VisualizePanel),'visi','off')
 
 EmptyRow=EmptyFeatureRow;
 set(handles.features, 'Data',EmptyRow); 
@@ -1800,7 +1800,7 @@ function AddStatusLine(textline,varargin)% Optional args are AddToLastLine,Flag,
     if not(exist('ThisFig','var'))
         ThisFig=findobj(0,'-depth',1,'tag','figure1');
     end
-    handles=guihandles(ThisFig);
+    handles=guidata(ThisFig);
     Hstat=handles.StatusWindow;
     
     if strcmpi(class(textline),'boolean') && textline
