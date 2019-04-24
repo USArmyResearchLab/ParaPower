@@ -1948,7 +1948,7 @@ end
 function H=TableEditHandles(Description)
     C=get(gcf,'children');
     Panel=C(strcmpi(get(C,'tag'),'TableEdit'));
-    TimePanel=C(strcmpi(get(C,'tag'),'uipanel1'));
+    TimePanel=C(strcmpi(get(C,'tag'),'TimeParamsPanel'));
     Tp=get(TimePanel,'children');
     Cp=get(Panel,'children');
     switch lower(Description)
@@ -2155,7 +2155,12 @@ function TableGraph(hObject, eventdata, handles)
         if max(NTable(:,2))==YLim(2)
             YLim(2)=YLim(2)+(YLim(2)-YLim(1))*.05;
         end
-        set(AxesH,'ylim',YLim,'xlim',[min(NTable(:,1)) max(NTable(:,1))])
+        MxTime=max(NTable(:,1));
+        MnTime=min(NTable(:,1));
+        if MxTime~=MnTime
+            set(AxesH,'xlim',[MnTime MxTime])
+        end
+        set(AxesH,'ylim',YLim);
     end
 end
 
