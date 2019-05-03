@@ -2631,12 +2631,21 @@ function MaxPlot_Callback(hObject, eventdata, handles, Results)
                figure(Figs(MaxResultsFig))
            end
            clf
-           if ~isempty(DoutT)
+
+            VarPlotTitle='';
+            if ~isempty(Results.Case.ParamVar)
+                for II=1:length(Results.Case.ParamVar(:,1))
+                    VarPlotTitle=[VarPlotTitle sprintf('%s: %s\n',Results.Case.ParamVar{II,1},Results.Case.ParamVar{II,2})];
+                end
+            end
+            if ~isempty(DoutT)
                subplot(1,NumAx,ThisAx)
                plot(DoutT(:,1),DoutT(:,2:end));
                xlabel('Time')
                ylabel('Temperature')
-               title('Max Temp in Feature')
+               T=('Max Temp in Feature')
+               PlotTitle=[sprintf('%s\nCase %g: %s\n',T,ThisCase,VarPlotTitle)];
+               title(PlotTitle,'interp','none');
                legend(Ftext)
                ThisAx=ThisAx-1;
            end
@@ -2646,7 +2655,9 @@ function MaxPlot_Callback(hObject, eventdata, handles, Results)
                legend(Ftext(PCMFeatures))
                xlabel('Time')
                ylabel('Melt Fraction')
-               title('Max Melt Fraction in Feature')
+               T=('Max Melt Fraction in Feature')
+               PlotTitle=[sprintf('%s\nCase %g: %s\n',T,ThisCase,VarPlotTitle)];
+               title(PlotTitle,'interp','none');
                ThisAx=ThisAx-1;
            end
            if ~isempty(DoutS)
@@ -2654,7 +2665,9 @@ function MaxPlot_Callback(hObject, eventdata, handles, Results)
                plot(DoutS(:,1),DoutS(:,2:end));
                xlabel('Time')
                ylabel('Stress')
-               title('Max Stress in Feature')
+               T=('Max Stress in Feature')
+               PlotTitle=[sprintf('%s\nCase %g\n',T,ThisCase,VarPlotTitle)];
+               title(PlotTitle,'interp','none');
                legend(Ftext)
                ThisAx=ThisAx-1;
            end
