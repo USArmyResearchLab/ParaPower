@@ -461,6 +461,7 @@ ModelInput.Tinit=Params.Tinit;
 ModelInput.MatLib=MatLib;
 ModelInput.Descriptor=Descriptor;
 ModelInput.FeatureVolume=FeatureVolume;
+ModelInput.FeatureMass=FeatureMass;
 ModelInput.WarnText=WarnText;
 %ModelInput.matprops=MatLib.matprops;
 %ModelInput.matlist=MatLib.matlist;

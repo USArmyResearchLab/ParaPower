@@ -803,14 +803,19 @@ function RunAnalysis_Callback(hObject, eventdata, handles)
                 %not used TimeStepOutput = get(handles.slider1,'Value');
                 tic
     %            GlobalTime=MI.GlobalTime;  %Since there is global time vector, construct one here.
+                if ~isempty(MI.GlobalTime)
+                    InitTime=MI.GlobalTime(1);    %Time at initializatio extracted from MI.GlobalTime
+                    ComputeTime=MI.GlobalTime(2:end); %extract time to compute states from MI.GlobalTime
 
-                InitTime=MI.GlobalTime(1);    %Time at initializatio extracted from MI.GlobalTime
-                ComputeTime=MI.GlobalTime(2:end); %extract time to compute states from MI.GlobalTime
-
-                MI.GlobalTime=InitTime;  %Setup initialization
+                    MI.GlobalTime=InitTime;  %Setup initialization
+                    StepsToEstimate=2;
+                else
+                    InitTime=[];
+                    StepsToEstimate=0;
+                    ComputeTime=[];
+                end
                 S1=scPPT('MI',MI); %Initialize object
                 setup(S1,[]);
-                StepsToEstimate=2;
                 tic
                 [Tprnt, T_in, MeltFrac,MeltFrac_in]=S1([InitTime ComputeTime(1:min(StepsToEstimate,length(ComputeTime)))]);  %Compute states at times in ComputeTime (S1 must be called with 1 arg in 2017b)
                 EstTime=toc;
@@ -2565,10 +2570,10 @@ function MaxPlot_Callback(hObject, eventdata, handles, Results)
 % hObject    handle to MaxPlot (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+   ThisCase=get(handles.CaseSelect,'value');
    if ~exist('Results','var')
        Results=getappdata(handles.figure1, 'Results');
        if ~isempty(Results)
-           ThisCase=get(handles.CaseSelect,'value');
            Results=Results(ThisCase);
        end
    end
@@ -2638,14 +2643,15 @@ function MaxPlot_Callback(hObject, eventdata, handles, Results)
                 for II=1:length(Results.Case.ParamVar(:,1))
                     VarPlotTitle=[VarPlotTitle sprintf('%s: %s\n',Results.Case.ParamVar{II,1},Results.Case.ParamVar{II,2})];
                 end
+                VarPlotTitle=sprintf('\nCase %g: %s\n',ThisCase,VarPlotTitle);
             end
             if ~isempty(DoutT)
                subplot(1,NumAx,ThisAx)
                plot(DoutT(:,1),DoutT(:,2:end));
                xlabel('Time')
                ylabel('Temperature')
-               T=('Max Temp in Feature')
-               PlotTitle=[sprintf('%s\nCase %g: %s\n',T,ThisCase,VarPlotTitle)];
+               T=('Max Temp in Feature');
+               PlotTitle=[T VarPlotTitle];
                title(PlotTitle,'interp','none');
                legend(Ftext)
                ThisAx=ThisAx-1;
@@ -2656,8 +2662,8 @@ function MaxPlot_Callback(hObject, eventdata, handles, Results)
                legend(Ftext(PCMFeatures))
                xlabel('Time')
                ylabel('Melt Fraction')
-               T=('Max Melt Fraction in Feature')
-               PlotTitle=[sprintf('%s\nCase %g: %s\n',T,ThisCase,VarPlotTitle)];
+               T=('Max Melt Fraction in Feature');
+               PlotTitle=[T VarPlotTitle];
                title(PlotTitle,'interp','none');
                ThisAx=ThisAx-1;
            end
@@ -2667,7 +2673,7 @@ function MaxPlot_Callback(hObject, eventdata, handles, Results)
                xlabel('Time')
                ylabel('Stress')
                T=('Max Stress in Feature')
-               PlotTitle=[sprintf('%s\nCase %g\n',T,ThisCase,VarPlotTitle)];
+               PlotTitle=[T VarPlotTitle];
                title(PlotTitle,'interp','none');
                legend(Ftext)
                ThisAx=ThisAx-1;
