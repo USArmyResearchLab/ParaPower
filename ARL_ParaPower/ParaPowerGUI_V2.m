@@ -448,6 +448,7 @@ function loadbutton_Callback(hObject, eventdata, handles, InputFilename)
     end
     CurTitle=[CurTitle ': ' filename];
     if filename~=0
+        GUIDisable(handles.figure1)
         ThisFig=handles.figure1;
         set(ThisFig,'name',CurTitle);
         set(hObject,'userdata',pathname);
@@ -702,6 +703,7 @@ function loadbutton_Callback(hObject, eventdata, handles, InputFilename)
            Initialize_Callback(hObject, eventdata, handles, true)
         end
     end
+    GUIEnable(handles.figure1)
 end    
 
 function NewMatLibUpdate(NewMatLib, FeaturesHandle)
@@ -1368,7 +1370,7 @@ else
     P='Yes';
 end
 
-if strcmpi(P,'No')
+if ~strcmpi(P,'Yes')
     AddStatusLine('GUI clear canceled.')
     return
 end
@@ -1451,6 +1453,10 @@ if not(isempty(Colon))
     CurTitle(Colon:end)='';
 end
 set(handles.figure1,'name',CurTitle);
+
+set(handles.CaseSelect,'string','');
+set(handles.CaseSelect,'value',1);
+set(handles.CaseSelect,'visible','off')
 
 handles.InitComplete = 0;
 set(handles.transient,'value',1)
@@ -2517,6 +2523,7 @@ function GUIDisable(GUIHandle)
         set(ObjectsToChange,'enable','off')
         set(findobj(ObjectsToChange,'tag','HelpButton'),'enable','on');
     end
+    drawnow
 end
 
 function GUIEnable(GUIHandle)
