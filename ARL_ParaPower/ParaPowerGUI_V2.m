@@ -506,6 +506,7 @@ function loadbutton_Callback(hObject, eventdata, handles, InputFilename)
                 AddStatusLine('Attempting to load data from previous version, profile may be corrupted.','warning')
             end
 
+            
             if ~isempty(TestCaseModel.VariableList)
                 ParamTable=TestCaseModel.VariableList;
                 ParamTable(:,2:3)=ParamTable;

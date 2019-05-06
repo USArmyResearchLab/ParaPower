@@ -366,6 +366,7 @@ for Fi=1:length(Features)
          Volm=real(VA(Fmask)); %Volume elements
          TotalA=sum(Area);  %Total Area for feature
          TotalV=sum(Volm);  %Total Volume for feature
+         FeatureVolume(Fi)=TotalV;
          
          if TotalV==0  %If this is a zero-thickness feature
              ScaledQ(Fmask) = imag(VA(Fmask))./TotalA;
@@ -379,7 +380,15 @@ for Fi=1:length(Features)
          for Ei=find(reshape(Fmask,1,[]))
              Q{Ei}=@(t)ThisQ(t)*ScaledQ(Ei);
          end
+     else
+         Fmask=(ModelMatrix==Fi);
+         Area=imag(VA(Fmask)); %Area elements
+         Volm=real(VA(Fmask)); %Volume elements
+         TotalA=sum(Area);  %Total Area for feature
+         TotalV=sum(Volm);  %Total Volume for feature
+         FeatureVolume(Fi)=TotalV;
      end
+
 end
 
 FeatureMatrix=ModelMatrix; %Retain the ability to separate features
@@ -401,6 +410,12 @@ for Fi=1:length(Features)
         error('Feature %2.0f material %s is unknown',Fi,MatNum);
     end
     ModelMatrix(ModelMatrix==Fi*1i)=MatNum;
+    FeatureMat=MatLib.GetMatNum(MatNum);
+    if isprop(FeatureMat,'rho')
+        FeatureMass(Fi)=FeatureVolume(Fi)*FeatureMat.rho; %in kg)
+    else
+        FeatureMass(Fi)=NaN;
+    end
 end
      
 if ischar(PottingMaterial)
@@ -445,6 +460,7 @@ ModelInput.GlobalTime=GlobalTime;
 ModelInput.Tinit=Params.Tinit;
 ModelInput.MatLib=MatLib;
 ModelInput.Descriptor=Descriptor;
+ModelInput.FeatureVolume=FeatureVolume;
 ModelInput.WarnText=WarnText;
 %ModelInput.matprops=MatLib.matprops;
 %ModelInput.matlist=MatLib.matlist;

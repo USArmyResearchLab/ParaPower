@@ -487,11 +487,11 @@ function Visualize (PlotTitle, MI, varargin)
                             else
                                 QList(ThisQ)=F;
                             end
+                            Xt=mean([X(Xi) X(Xi+1)]);
+                            Yt=mean([Y(Yi) Y(Yi+1)]);
+                            Zt=mean([Z(Zi) Z(Zi+1)]);
+                            text(Xt, Yt, Zt,T,'horiz','center')
                         end
-                        Xt=mean([X(Xi) X(Xi+1)]);
-                        Yt=mean([Y(Yi) Y(Yi+1)]);
-                        Zt=mean([Z(Zi) Z(Zi+1)]);
-                        text(Xt, Yt, Zt,T,'horiz','center')
                     end
                     %if ~isempty(PlotParms.EdgeColor) && NoHeat
                     %    set(F,'EdgeColor',PlotParms.EdgeColor);
