@@ -395,6 +395,7 @@ function savebutton_Callback(hObject, eventdata, handles)
         
         [fname,pathname] = uiputfile ([oldpathname '*.ppmodel']);
         if fname~= 0
+            GUIDisable(handles.figure1)
             AddStatusLine(['Saving "' pathname fname '".,,']);
             Source=TestCaseModel.MatLib.Source;
             if Source(end)=='*'
@@ -416,6 +417,7 @@ function savebutton_Callback(hObject, eventdata, handles)
         CurTitle=[CurTitle ': ' fname];
         set(handles.figure1,'name',CurTitle);
     end
+    GUIEnable(handles.figure1)
 end
 
 % --- Executes on button press in loadbutton.

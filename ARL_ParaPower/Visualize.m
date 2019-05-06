@@ -487,10 +487,10 @@ function Visualize (PlotTitle, MI, varargin)
                             else
                                 QList(ThisQ)=F;
                             end
-                            Xt=mean([X(Xi) X(Xi+1)]);
-                            Yt=mean([Y(Yi) Y(Yi+1)]);
-                            Zt=mean([Z(Zi) Z(Zi+1)]);
-                            text(Xt, Yt, Zt,T,'horiz','center')
+%                            Xt=mean([X(Xi) X(Xi+1)]);
+%                            Yt=mean([Y(Yi) Y(Yi+1)]);
+%                            Zt=mean([Z(Zi) Z(Zi+1)]);
+%                            text(Xt, Yt, Zt,T,'horiz','center')
                         end
                     end
                     %if ~isempty(PlotParms.EdgeColor) && NoHeat
@@ -686,7 +686,16 @@ function Visualize (PlotTitle, MI, varargin)
         P=get(ThisAxis,'posit');
         PBorder=1-(P(3)+P(1));
 %        set(ThisAxis,'posit',[PBorder P(2) 1-2*PBorder P(4)]);
+        %Massage QList into order
         KeyList=keys(QList);
+        KeyListOrder=cellfun(@str2num,KeyList,'uniformoutput',false);
+        NotNums=cellfun(@isempty,KeyListOrder);
+        for Ki=find(NotNums)
+            KeyListOrder{Ki}=NaN;
+        end
+        KeyListOrder=-1*cell2mat(KeyListOrder);
+        [KeyListOrder, Reordered]=sort(KeyListOrder);
+        KeyList=KeyList(Reordered);
         Lkl=length(KeyList);
         QColor(:,1)=(0:Lkl)/(Lkl);
         QColor(:,2)=(Lkl:-1:0)/(Lkl)*.3;
@@ -698,7 +707,7 @@ function Visualize (PlotTitle, MI, varargin)
             set(QList(KeyList{Ki}),'EdgeColor',QColor(Ki,:),'linewidth',3);
             rectangle('position',[0,(Ki-1)/length(KeyList),1,1/length(KeyList)],'facecolor',QColor(Ki,:),'userdata','REMOVE');
             BarText=sprintf('%4.2g',-1*str2num(KeyList{Ki}));
-            TT=text(1,(Ki-1)/length(KeyList)+.5/length(KeyList),BarText,'horizontalalig','right','rotation',90,'verticalalign','top','userdata','REMOVE');
+            TT=text(1,(Ki-1)/length(KeyList)+.5/length(KeyList),BarText,'horizontalalig','left','rotation',0,'verticalalign','top','userdata','REMOVE');
         end
         set(QCB,'vis','off')
         text(0,0,'Q (W)','vertical','top')
