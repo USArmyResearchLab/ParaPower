@@ -40,6 +40,11 @@ classdef PPMatLib < handle
 %   GetMatTypesAvail() - Returns a list of all known material types
 %   GetParamAvail()    - Returns list of all parameters in all known
 %                        material types
+%   Stat=ReplMatl(NameNum, MatObj)  - Remove existing material name and add
+%                                     new material. NameNum is name or
+%                                     number of material to delete.  MatObj
+%                                     is material object of new material
+%   
 
 %    properties (Access=public)
 %        Name    {mustBeChar(Name)} 

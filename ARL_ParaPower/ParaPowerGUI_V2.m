@@ -616,9 +616,14 @@ function loadbutton_Callback(hObject, eventdata, handles, InputFilename)
                tabledata(count,FTC('z2'))  = AutoVert(Features(count).z(2));
                tabledata(count,FTC('mat'))  = cellstr(Features(count).Matl);
                if ischar(Features(count).Q)
-                    tabledata(count,FTC('qtype'))  = {'Function(t)'};
-                    tabledata(count,FTC('qval')) = AutoVert(Features(count).Q);
-               elseif isscalar(Features(count).Q)
+                    if isnan(str2double(Features(count).Q))
+                        tabledata(count,FTC('qtype'))  = {'Function(t)'};
+                        tabledata(count,FTC('qval')) = AutoVert(Features(count).Q);
+                    else
+                        tabledata(count,FTC('qtype'))  = {'Scalar'};
+                        tabledata(count,FTC('qval')) = AutoVert(num2str(Features(count).Q));
+                    end
+               elseif isscalar(Features(count).Q) || isempty(Features(count).Q)
                     tabledata(count,FTC('qtype'))  = {'Scalar'};
                     tabledata(count,FTC('qval')) = AutoVert(num2str(Features(count).Q));
                elseif isnumeric(Features(count).Q) && length(Features(count).Q(1,:))==2
@@ -2233,8 +2238,11 @@ if Col==FTC('QType')
 
         Table{Row,FTC('QVal')}=TableShowDataText;
 %        CellTableData{Row}=[0 0];
+    elseif strcmpi(eventdata.NewData,'Scalar')
+        Table{Row,FTC('QVal')}='0';
+%        CellTableData{Row}=[];
     else
-        Table{Row,FTC('QVal')}=[];
+        Table{Row,FTC('QVal')}='Enter Fn(t)';
 %        CellTableData{Row}=[];
     end
     set(hObject,'Data',Table);
