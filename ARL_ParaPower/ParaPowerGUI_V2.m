@@ -1556,7 +1556,7 @@ end
 UseFig=gcf;
 clf
 Results=getappdata(handles.figure1,'Results');
-if length(Results)>1
+if length(Results)>=ThisCase
     ThisCase=get(handles.CaseSelect,'value');
     Results=Results(ThisCase);
 end
