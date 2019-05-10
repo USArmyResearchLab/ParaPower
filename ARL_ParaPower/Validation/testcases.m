@@ -24,7 +24,7 @@ end
 TestCasesFspec=[CaseDir '/' TestCaseWildCard ];
 TestCasesFspec=strrep(TestCasesFspec,'**','*');
 
-testcasefiles=dir([TestCasesFspec '.m']);
+testcasefiles=dir([TestCasesFspec '*']);
 if ispc
     testcasefiles=[testcasefiles dir([TestCasesFspec '.lnk'])];
 end

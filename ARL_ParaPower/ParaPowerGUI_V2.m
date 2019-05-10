@@ -1287,6 +1287,7 @@ else
         setappdata(handles.figure1,'RunCases',Cases);
         setappdata(handles.figure1,'MI',MI);
         CaseText=get(handles.CaseSelect,'string');
+        set(handles.CaseSelect,'value',1);
         if length(Cases)==1
             set(handles.CaseSelect,'visible','off')
             set(handles.CaseSelect,'value',1)
