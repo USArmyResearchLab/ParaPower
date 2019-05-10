@@ -2,7 +2,7 @@ classdef PostProcessResults_exported < matlab.apps.AppBase
 
     % Properties that correspond to app components
     properties (Access = public)
-        UIFigure                        matlab.ui.Figure
+        PPPP                            matlab.ui.Figure
         LoadCurrentResultsButton        matlab.ui.control.Button
         PlotButton                      matlab.ui.control.Button
         DependentVariableDropDownLabel  matlab.ui.control.Label
@@ -10,24 +10,28 @@ classdef PostProcessResults_exported < matlab.apps.AppBase
         IndependentVariableDropDownLabel  matlab.ui.control.Label
         IndependentVariableDropDown     matlab.ui.control.DropDown
         ListBoxLabel                    matlab.ui.control.Label
-        ListBox                         matlab.ui.control.ListBox
+        ListBoxTemplate                 matlab.ui.control.ListBox
         FileLoadButton                  matlab.ui.control.Button
+        StatusBox                       matlab.ui.control.ListBox
+        LogoSpace                       matlab.ui.control.UIAxes
     end
 
     
     properties (Access = private)
         Results % Description
         ParaPower % Description
+        PlotWindows = []% Description
     end
     
     properties (Constant)
         AvailStates={'Max Temperature' 'Min Melt Frac'};
+        ParaPowerName='ParaPowerGUI_V2';
     end
     
     methods (Access = private)
         
         function results = getvarbox(app, VarName)
-            LBh=findobj(app.UIFigure, 'tag', 'VarLB');
+            LBh=findobj(app.PPPP, 'tag', 'VarLB');
             LB=[];
             for I=1:length(LBh)
                 U=LBh(I).UserData;
@@ -37,14 +41,14 @@ classdef PostProcessResults_exported < matlab.apps.AppBase
                 end
             end
             if ~isempty(LB)
-                LBL=findobj(app.UIFigure,'tag','VarLBL','userdata',LBi);
+                LBL=findobj(app.PPPP,'tag','VarLBL','userdata',LBi);
             end
             results=[LB LBL];
         end
         
         function results = PopulateResults(app)
-            lResults=app.Results;
-             figure(app.UIFigure)
+             lResults=app.Results;
+             figure(app.PPPP)
              NumVars=length(app.Results(1).Model.Descriptor(:,1));
              for Vi=1:NumVars
                 VarName{Vi}=lResults(1).Model.Descriptor{Vi,1};
@@ -60,21 +64,21 @@ classdef PostProcessResults_exported < matlab.apps.AppBase
                     end
                 end
              end
-             P=app.ListBox.Position;
+             P=app.ListBoxTemplate.Position;
              Pl=app.ListBoxLabel.Position;
-             app.ListBox.Visible=false;
+             app.ListBoxTemplate.Visible=false;
              app.ListBoxLabel.Visible=false;
              Wdth=P(3)*1.05;
              Hgt=P(4)*1.05;
              Xpos=Pl(1);
              Ypos=Pl(2);
              NumInRow=4;
-             delete(findobj(app.UIFigure,'tag','VarLB'));
-             delete(findobj(app.UIFigure,'tag','VarLBL'));
+             delete(findobj(app.PPPP,'tag','VarLB'));
+             delete(findobj(app.PPPP,'tag','VarLBL'));
              for I=1:NumVars
                  TagNum=num2str(I);
-                 UI=uilistbox(app.UIFigure,'items',VarVals{I},'tag',['VarLB'],'user',{I VarName{I}},'position',[Xpos Ypos-(Pl(2)-P(2)) P(3) P(4)],'MultiSelect',true);
-                 UIt=uieditfield(app.UIFigure,'value',VarName{I},'tag',['VarLBL'],'user',I,'position',[Xpos Ypos P(3) Pl(4)],'enable',true);
+                 UI=uilistbox(app.PPPP,'items',VarVals{I},'tag',['VarLB'],'user',{I VarName{I}},'position',[Xpos Ypos-(Pl(2)-P(2)) P(3) P(4)],'MultiSelect',true);
+                 UIt=uieditfield(app.PPPP,'value',VarName{I},'tag',['VarLBL'],'user',I,'position',[Xpos Ypos P(3) Pl(4)],'enable',true);
                  RestoreUIt=@(A,B)set(UIt,'value',VarName{I});
                  UIt.ValueChangedFcn=RestoreUIt;
                  %set(UIt,'ValueChangedFcn',UItRestore);
@@ -87,22 +91,63 @@ classdef PostProcessResults_exported < matlab.apps.AppBase
              app.IndependentVariableDropDown.Items=VarName;
              app.DependentVariableDropDown.Items=app.AvailStates;
              IndependentVariableDropDownValueChanged(app)
+             app.IndependentVariableDropDown.Enable=true;
+             app.DependentVariableDropDown.Enable=true;
+
+        end
+        
+        function results = AddStatusLine(app,StatusText, Flag)
+            if ~exist('Flag')
+                Flag=[];
+            end
+            CurItems=app.StatusBox.Items;
+            app.StatusBox.Items={' '};
+            app.StatusBox.Items=[StatusText CurItems];
+            app.StatusBox.ItemsData=[1:length(CurItems)+1];
+            app.StatusBox.Value=1;
         end
     end
     
 
     methods (Access = private)
 
+        % Code that executes after component creation
+        function startupFcn(app)
+            app.ListBoxTemplate.Visible=false;
+            app.ListBoxLabel.Visible=false;
+            app.IndependentVariableDropDown.Enable=false;
+            app.DependentVariableDropDown.Enable=false;
+            app.StatusBox.Items={};
+            
+            %Display Logo
+            BkgColor=app.PPPP.Color;
+            Logo=imread('CCDC_RGB_Positive_RLB.lg.png','backgrou',BkgColor);
+            image(app.LogoSpace,Logo);
+            app.LogoSpace.Visible=false;
+            Tx=text(app.LogoSpace,0,0,'ParaPower','unit','normal','fontsize',16,'horiz','center');
+            E=get(Tx,'extent');
+            Tx.Position=[0.5 -1*E(4)*0.30];
+            %Tx2=text(app.LogoSpace,0.5,1,'ARL ParaPower','unit','normal','fontsize',14,'horiz','center','Verticalalignment','bottom')
+        end
+
         % Button pushed function: LoadCurrentResultsButton
         function LoadCurrentResultsButtonPushed(app, event)
-             app.ParaPower=ParaPowerGUI_V2;
-             figure(app.UIFigure)
+             app.AddStatusLine('Loading results from current ParaPower instance...')
+             %Get ParaPower Window
+             Figs=findall(0,'type','figure');
+             Names=char(get(Figs,'name'));
+             Names=cellstr(Names(:,1:length(app.ParaPowerName)));
+             app.ParaPower=Figs(strcmp(Names,app.ParaPowerName));
+             if isempty(app.ParaPower)
+                 app.AddStatusLine(['No current ' app.ParaPowerName ' window open.'])
+                 return
+             end
+             figure(app.PPPP)
              if isappdata(app.ParaPower,'Results')
                  app.Results=getappdata(app.ParaPower,'Results');
                  lResults=app.Results;
              else
-                 disp('No Results available.')
-                 msgbox('No results available')
+                 app.AddStatusLine('No Results available.')
                  return
              end
             app.PopulateResults;
@@ -114,28 +159,50 @@ classdef PostProcessResults_exported < matlab.apps.AppBase
             %Gray out the box that's selected here.
             %Value is the text of the independent variable.  shoudl be able to have it match other.
             VarBlock=app.getvarbox(value);
-            set(findobj(app.UIFigure,'tag','VarLB'),'enable',true);
-            set(findobj(app.UIFigure,'tag','VarLBL'),'enable',true);
+            set(findobj(app.PPPP,'tag','VarLB'),'enable',true);
+            set(findobj(app.PPPP,'tag','VarLBL'),'enable',true);
             set(VarBlock,'enable',false)
         end
 
         % Button pushed function: FileLoadButton
         function FileLoadButtonPushed(app, event)
-            load('deleteme_postprocessing.ppmodel','-mat');  
-            if exist('Results','var')
-                app.Results=Results;
+            if isempty(app.FileLoadButton.UserData)
+                OldPath='';
             else
-                disp('No Results in file')
-                return
+                OldPath=app.FileLoadButton.UserData;
             end
-            app.PopulateResults;
+            [filename, pathname]= uigetfile({'*.ppmodel' 'Models'; '*.*' 'All Files'},'',OldPath);
+            if filename~=0
+                app.FileLoadButton.UserData=pathname;
+                app.AddStatusLine(['Loading ' pathname filename '...'])
+                L=load([pathname filename],'-mat');
+                if isfield(L,'Results')
+                    if length(L.Results)>1
+                        app.Results=L.Results;
+                        app.PopulateResults;
+                        OldName=app.PPPP.Name;
+                        Colon=find(OldName==':', 1 );
+                        if ~isempty(Colon)
+                            OldName=OldName(1:Colon-1);
+                        end
+                        app.PPPP.Name=[OldName ': ' filename];
+                    else
+                        app.AddStatusLine('File contains only 1 result set.')
+                    end
+                else
+                    app.AddStatusLine('No Results in file')
+                end
+            else
+                app.AddStatusLine('No file selected.')
+            end
+
         end
 
         % Button pushed function: PlotButton
         function PlotButtonPushed(app, event)
             lResults=app.Results;
-            LabelH=findobj(app.UIFigure,'tag','VarLBL');
-            VarBxH=findobj(app.UIFigure,'tag','VarLB');
+            LabelH=findobj(app.PPPP,'tag','VarLBL');
+            VarBxH=findobj(app.PPPP,'tag','VarLB');
             IndepVar=get(findobj(VarBxH,'enable',false),'userdata');
             IndepAxisC=get(findobj(VarBxH,'enable',false),'Items');
             XLabel=IndepVar{2};
@@ -199,15 +266,29 @@ classdef PostProcessResults_exported < matlab.apps.AppBase
                     end
                 end
             end
-            figure(1);
+            app.PlotWindows=[app.PlotWindows figure];
+            set(app.PlotWindows(end),'name','ARL ParaPower Post')
             clf
             PlotAxis=axes;
-            plot(PlotAxis,IndepAxis,DepAxis)
+            plot(PlotAxis,IndepAxis,DepAxis,'marker','o')
             ylabel(PlotAxis,YLabel);
             xlabel(PlotAxis,XLabel);
             if ~isempty(CurveName)
-                legend(PlotAxis,CurveName)
+                LegText=CurveName(:,1);
+                for Ci=1:length(CurveName(:,1))
+                    for Ei=2:length(CurveName(1,:))
+                        LegText{Ci}=[LegText{Ci} ', ' CurveName{Ci, Ei}];
+                    end
+                end
+                legend(PlotAxis,LegText,'interp','none')
             end
+        end
+
+        % Close request function: PPPP
+        function PPPPCloseRequest(app, event)
+            delete(app.PlotWindows)
+            delete(app)
+            
         end
     end
 
@@ -217,63 +298,79 @@ classdef PostProcessResults_exported < matlab.apps.AppBase
         % Create UIFigure and components
         function createComponents(app)
 
-            % Create UIFigure
-            app.UIFigure = uifigure;
-            app.UIFigure.Position = [100 100 640 480];
-            app.UIFigure.Name = 'UI Figure';
+            % Create PPPP
+            app.PPPP = uifigure;
+            app.PPPP.Position = [100 100 640 480];
+            app.PPPP.Name = 'ParaPower Parametric Post Processor';
+            app.PPPP.Resize = 'off';
+            app.PPPP.CloseRequestFcn = createCallbackFcn(app, @PPPPCloseRequest, true);
 
             % Create LoadCurrentResultsButton
-            app.LoadCurrentResultsButton = uibutton(app.UIFigure, 'push');
+            app.LoadCurrentResultsButton = uibutton(app.PPPP, 'push');
             app.LoadCurrentResultsButton.ButtonPushedFcn = createCallbackFcn(app, @LoadCurrentResultsButtonPushed, true);
-            app.LoadCurrentResultsButton.Position = [154.5 35 129 22];
+            app.LoadCurrentResultsButton.Position = [184 70 129 22];
             app.LoadCurrentResultsButton.Text = {'Load Current Results'; ''};
 
             % Create PlotButton
-            app.PlotButton = uibutton(app.UIFigure, 'push');
+            app.PlotButton = uibutton(app.PPPP, 'push');
             app.PlotButton.ButtonPushedFcn = createCallbackFcn(app, @PlotButtonPushed, true);
-            app.PlotButton.Position = [408 35 100 22];
+            app.PlotButton.Position = [437 70 100 22];
             app.PlotButton.Text = {'Plot'; ''};
 
             % Create DependentVariableDropDownLabel
-            app.DependentVariableDropDownLabel = uilabel(app.UIFigure);
+            app.DependentVariableDropDownLabel = uilabel(app.PPPP);
             app.DependentVariableDropDownLabel.HorizontalAlignment = 'right';
             app.DependentVariableDropDownLabel.Position = [311 459 111 22];
             app.DependentVariableDropDownLabel.Text = 'Dependent Variable';
 
             % Create DependentVariableDropDown
-            app.DependentVariableDropDown = uidropdown(app.UIFigure);
+            app.DependentVariableDropDown = uidropdown(app.PPPP);
             app.DependentVariableDropDown.Items = {'Max Temp', 'Max Melt Fraction'};
             app.DependentVariableDropDown.Position = [437 459 100 22];
             app.DependentVariableDropDown.Value = 'Max Temp';
 
             % Create IndependentVariableDropDownLabel
-            app.IndependentVariableDropDownLabel = uilabel(app.UIFigure);
+            app.IndependentVariableDropDownLabel = uilabel(app.PPPP);
             app.IndependentVariableDropDownLabel.HorizontalAlignment = 'right';
             app.IndependentVariableDropDownLabel.Position = [41 459 119 22];
             app.IndependentVariableDropDownLabel.Text = 'Independent Variable';
 
             % Create IndependentVariableDropDown
-            app.IndependentVariableDropDown = uidropdown(app.UIFigure);
+            app.IndependentVariableDropDown = uidropdown(app.PPPP);
+            app.IndependentVariableDropDown.Items = {'No Data'};
             app.IndependentVariableDropDown.ValueChangedFcn = createCallbackFcn(app, @IndependentVariableDropDownValueChanged, true);
             app.IndependentVariableDropDown.Position = [175 459 100 22];
+            app.IndependentVariableDropDown.Value = 'No Data';
 
             % Create ListBoxLabel
-            app.ListBoxLabel = uilabel(app.UIFigure);
+            app.ListBoxLabel = uilabel(app.PPPP);
             app.ListBoxLabel.HorizontalAlignment = 'right';
             app.ListBoxLabel.Position = [16 405 48 22];
             app.ListBoxLabel.Text = 'List Box';
 
-            % Create ListBox
-            app.ListBox = uilistbox(app.UIFigure);
-            app.ListBox.Multiselect = 'on';
-            app.ListBox.Position = [16 332 100 74];
-            app.ListBox.Value = {'Item 1'};
+            % Create ListBoxTemplate
+            app.ListBoxTemplate = uilistbox(app.PPPP);
+            app.ListBoxTemplate.Items = {'No Data Yet'};
+            app.ListBoxTemplate.Multiselect = 'on';
+            app.ListBoxTemplate.Position = [16 332 100 74];
+            app.ListBoxTemplate.Value = {'No Data Yet'};
 
             % Create FileLoadButton
-            app.FileLoadButton = uibutton(app.UIFigure, 'push');
+            app.FileLoadButton = uibutton(app.PPPP, 'push');
             app.FileLoadButton.ButtonPushedFcn = createCallbackFcn(app, @FileLoadButtonPushed, true);
-            app.FileLoadButton.Position = [294 35 100 22];
+            app.FileLoadButton.Position = [323 70 100 22];
             app.FileLoadButton.Text = 'File Load';
+
+            % Create StatusBox
+            app.StatusBox = uilistbox(app.PPPP);
+            app.StatusBox.Position = [125 7 484 56];
+
+            % Create LogoSpace
+            app.LogoSpace = uiaxes(app.PPPP);
+            title(app.LogoSpace, 'Title')
+            xlabel(app.LogoSpace, 'X')
+            ylabel(app.LogoSpace, 'Y')
+            app.LogoSpace.Position = [1 1 105 73];
         end
     end
 
@@ -286,7 +383,10 @@ classdef PostProcessResults_exported < matlab.apps.AppBase
             createComponents(app)
 
             % Register the app with App Designer
-            registerApp(app, app.UIFigure)
+            registerApp(app, app.PPPP)
+
+            % Execute the startup function
+            runStartupFcn(app, @startupFcn)
 
             if nargout == 0
                 clear app
@@ -297,7 +397,7 @@ classdef PostProcessResults_exported < matlab.apps.AppBase
         function delete(app)
 
             % Delete UIFigure when app is deleted
-            delete(app.UIFigure)
+            delete(app.PPPP)
         end
     end
 end
