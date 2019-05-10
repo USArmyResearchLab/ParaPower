@@ -20,6 +20,10 @@ classdef PostProcessResults_exported < matlab.apps.AppBase
         ParaPower % Description
     end
     
+    properties (Constant)
+        AvailStates={'Max Temperature' 'Min Melt Frac'};
+    end
+    
     methods (Access = private)
         
         function results = getvarbox(app, VarName)
@@ -81,8 +85,8 @@ classdef PostProcessResults_exported < matlab.apps.AppBase
                  end
              end
              app.IndependentVariableDropDown.Items=VarName;
-             app.DependentVariableDropDown.Items={'Max Temperature'};
-            
+             app.DependentVariableDropDown.Items=app.AvailStates;
+             IndependentVariableDropDownValueChanged(app)
         end
     end
     
@@ -109,7 +113,10 @@ classdef PostProcessResults_exported < matlab.apps.AppBase
             value = app.IndependentVariableDropDown.Value;
             %Gray out the box that's selected here.
             %Value is the text of the independent variable.  shoudl be able to have it match other.
-            VarBlock=app.getvarbox(value)
+            VarBlock=app.getvarbox(value);
+            set(findobj(app.UIFigure,'tag','VarLB'),'enable',true);
+            set(findobj(app.UIFigure,'tag','VarLBL'),'enable',true);
+            set(VarBlock,'enable',false)
         end
 
         % Button pushed function: FileLoadButton
@@ -122,6 +129,85 @@ classdef PostProcessResults_exported < matlab.apps.AppBase
                 return
             end
             app.PopulateResults;
+        end
+
+        % Button pushed function: PlotButton
+        function PlotButtonPushed(app, event)
+            lResults=app.Results;
+            LabelH=findobj(app.UIFigure,'tag','VarLBL');
+            VarBxH=findobj(app.UIFigure,'tag','VarLB');
+            IndepVar=get(findobj(VarBxH,'enable',false),'userdata');
+            IndepAxisC=get(findobj(VarBxH,'enable',false),'Items');
+            XLabel=IndepVar{2};
+            VarBxH=findobj(VarBxH,'enable',true);
+            for I=1:length(IndepAxisC)
+                IndepAxis{I}=str2double(IndepAxisC{I});
+            end
+            IndepAxis=cell2mat(IndepAxis);
+            NumCurves=1;
+            %Curves = {Var1_Val1 Var2_Val1 Var2_Val1
+            %          Var1_Val1 Var2_Val1 Var2_Val2
+            %          Var1_Val1 Var2_Val2 Var2_Val1
+            %          Var1_Val1 Var2_Val2 Var2_Val2 }
+            %CurveName = Names of curves corresponding to rows above (only includes vars that have multiple values)
+            Curves={};
+            CurveName={};
+            VarPosit=[];
+            for I=1:length(VarBxH)
+                NamePosit=get(VarBxH(I),'user');
+                VarName=NamePosit{2};
+                VarPosit(end+1)=NamePosit{1};
+                VarVals=get(VarBxH(I),'value');
+                Curves(:,end+1)=VarVals(1);
+                NumCurves=length(Curves(:,1));                
+                if length(VarVals)>1
+                    CurveName(:,end+1)={[VarName '=' VarVals{1}]};
+                end
+                for NumVal=2:length(VarVals)
+                    Curves=[Curves; Curves(1:NumCurves,:)];
+                    CurveName=[CurveName; CurveName(1:NumCurves,:)];
+                    Curves(end-NumCurves+1:end,end)=VarVals(NumVal)
+                    CurveName(end-NumCurves+1:end,end)={[VarName '=' VarVals{NumVal}]}
+                end
+            end
+            DepAxis=[];
+            DepVariableName=lower(app.DependentVariableDropDown.Value);
+            for I=1:length(lResults)
+                Descriptor=lResults(I).Model.Descriptor;
+                for Ci=1:length(Curves(:,1))
+                    for Ii=1:length(IndepAxisC)
+                        D=[Descriptor([VarPosit IndepVar{1}],2)];
+                        C=[Curves(Ci,:) IndepAxisC(Ii)]';
+                        %[C'; D']
+                        if all(strcmp(D,C))
+                            %Extract max temp over all features for all time
+                            switch DepVariableName
+                                case lower(app.AvailStates{1}) %Max Temp
+                                    YLabel='Max Temp (all features, all time)';
+                                    FullState=lResults(I).getState('Thermal');
+                                    DepAxis(Ii,Ci)=max(FullState(:));
+                                case lower(app.AvailStates{2}) % Max Melt Frac
+                                    YLabel='Min Melt Frac (all features, all time)';
+                                    FullState=lResults(I).getState('MeltFrac');
+                                    DepAxis(Ii,Ci)=min(FullState(:));
+                                otherwise
+                                    YLabel='Unknown Dependent Variable';
+                                    DepAxis(Ii,Ci)=NaN;
+                            end
+                                    
+                        end
+                    end
+                end
+            end
+            figure(1);
+            clf
+            PlotAxis=axes;
+            plot(PlotAxis,IndepAxis,DepAxis)
+            ylabel(PlotAxis,YLabel);
+            xlabel(PlotAxis,XLabel);
+            if ~isempty(CurveName)
+                legend(PlotAxis,CurveName)
+            end
         end
     end
 
@@ -144,6 +230,7 @@ classdef PostProcessResults_exported < matlab.apps.AppBase
 
             % Create PlotButton
             app.PlotButton = uibutton(app.UIFigure, 'push');
+            app.PlotButton.ButtonPushedFcn = createCallbackFcn(app, @PlotButtonPushed, true);
             app.PlotButton.Position = [408 35 100 22];
             app.PlotButton.Text = {'Plot'; ''};
 
@@ -155,7 +242,7 @@ classdef PostProcessResults_exported < matlab.apps.AppBase
 
             % Create DependentVariableDropDown
             app.DependentVariableDropDown = uidropdown(app.UIFigure);
-            app.DependentVariableDropDown.Items = {'Max Temp'};
+            app.DependentVariableDropDown.Items = {'Max Temp', 'Max Melt Fraction'};
             app.DependentVariableDropDown.Position = [437 459 100 22];
             app.DependentVariableDropDown.Value = 'Max Temp';
 
