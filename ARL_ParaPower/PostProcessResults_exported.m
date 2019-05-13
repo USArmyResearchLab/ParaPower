@@ -321,7 +321,7 @@ classdef PostProcessResults_exported < matlab.apps.AppBase
             % Create PlotButton
             app.PlotButton = uibutton(app.PPPP, 'push');
             app.PlotButton.ButtonPushedFcn = createCallbackFcn(app, @PlotButtonPushed, true);
-            app.PlotButton.Position = [366 73 83 22];
+            app.PlotButton.Position = [382 73 83 22];
             app.PlotButton.Text = {'Plot'; ''};
 
             % Create DependentVariableDropDownLabel
@@ -365,7 +365,7 @@ classdef PostProcessResults_exported < matlab.apps.AppBase
             % Create FileLoadButton
             app.FileLoadButton = uibutton(app.PPPP, 'push');
             app.FileLoadButton.ButtonPushedFcn = createCallbackFcn(app, @FileLoadButtonPushed, true);
-            app.FileLoadButton.Position = [268 73 85 22];
+            app.FileLoadButton.Position = [278 73 85 22];
             app.FileLoadButton.Text = 'File Load';
 
             % Create StatusBox
