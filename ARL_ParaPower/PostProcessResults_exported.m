@@ -14,6 +14,7 @@ classdef PostProcessResults_exported < matlab.apps.AppBase
         FileLoadButton                  matlab.ui.control.Button
         StatusBox                       matlab.ui.control.ListBox
         LogoSpace                       matlab.ui.control.UIAxes
+        ClosePlotWindowsButton          matlab.ui.control.Button
     end
 
     
@@ -280,7 +281,8 @@ classdef PostProcessResults_exported < matlab.apps.AppBase
                         LegText{Ci}=[LegText{Ci} ', ' CurveName{Ci, Ei}];
                     end
                 end
-                legend(PlotAxis,LegText,'interp','none')
+                Lg=legend(PlotAxis,LegText)
+                set(Lg,'interpreter','none')
             end
         end
 
@@ -289,6 +291,11 @@ classdef PostProcessResults_exported < matlab.apps.AppBase
             delete(app.PlotWindows)
             delete(app)
             
+        end
+
+        % Button pushed function: ClosePlotWindowsButton
+        function ClosePlotWindowsButtonPushed(app, event)
+           delete(app.PlotWindows)
         end
     end
 
@@ -308,13 +315,13 @@ classdef PostProcessResults_exported < matlab.apps.AppBase
             % Create LoadCurrentResultsButton
             app.LoadCurrentResultsButton = uibutton(app.PPPP, 'push');
             app.LoadCurrentResultsButton.ButtonPushedFcn = createCallbackFcn(app, @LoadCurrentResultsButtonPushed, true);
-            app.LoadCurrentResultsButton.Position = [184 70 129 22];
+            app.LoadCurrentResultsButton.Position = [129 73 129 22];
             app.LoadCurrentResultsButton.Text = {'Load Current Results'; ''};
 
             % Create PlotButton
             app.PlotButton = uibutton(app.PPPP, 'push');
             app.PlotButton.ButtonPushedFcn = createCallbackFcn(app, @PlotButtonPushed, true);
-            app.PlotButton.Position = [437 70 100 22];
+            app.PlotButton.Position = [366 73 83 22];
             app.PlotButton.Text = {'Plot'; ''};
 
             % Create DependentVariableDropDownLabel
@@ -358,7 +365,7 @@ classdef PostProcessResults_exported < matlab.apps.AppBase
             % Create FileLoadButton
             app.FileLoadButton = uibutton(app.PPPP, 'push');
             app.FileLoadButton.ButtonPushedFcn = createCallbackFcn(app, @FileLoadButtonPushed, true);
-            app.FileLoadButton.Position = [323 70 100 22];
+            app.FileLoadButton.Position = [268 73 85 22];
             app.FileLoadButton.Text = 'File Load';
 
             % Create StatusBox
@@ -371,6 +378,12 @@ classdef PostProcessResults_exported < matlab.apps.AppBase
             xlabel(app.LogoSpace, 'X')
             ylabel(app.LogoSpace, 'Y')
             app.LogoSpace.Position = [1 1 105 73];
+
+            % Create ClosePlotWindowsButton
+            app.ClosePlotWindowsButton = uibutton(app.PPPP, 'push');
+            app.ClosePlotWindowsButton.ButtonPushedFcn = createCallbackFcn(app, @ClosePlotWindowsButtonPushed, true);
+            app.ClosePlotWindowsButton.Position = [465 73 122 22];
+            app.ClosePlotWindowsButton.Text = 'Close Plot Windows';
         end
     end
 
