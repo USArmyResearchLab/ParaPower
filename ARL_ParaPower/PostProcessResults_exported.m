@@ -281,7 +281,7 @@ classdef PostProcessResults_exported < matlab.apps.AppBase
                         LegText{Ci}=[LegText{Ci} ', ' CurveName{Ci, Ei}];
                     end
                 end
-                Lg=legend(PlotAxis,LegText)
+                Lg=legend(PlotAxis,LegText);
                 set(Lg,'interpreter','none')
             end
         end
@@ -382,7 +382,7 @@ classdef PostProcessResults_exported < matlab.apps.AppBase
             % Create ClosePlotWindowsButton
             app.ClosePlotWindowsButton = uibutton(app.PPPP, 'push');
             app.ClosePlotWindowsButton.ButtonPushedFcn = createCallbackFcn(app, @ClosePlotWindowsButtonPushed, true);
-            app.ClosePlotWindowsButton.Position = [465 73 122 22];
+            app.ClosePlotWindowsButton.Position = [487 73 122 22];
             app.ClosePlotWindowsButton.Text = 'Close Plot Windows';
         end
     end
