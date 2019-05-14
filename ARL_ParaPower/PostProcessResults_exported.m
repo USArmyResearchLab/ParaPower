@@ -230,22 +230,30 @@ classdef PostProcessResults_exported < matlab.apps.AppBase
                 NumCurves=length(Curves(:,1));                
                 if length(VarVals)>1
                     CurveName(:,end+1)={[VarName '=' VarVals{1}]};
-                end
+                end 
                 for NumVal=2:length(VarVals)
                     Curves=[Curves; Curves(1:NumCurves,:)];
                     CurveName=[CurveName; CurveName(1:NumCurves,:)];
-                    Curves(end-NumCurves+1:end,end)=VarVals(NumVal)
-                    CurveName(end-NumCurves+1:end,end)={[VarName '=' VarVals{NumVal}]}
+                    Curves(end-NumCurves+1:end,end)=VarVals(NumVal);
+                    CurveName(end-NumCurves+1:end,end)={[VarName '=' VarVals{NumVal}]};
                 end
             end
             DepAxis=[];
+            if isempty(Curves)
+                Curves={nan};
+            end
             DepVariableName=lower(app.DependentVariableDropDown.Value);
             for I=1:length(lResults)
                 Descriptor=lResults(I).Model.Descriptor;
                 for Ci=1:length(Curves(:,1))
                     for Ii=1:length(IndepAxisC)
-                        D=[Descriptor([VarPosit IndepVar{1}],2)];
-                        C=[Curves(Ci,:) IndepAxisC(Ii)]';
+                        if isnan(Curves{Ci})
+                            D=[Descriptor([IndepVar{1}],2)];
+                            C=[IndepAxisC(Ii)]';
+                        else
+                            D=[Descriptor([VarPosit IndepVar{1}],2)];
+                            C=[Curves(Ci,:) IndepAxisC(Ii)]';
+                        end
                         %[C'; D']
                         if all(strcmp(D,C))
                             %Extract max temp over all features for all time
