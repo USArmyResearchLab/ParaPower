@@ -22,7 +22,7 @@ function varargout = ParaPowerGUI_V2(varargin)
 
 % Edit the above text to modify the response to help ParaPowerGUI_V2
 
-% Last Modified by GUIDE v2.5 23-Apr-2019 16:20:03
+% Last Modified by GUIDE v2.5 06-Jun-2019 13:26:47
 
 % Begin initialization code - DO NOT EDIT
 
@@ -136,6 +136,13 @@ function InitializeGUI(handles)
     set(handles.pushbutton18,'enable','off')
     set(handles.CaseSelect,'visible','off')
     ErrorStatus()
+    
+    %Turn off para post processor button if PostProcessResults.mlapp is not present
+    FileList=dir('PostProcessResults.mlapp');
+    if isempty(FileList)
+        set(handles.ParPostProc,'visible','off')
+        disp('File ''PostProcessResults.mlapp'' doesn''t exist, so Parametric Post Processor button is disabled.')
+    end
 
     %Set Stress Model Directory
     MainPath=mfilename('fullpath');
@@ -2985,4 +2992,14 @@ function AH=GetVisAxis(PanelHandle)
         error('no axis')
     end
 
+end
+
+
+% --- Executes on button press in ParPostProc.
+function ParPostProc_Callback(hObject, eventdata, handles)
+% hObject    handle to ParPostProc (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+    PP=PostProcessResults;
+    PP.LoadCurrentResultsButton.ButtonPushedFcn(PP,[])
 end
