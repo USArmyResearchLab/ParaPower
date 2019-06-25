@@ -1033,9 +1033,6 @@ Features.dz=0; Features.dy=0; Features.dz=0;
 handles.InitComplete = 1; 
 guidata(hObject,handles)
 
-x=2;
-
-
 FeaturesMatrix = get(handles.features,'Data');
 %FeaturesMatrix = FeaturesMatrix(:,2:end);  %Changed to abstracting column numbers
 ExtBoundMatrix = get(handles.ExtCondTable,'Data');

@@ -9,6 +9,10 @@ classdef PPResults  %PP Results
         TimeDate          = [];
     end
     
+    properties (Dependent, SetAccess=private)
+        StatesAvail
+    end
+    
     properties (Access = private)
         iStates = {};
         iStateVals = {};
@@ -19,6 +23,9 @@ classdef PPResults  %PP Results
     end
     
     methods
+        function S=get.StatesAvail(obj)
+            S=obj.listStates;
+        end
         function obj = PPResults(varargin) %TimeDate, MI, Case, varargin)  %Constructor
             if nargin==0
                 obj.Model=[];
