@@ -46,14 +46,28 @@ classdef PPResults  %PP Results
         end
         
         function obj=setState(obj,Desc,Vals)
-            Is=strcmpi(obj.iStates, Desc);
+            Is=find(strcmpi(obj.iStates, Desc));
             
             if isempty(Is)
                 error('State %s not available in this results structure',Desc)
             else
                 obj.iStateVals{Is}=Vals;
             end
-        end  
+        end
+        
+        function obj=addState(obj, StateName, StateVal)
+            if ~exist('StateVal','var')
+                StateVal=[];
+            end
+            Is=find(strcmpi(obj.iStates, StateName), 1);
+            if isempty(Is)
+                obj.iStates{end+1}=StateName;
+                obj.iStateVals{end+1}=StateVal;
+            else
+                error('State %s already exists in this structure', StateName);
+            end
+            
+        end
         
         function S=listStates(obj)
             if length(obj)==1
