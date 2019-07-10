@@ -134,27 +134,39 @@ for i=1:length(Features)
     Features(i).z=sort(Features(i).z);
 
     %Store X coord values in X0 (user defined values) and X (Prog/division defined coords)
+    %Imaginary values are used to ensure that zero thickness layers
+    %maintain two coordinates of the same value.
     Coords=linspace(Features(i).x(1), Features(i).x(2), 1+Features(i).dx);
     X0=[X0 Coords(1) Coords(end)];
     if Features(i).x(1)~=Features(i).x(2)
         X =[X Coords(2:end-1)];
         MinFeatureSize(1)=min(MinFeatureSize(1),min(Coords(2:end)-Coords(1:end-1)));
+    else
+        X0=[X0 Coords(1)*sqrt(-1)];
     end
     
     %Store Y coord values in X0 (user defined values) and X (Prog/division defined coords)
+    %Imaginary values are used to ensure that zero thickness layers
+    %maintain two coordinates of the same value.
     Coords=linspace(Features(i).y(1), Features(i).y(2), 1+Features(i).dy);
     Y0=[Y0 Coords(1) Coords(end)];
     if Features(i).y(1)~=Features(i).y(2)
         Y =[Y Coords(2:end-1)];
         MinFeatureSize(2)=min(MinFeatureSize(2),min(Coords(2:end)-Coords(1:end-1)));
+    else
+        Y0=[Y0 Coords(1)*sqrt(-1)];
     end
     
     %Store Z coord values in X0 (user defined values) and X (Prog/division defined coords)
+    %Imaginary values are used to ensure that zero thickness layers
+    %maintain two coordinates of the same value.
     Coords=linspace(Features(i).z(1), Features(i).z(2), 1+Features(i).dz);
     Z0=[Z0 Coords(1) Coords(end)];
     if Features(i).z(1)~=Features(i).z(2)
         Z =[Z Coords(2:end-1)];
         MinFeatureSize(3)=min(MinFeatureSize(3),min(Coords(2:end)-Coords(1:end-1)));
+    else
+        Z0=[Z0 Coords(1)*sqrt(-1)];
     end
     
     %     if Features(i).x(1)==Features(i).x(2) %Acount for special case of zero height layer
@@ -206,10 +218,11 @@ Z=unique(round(Z,MinFeatureSize(3)));
 % Z=unique(round(Z,floor(abs(log10(100*eps(max(Z)))))));
 
 %Combine user specified and program specified coordinates into single list
-%with a tolerance of 1e-10 * abs(max(X|Y|Z)
-X=uniquetol([X X0],1e-10); 
-Y=uniquetol([Y Y0],1e-10); 
-Z=uniquetol([Z Z0],1e-10); 
+%with a tolerance of 2 orders of magnitude greater than epsilon
+%Collapse the imaginary values back into the real values
+X=sort(abs(unique(round([X X0],floor(abs(log10(100*eps(max(X0)))))))));
+Y=sort(abs(unique(round([Y Y0],floor(abs(log10(100*eps(max(Y0)))))))));
+Z=sort(abs(unique(round([Z Z0],floor(abs(log10(100*eps(max(Z0)))))))));
 
 %Create list of final Delta coordinates that will be used to generate
 %model.
