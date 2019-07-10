@@ -132,14 +132,33 @@ for i=1:length(Features)
     Features(i).x=sort(Features(i).x);
     Features(i).y=sort(Features(i).y);
     Features(i).z=sort(Features(i).z);
-    if Features(i).x(1)==Features(i).x(2) %Acount for special case of zero height layer
-        X0=[X0 Features(i).x(1)];
-        X=[X Features(i).x(1)];
-    else
-        Coords=linspace(Features(i).x(1), Features(i).x(2), 1+Features(i).dx);
+
+    Coords=linspace(Features(i).x(1), Features(i).x(2), 1+Features(i).dx);
+    X0=[X0 Coords(1) Coords(end)];
+    if Features(i).x(1)~=Features(i).x(2)
+        X =[X Coords(2:end-1)];
         MinFeatureSize(1)=min(MinFeatureSize(1),min(Coords(2:end)-Coords(1:end-1)));
-        X=[X Coords];
     end
+    Coords=linspace(Features(i).y(1), Features(i).y(2), 1+Features(i).dy);
+    Y0=[Y0 Coords(1) Coords(end)];
+    if Features(i).y(1)~=Features(i).y(2)
+        Y =[Y Coords(2:end-1)];
+        MinFeatureSize(1)=min(MinFeatureSize(1),min(Coords(2:end)-Coords(1:end-1)));
+    end
+    Coords=linspace(Features(i).z(1), Features(i).z(2), 1+Features(i).dz);
+    Z0=[Z0 Coords(1) Coords(end)];
+    if Features(i).z(1)~=Features(i).z(2)
+        Z =[Z Coords(2:end-1)];
+        MinFeatureSize(1)=min(MinFeatureSize(1),min(Coords(2:end)-Coords(1:end-1)));
+    end
+%     if Features(i).x(1)==Features(i).x(2) %Acount for special case of zero height layer
+%         X0=[X0 Features(i).x(1) Features(i).x(2)];
+%         X=[X Features(i).x(1)];
+%     else
+%         Coords=linspace(Features(i).x(1), Features(i).x(2), 1+Features(i).dx);
+%         MinFeatureSize(1)=min(MinFeatureSize(1),min(Coords(2:end)-Coords(1:end-1)));
+%         X=[X Coords];
+%     end
     if Features(i).y(1)==Features(i).y(2) %Acount for special case of zero height layer
         Y0=[Y0 Features(i).y(1)];
         Y=[Y Features(i).y(1)];
