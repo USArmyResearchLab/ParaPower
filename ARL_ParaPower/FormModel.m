@@ -217,6 +217,12 @@ Z=unique(round(Z,MinFeatureSize(3)));
 % Y=unique(round(Y,floor(abs(log10(100*eps(max(Y)))))));
 % Z=unique(round(Z,floor(abs(log10(100*eps(max(Z)))))));
 
+%Note that there is still an issue if a program specificed coordinate is
+%close to a user specificed coordinate.  Ideally the program specific coord
+%would be collapsed into the user specified coordinate but I have not yet
+%developed a method to ensure that the program specified coord is the one
+%that will be deleted, so for now I just leave them both in place.
+
 %Combine user specified and program specified coordinates into single list
 %with a tolerance of 2 orders of magnitude greater than epsilon
 %Collapse the imaginary values back into the real values
