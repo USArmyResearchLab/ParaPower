@@ -108,7 +108,7 @@ Z0=[]; %Z coordinates with zero thickness
 
 %Go through features list and determine if it's a zero thickness in any
 %direction. Build up X, Y, Z list of coordinates and X0, Y0, Z0 which is
-%the special list that covers zero thickness features.
+%the special list that covers zero thickness features and user defined locations.
 MinFeatureSize=[1 1 1]*inf;
 for i=1:length(Features)
     Fd=Features(i).x;
@@ -132,35 +132,70 @@ for i=1:length(Features)
     Features(i).x=sort(Features(i).x);
     Features(i).y=sort(Features(i).y);
     Features(i).z=sort(Features(i).z);
-    if Features(i).x(1)==Features(i).x(2) %Acount for special case of zero height layer
-        X0=[X0 Features(i).x(1)];
-        X=[X Features(i).x(1)];
-    else
-        Coords=linspace(Features(i).x(1), Features(i).x(2), 1+Features(i).dx);
+
+    %Store X coord values in X0 (user defined values) and X (Prog/division defined coords)
+    %Imaginary values are used to ensure that zero thickness layers
+    %maintain two coordinates of the same value.
+    Coords=linspace(Features(i).x(1), Features(i).x(2), 1+Features(i).dx);
+    X0=[X0 Coords(1) Coords(end)];
+    if Features(i).x(1)~=Features(i).x(2)
+        X =[X Coords(2:end-1)];
         MinFeatureSize(1)=min(MinFeatureSize(1),min(Coords(2:end)-Coords(1:end-1)));
-        X=[X Coords];
-    end
-    if Features(i).y(1)==Features(i).y(2) %Acount for special case of zero height layer
-        Y0=[Y0 Features(i).y(1)];
-        Y=[Y Features(i).y(1)];
     else
-        Coords=linspace(Features(i).y(1), Features(i).y(2), 1+Features(i).dy);
+        X0=[X0 Coords(1)*sqrt(-1)];
+    end
+    
+    %Store Y coord values in X0 (user defined values) and X (Prog/division defined coords)
+    %Imaginary values are used to ensure that zero thickness layers
+    %maintain two coordinates of the same value.
+    Coords=linspace(Features(i).y(1), Features(i).y(2), 1+Features(i).dy);
+    Y0=[Y0 Coords(1) Coords(end)];
+    if Features(i).y(1)~=Features(i).y(2)
+        Y =[Y Coords(2:end-1)];
         MinFeatureSize(2)=min(MinFeatureSize(2),min(Coords(2:end)-Coords(1:end-1)));
-        Y=[Y Coords];
-    end
-    if Features(i).z(1)==Features(i).z(2) %Acount for special case of zero height layer
-        Z0=[Z0 Features(i).z(1)];
-        Z=[Z Features(i).z(1)];
     else
-        Coords=linspace(Features(i).z(1), Features(i).z(2), 1+Features(i).dz);  
-        MinFeatureSize(3)=min(MinFeatureSize(3),min(Coords(2:end)-Coords(1:end-1)));
-        Z=[Z Coords];
+        Y0=[Y0 Coords(1)*sqrt(-1)];
     end
+    
+    %Store Z coord values in X0 (user defined values) and X (Prog/division defined coords)
+    %Imaginary values are used to ensure that zero thickness layers
+    %maintain two coordinates of the same value.
+    Coords=linspace(Features(i).z(1), Features(i).z(2), 1+Features(i).dz);
+    Z0=[Z0 Coords(1) Coords(end)];
+    if Features(i).z(1)~=Features(i).z(2)
+        Z =[Z Coords(2:end-1)];
+        MinFeatureSize(3)=min(MinFeatureSize(3),min(Coords(2:end)-Coords(1:end-1)));
+    else
+        Z0=[Z0 Coords(1)*sqrt(-1)];
+    end
+    
+    %     if Features(i).x(1)==Features(i).x(2) %Acount for special case of zero height layer
+%         X0=[X0 Features(i).x(1) Features(i).x(2)];
+%         X=[X Features(i).x(1)];
+%     else
+%         Coords=linspace(Features(i).x(1), Features(i).x(2), 1+Features(i).dx);
+%         MinFeatureSize(1)=min(MinFeatureSize(1),min(Coords(2:end)-Coords(1:end-1)));
+%         X=[X Coords];
+%     end
+%     if Features(i).y(1)==Features(i).y(2) %Acount for special case of zero height layer
+%         Y0=[Y0 Features(i).y(1)];
+%         Y=[Y Features(i).y(1)];
+%     else
+%         Coords=linspace(Features(i).y(1), Features(i).y(2), 1+Features(i).dy);
+%         MinFeatureSize(2)=min(MinFeatureSize(2),min(Coords(2:end)-Coords(1:end-1)));
+%         Y=[Y Coords];
+%     end
+%     if Features(i).z(1)==Features(i).z(2) %Acount for special case of zero height layer
+%         Z0=[Z0 Features(i).z(1)];
+%         Z=[Z Features(i).z(1)];
+%     else
+%         Coords=linspace(Features(i).z(1), Features(i).z(2), 1+Features(i).dz);  
+%         MinFeatureSize(3)=min(MinFeatureSize(3),min(Coords(2:end)-Coords(1:end-1)));
+%         Z=[Z Coords];
+%     end
 end
 
-%Collapse X and y completely.  Maintain zero thickness layers for dz
-%Fix floating point inaccuracies.  Round to accuracy of epsilon - 2
-%decimals
+%Collapse user specifice locations to accuracy of epsilon - 2 decimals
 if ~isempty(X0)
     X0=unique(round(X0,floor(abs(log10(100*eps(max(X0)))))));
 end
@@ -172,7 +207,7 @@ if ~isempty(Z0)
 end
 
 %Set the tolerance to be two orders of magnitude less than min individ
-%features size
+%features size for program specified coordinates
 MinFeatureSize=2+floor(abs(floor(min(0,log10(MinFeatureSize)))));
 
 X=unique(round(X,MinFeatureSize(1)));
@@ -182,9 +217,18 @@ Z=unique(round(Z,MinFeatureSize(3)));
 % Y=unique(round(Y,floor(abs(log10(100*eps(max(Y)))))));
 % Z=unique(round(Z,floor(abs(log10(100*eps(max(Z)))))));
 
-X=sort([X X0]); 
-Y=sort([Y Y0]); 
-Z=sort([Z Z0]); 
+%Note that there is still an issue if a program specificed coordinate is
+%close to a user specificed coordinate.  Ideally the program specific coord
+%would be collapsed into the user specified coordinate but I have not yet
+%developed a method to ensure that the program specified coord is the one
+%that will be deleted, so for now I just leave them both in place.
+
+%Combine user specified and program specified coordinates into single list
+%with a tolerance of 2 orders of magnitude greater than epsilon
+%Collapse the imaginary values back into the real values
+X=sort(abs(unique(round([X X0],floor(abs(log10(100*eps(max(X0)))))))));
+Y=sort(abs(unique(round([Y Y0],floor(abs(log10(100*eps(max(Y0)))))))));
+Z=sort(abs(unique(round([Z Z0],floor(abs(log10(100*eps(max(Z0)))))))));
 
 %Create list of final Delta coordinates that will be used to generate
 %model.
