@@ -711,6 +711,17 @@ function loadbutton_Callback(hObject, eventdata, handles, InputFilename)
            set(handles.Tinit,'String', Params.Tinit)
            set(handles.TimeStep,'String',Params.DeltaT)
            set(handles.NumTimeSteps,'String',Params.Tsteps)
+           if isempty(Params.Tsteps)
+                set(handles.Static,'value',1)
+                GUIEnable(handles.figure1)
+                AnalysisType_SelectionChangedFcn(handles.Static, eventdata, handles)
+                GUIDisable(handles.figure1)
+           else
+                set(handles.transient,'value',1)
+                GUIEnable(handles.figure1)
+                AnalysisType_SelectionChangedFcn(handles.transient, eventdata, handles)
+                GUIDisable(handles.figure1)
+           end
            set(handles.Tprocess,'String',ExternalConditions.Tproc)
            AddStatusLine('Done', true);
            slider1_Callback(handles.slider1, eventdata, handles)
