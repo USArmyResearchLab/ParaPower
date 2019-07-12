@@ -196,18 +196,6 @@ X=unique(round(X,MinFeatureSize(1)));
 Y=unique(round(Y,MinFeatureSize(2)));
 Z=unique(round(Z,MinFeatureSize(3)));
 
-%Note that there is still an issue if a program specificed coordinate is
-%close to a user specificed coordinate.  Ideally the program specific coord
-%would be collapsed into the user specified coordinate but I have not yet
-%developed a method to ensure that the program specified coord is the one
-%that will be deleted, so for now I just leave them both in place.
-
-%Note that there is still an issue if a program specificed coordinate is
-%close to a user specificed coordinate.  Ideally the program specific coord
-%would be collapsed into the user specified coordinate but I have not yet
-%developed a method to ensure that the program specified coord is the one
-%that will be deleted, so for now I just leave them both in place.
-
 %Combine user specified and program specified coordinates into single list
 %with a tolerance of 2 orders of magnitude greater than epsilon
 %Collapse the imaginary values back into the real values
@@ -216,9 +204,6 @@ Toler=.001; %Scaled tolerance to collapse Xu and X
 X = sort([X0 Xu X(~ismembertol(X,Xu,Toler))]);  %combines, 0 thickness + user defined + program defined that are not within tolerance of user defined
 Y = sort([Y0 Yu Y(~ismembertol(Y,Yu,Toler))]);  %combines, 0 thickness + user defined + program defined that are not within tolerance of user defined
 Z = sort([Z0 Zu Z(~ismembertol(Z,Zu,Toler))]);  %combines, 0 thickness + user defined + program defined that are not within tolerance of user defined
-% X=sort(unique(round([X X0],floor(abs(log10(100*eps(max(X0))))))));
-% Y=sort(unique(round([Y Y0],floor(abs(log10(100*eps(max(Y0))))))));
-% Z=sort(unique(round([Z Z0],floor(abs(log10(100*eps(max(Z0))))))));
 
 %Create list of final Delta coordinates that will be used to generate
 %model.
