@@ -7,13 +7,13 @@ classdef hookPPT < scPPT
     methods (Access = protected)
         function setupImpl(obj)
             setupImpl@scPPT(obj);
-            obj.GlobalTime = [-1];
+            obj.GlobalTime = -1;
         end
         
-        function [bdry_watts] = stepImpl(obj,GlobalTime,htcs,Ta_vec)
+        function [bdry_watts,Tres,PHres] = stepImpl(obj,GlobalTime,htcs,Ta_vec)
             obj.htcs=htcs;
             obj.Ta_vec=Ta_vec;
-            [~]=stepImpl@scPPT(obj,GlobalTime);
+            [Tres, ~, PHres, ~]=stepImpl@scPPT(obj,GlobalTime);
             bdry_watts=obj.bdry_watts;            
         end
         
@@ -40,25 +40,33 @@ classdef hookPPT < scPPT
             % icon = matlab.system.display.Icon("myicon.jpg"); % Example: image file icon
         end     
         
-        function outsz = getOutputSizeImpl(obj)
+        function [outsz_1,outsz_2,outsz_3] = getOutputSizeImpl(obj)
             numsteps = propagatedInputSize(obj,1);
             if isempty(obj.GlobalTime)
-                outsz = [10 1];  %Need to case-handle first iteration.
+                outsz_1 = [10 1];  %Need to case-handle first iteration.
             else
-                outsz = [10 numsteps(2)];  %10 being the number of nodes in the input model
+                outsz_1 = [10 numsteps(2)];  %10 being the number of nodes in the input model
             end
+            outsz_2=[3,10,4];
+            outsz_3=outsz_2;
         end
         
-        function outtype = isOutputFixedSizeImpl(obj)
-            outtype = propagatedInputFixedSize(obj,1);
+        function [outtype_1,outtype_2,outtype_3] = isOutputFixedSizeImpl(obj)
+            outtype_1 = propagatedInputFixedSize(obj,1);
+            outtype_2 = true;
+            outtype_3 = true;
         end
         
-        function type = getOutputDataTypeImpl(obj)
-            type = 'double';
+        function [type_1,type_2,type_3] = getOutputDataTypeImpl(obj)
+            type_1 = 'double';
+            type_2 = type_1;
+            type_3 = type_1;
         end
         
-        function cx = isOutputComplexImpl(obj)
-            cx =false;
+        function [cx1,cx2,cx3] = isOutputComplexImpl(obj)
+            cx1 = false;
+            cx2 = false;
+            cx3 = false;
         end
     end
     
@@ -74,4 +82,4 @@ classdef hookPPT < scPPT
             group = matlab.system.display.Section(mfilename("class"));
         end
     end
-end
+    end

@@ -851,6 +851,7 @@ classdef sPPT < matlab.System & matlab.system.mixin.Propagates ...
         end
         
         function flux = InternalFlux(T,A)
+            %flux = InternalFlux(T,A)
             %creates (sparse) matrix 'flux' with size(A) with entries f_ij that
             %gives nodal power transfer from node i to node j in Watts.
             %This matrix should be skew symmetric with 0s on the diagonal.
@@ -859,6 +860,7 @@ classdef sPPT < matlab.System & matlab.system.mixin.Propagates ...
         end
         
         function flux = Flux(T,A,B,Ta)
+            %flux = Flux(T,A,B,Ta)
             %creates sparse matrix flux with size([A B]) with entries f_ij,j<=Ni that
             %gives nodal power transfer from node i to node j in Watts.
             %the augemented columns j>Ni give nodal power transfer to the boundaries
@@ -870,6 +872,7 @@ classdef sPPT < matlab.System & matlab.system.mixin.Propagates ...
         end
         
         function flux = ExternalFlux(T,B,Ta)
+            %flux = ExternalFlux(T,B,Ta)
             %creates sparse matrix flux with size(B) with entries f_ij,
             %gives nodal power transfer from node i to boundary j in Watts.
             %the columns j are
