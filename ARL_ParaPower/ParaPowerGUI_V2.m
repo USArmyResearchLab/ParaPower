@@ -22,7 +22,7 @@ function varargout = ParaPowerGUI_V2(varargin)
 
 % Edit the above text to modify the response to help ParaPowerGUI_V2
 
-% Last Modified by GUIDE v2.5 23-Apr-2019 16:20:03
+% Last Modified by GUIDE v2.5 06-Jun-2019 13:26:47
 
 % Begin initialization code - DO NOT EDIT
 
@@ -136,6 +136,13 @@ function InitializeGUI(handles)
     set(handles.pushbutton18,'enable','off')
     set(handles.CaseSelect,'visible','off')
     ErrorStatus()
+    
+    %Turn off para post processor button if PostProcessResults.mlapp is not present
+    FileList=dir('PostProcessResults.mlapp');
+    if isempty(FileList)
+        set(handles.ParPostProc,'visible','off')
+        disp('File ''PostProcessResults.mlapp'' doesn''t exist, so Parametric Post Processor button is disabled.')
+    end
 
     %Set Stress Model Directory
     MainPath=mfilename('fullpath');
@@ -850,6 +857,9 @@ function RunAnalysis_Callback(hObject, eventdata, handles)
                 Tprnt=[];
             end
             AddStatusLine(['Stress (' StressModel ')...']);
+            Results(ThisCase)=PPResults(now, MI, RunCases(ThisCase),'Thermal','MeltFrac');
+            Results(ThisCase)=Results(ThisCase).setState('Thermal',Tprnt);
+            Results(ThisCase)=Results(ThisCase).setState('MeltFrac',MeltFrac);
             try
                 if strcmpi(StressModel,'none')
                     Stress=[];
@@ -857,7 +867,7 @@ function RunAnalysis_Callback(hObject, eventdata, handles)
                     OldPath=path;
                     addpath(get(handles.StressModel,'user'));
                     tic
-                    eval(['Stress=Stress_' StressModel '(MI,Tprnt);']);
+                    eval(['Stress=Stress_' StressModel '(Results(ThisCase));']);
                     Etime=toc;
                     AddStatusLine(sprintf('(%3.2fs)...',Etime),true)
                     path(OldPath)
@@ -877,7 +887,7 @@ function RunAnalysis_Callback(hObject, eventdata, handles)
                 Stress=[];
             end
             if ischar(Stress)
-                AddStatusLine('Error during stress solve.')
+                AddStatusLine('Error during stress solve.','Error')
                 AddStatusLine(Stress)
                 Stress=[];
                 AddStatusLine(' ');
@@ -891,10 +901,7 @@ function RunAnalysis_Callback(hObject, eventdata, handles)
 
            %not used StateN=round(length(GlobalTime)*TimeStepOutput,0);
            
-           Results(ThisCase)=PPResults(now, MI, RunCases(ThisCase),'Thermal','MeltFrac','Stress');
-           Results(ThisCase)=Results(ThisCase).setState('Thermal',Tprnt);
-           Results(ThisCase)=Results(ThisCase).setState('MeltFrac',MeltFrac);
-           Results(ThisCase)=Results(ThisCase).setState('Stress',Stress);
+           Results(ThisCase)=Results(ThisCase).addState('Stress',Stress);
            
        end
        if get(handles.transient,'value')==1
@@ -1025,9 +1032,6 @@ Features.dz=0; Features.dy=0; Features.dz=0;
 %0 = init has not been complete, 1 = init has been completed
 handles.InitComplete = 1; 
 guidata(hObject,handles)
-
-x=2;
-
 
 FeaturesMatrix = get(handles.features,'Data');
 %FeaturesMatrix = FeaturesMatrix(:,2:end);  %Changed to abstracting column numbers
@@ -2693,7 +2697,7 @@ function MaxPlot_Callback(hObject, eventdata, handles, Results)
                plot(DoutS(:,1),DoutS(:,2:end));
                xlabel('Time')
                ylabel('Stress')
-               T=('Max Stress in Feature')
+               T=('Max Stress in Feature');
                PlotTitle=[T VarPlotTitle];
                title(PlotTitle,'interp','none');
                legend(Ftext)
@@ -2985,4 +2989,14 @@ function AH=GetVisAxis(PanelHandle)
         error('no axis')
     end
 
+end
+
+
+% --- Executes on button press in ParPostProc.
+function ParPostProc_Callback(hObject, eventdata, handles)
+% hObject    handle to ParPostProc (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+    PP=PostProcessResults;
+    PP.LoadCurrentResultsButton.ButtonPushedFcn(PP,[])
 end

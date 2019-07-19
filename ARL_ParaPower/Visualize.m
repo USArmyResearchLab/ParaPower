@@ -1,3 +1,4 @@
+
 function Visualize (PlotTitle, MI, varargin)
 %Visualize creates a graphic visualization of the model and takes two forms
 %(one for results and one for initial conditions)
@@ -989,6 +990,10 @@ function TogglePanel(ButtonH,Action)
         %Values(Index)=1;
         set(ButtonH,'backgroundcolor',OrigColor,'foregroundcolor',[1 1 1]-OrigColor)
         set(Entities,'visible','on');
+        if strcmpi(get(Entities(1), 'type'),'patch')
+            Vals=get(Entities(1),'FaceVertexcdata');
+            fprintf('%s: Min: %g, Max: %g\n',strtrim(get(ButtonH,'string')),min(Vals),max(Vals));
+        end
     else
         %Values(Index)=0;
         set(ButtonH,'backgroundColor',[.9 .9 .9],'foregroundcolor',[0 0 0]);

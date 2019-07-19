@@ -13,6 +13,9 @@ Object Oriented Material Matrix Construction:
             Input: Current State, X_index, Y_index, Z_index, X_length, Y_length, Z_length
             Output: StateMatrix for given X_index, Y_index, Z_index
         Fill A Matrix
+Stress Model Additions:
+    Must include substrate feature for PPTCM and then map into MI number of layers
+        And ensure underlying assumptions are met.  Kick out error if assumptinos are violated
         
 
 Items Completed.
