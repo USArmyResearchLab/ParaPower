@@ -21,7 +21,7 @@ function Visualize (PlotTitle, MI, varargin)
 %   ModelGeometry - plot model geometry, no value, this is a flag to just plot model geometry
 %   TransMaterial=[] - List of materials to make transparent, value is array of mat numbers that should be transparent
 %   MinCoord=[0 0 0] - Set of model origin (minimum of X, Y & Z), value is a 3 element vecotr that identifies minimum (X,Y,Z) of model
-%   NoAxis - Do not plot the axes (they help maintain aspect ration in the plot), no value, this is a flag to remove the axes
+%   NoAxes - Do not plot the axes (they help maintain aspect ration in the plot), no value, this is a flag to remove the axes
 %   RemoveMaterial=[0] - Materials to remove entirely from display
 %   ShowExtent=false - Show extent of the model by a box
 %   HideBC - Do not show H/Temp boundary conditions on plot

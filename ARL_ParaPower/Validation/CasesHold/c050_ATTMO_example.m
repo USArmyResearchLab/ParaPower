@@ -130,10 +130,11 @@ TestCaseModel.TCM.Params=Params;
 TestCaseModel.TCM.PottingMaterial=PottingMaterial;
 TestCaseModel.TCM.ExternalConditions=ExternalConditions;
 TestCaseModel.TCM.MatLib=MatLib;
-TestCaseModel.TCM.VariableList=ParamList;
+TestCaseModel.TCM.VariableList={};
+%TestCaseModel.TCM.Version='V3.0';
 
-MI=FormModel(TestCaseModel);
+MI=FormModel(TestCaseModel.TCM);
 MI.GlobalTime=[-1,-.01];  %hijinks so that ATTMO can take the first timestep to be at t=0
 
 s1 = sPPT('MI',MI);
-[T_out,T_in,PH_out,PH_in]=s1();
+[T_out,T_in,PH_out,PH_in]=s1(MI.GlobalTime);
