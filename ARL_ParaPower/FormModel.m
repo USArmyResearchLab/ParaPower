@@ -507,7 +507,7 @@ function In=GetInXYZ(FeatureExtent, Coords, Precision)
     if exist('Precision')
         E=10^(-1*Precision);
     else
-        E=100*eps(max(abs(Coords)));
+        E=1000*eps(max(abs(Coords)));
     end
     %eps tolerancing implemented to combat precision issues.
     if FeatureExtent(1)==FeatureExtent(2)
