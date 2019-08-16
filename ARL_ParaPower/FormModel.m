@@ -492,7 +492,10 @@ end
 return
 
 function UseLayer=GetZeroLayer(Coords, FeatureCoords)
-    ZeroLayer=min(find(Coords==FeatureCoords(1)));
+    ZeroLayer=find(Coords==FeatureCoords(1),1);
+    if isempty(ZeroLayer) %eps trap
+        ZeroLayer=find(abs(Coords-FeatureCoords(1))<eps,1);
+    end
     if ZeroLayer==1
         UseLayer=2;
     else
