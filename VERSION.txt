@@ -33,6 +33,7 @@ VX.X.X - Parameterization added (both vector and scalar).  Not implemented for t
 		 Repeated waveforms based on tables implemented with a checkbox in the GUI and 
 			  flagged by the last row of tabled defined Q as [-inf, -inf]
 		 Testcases updated for PPTCM
+V4.0.0 - Initial Open Source Approval
 		 
 
 Features to Add
