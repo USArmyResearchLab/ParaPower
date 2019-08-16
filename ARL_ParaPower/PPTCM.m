@@ -269,7 +269,7 @@ classdef PPTCM  %PP Test Case Model
                                                 eval(['TestFn=@(t)' ThisFieldVal{1} ';']);
                                                 TestFn(0);
                                             catch ME
-                                                ErrText=[ErrText sprintf('Unknown equation form of Q in TCM.%s(%.0f).%s=%s\n',ThisPropName, Ipe, ThisFieldName,ThisFieldVal{1})];
+                                                ErrText=[ErrText sprintf('Unknown equation form of Q in TCM.%s(%.0f).%s=%s.  If time dependent ensure that any embedded functions permit symbolic arguments for ''t''.',ThisPropName, Ipe, ThisFieldName,ThisFieldVal{1})];
                                                 ThisFieldVal=[];
                                             end
                                         end
