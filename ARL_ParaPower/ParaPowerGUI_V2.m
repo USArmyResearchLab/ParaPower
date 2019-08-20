@@ -2529,12 +2529,17 @@ function HelpButton_Callback(hObject, eventdata, handles)
     HelpText{end+1}='   Mr. Morris Berman (ARL)';
     HelpText{end+1}='   Mr. Michael Rego (Drexel)';
     HelpText{end+1}='   Mr. Michael Deckard (Texas A&M)';
+    HelpText{end+1}='';
+    HelpText{end+1}='Code Developers:';
+    HelpText{end+1}='   Dr. Lauren Boteler (ARL)';
+    HelpText{end+1}='   Dr. Michael Fish (ORAU)';
+    HelpText{end+1}='   Dr. Steven Miner (USNA)';
+    HelpText{end+1}='   Mr. Morris Berman (ARL)';
     HelpText{end+1}='';  
     HelpText{end+1}='For additional informatoin contact Dr. Lauren Boteler (lauren.m.boteler.civ@mail.mil)';
     HelpText{end+1}='';
-    HelpText{end+1}='DISTRIBUTION C';
-    HelpText{end+1}=['Distribution authorized to U.S. Government agencies (premature dissemination) 12/12/2018. Other requests ' ...
-                    'for this document shall be referred to US Army Research Laboratory, Power Conditioning Branch (RDRL-SED-P). '];
+    HelpText{end+1}='DISTRIBUTION A';
+    HelpText{end+1}=['Public Dissemination: Distribution Unlimited '];
     HelpText{end+1}='';
     set(T,'string',HelpText)
     GUIEnable;
