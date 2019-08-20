@@ -295,7 +295,19 @@ classdef PPMatLib < handle
         function OutText=ParamDesc(obj, Param)
             MatNum=1;
             while MatNum <= length(obj.iMatObjList)
-                OutText=obj.iMatObjList{MatNum}.ParamDesc(Param);
+                try
+                    OutText=obj.iMatObjList{MatNum}.ParamDesc(Param);
+                catch M
+                    if strcmpi(M.identifier,'MATLAB:class:undefinedMethod')
+                        CurMatObj=obj.iMatObjList{MatNum};
+                        NullMat=PPMatNull(CurMatObj.Name);
+                        obj.ReplMatl(MatNum,NullMat);
+                        obj.AddError(sprintf('Invalid material name (%s) for %s.  Material number %d replaced with null materal.',CurMatObj.Type,CurMatObj.Name,MatNum));
+                        OutText=' ';
+                    else
+                        error(M)
+                    end
+                end
                 if ~isempty(OutText)
                     MatNum=length(obj.iMatObjList)+1;
                 else
@@ -304,9 +316,9 @@ classdef PPMatLib < handle
                 
             end
             if isempty(OutText)
-                AddError(sprintf('No descriptor found for %s',Param));
-                obj.ShowErrorText;
+                obj.AddError(sprintf('No descriptor found for %s',Param));
             end
+            obj.ShowErrorText;
         end
         function set.Source(obj, Text)
             obj.iSource=Text;
