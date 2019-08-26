@@ -1007,6 +1007,7 @@ classdef PPMatLib < handle
                                 ME.getReport
                                 ThisPropVal=NaN;
                             end
+                            fprintf('%s: %s\n',ThisMat.Name,ThisPropName)  %MSB
                             ScalarValue=length(ThisPropVal(:))==1; %If there is a single value it will be placed as a scalar not cell array
                             if OrigChar || length(ThisPropVal{Ipv})~=1  %If the value changed on eval, then cycle through mats
                                 NewMatLib=obj.ExpandMatLib(NewMatLib, ThisPropVal{Ipv}, Imat, ThisPropName, Ipv, ScalarValue);
@@ -1025,7 +1026,7 @@ function OutVar=ProtectedEval(InString, VarList)
     ErrText='';
     OutVar=[];
     EvalText='';
-    for Ivar=1:length(VarList)
+    for Ivar=1:length(VarList(:,1))
         if exist(VarList{Ivar,1},'var')
             Stxt=sprintf('''%s'' variable already exists in the namespace. Please change your variable name.\n',VarName);
             ErrText=[ErrText Stxt];
