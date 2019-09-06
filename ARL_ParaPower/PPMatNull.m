@@ -1,7 +1,10 @@
   classdef PPMatNull < PPMatSolid %ADD (PPMatNew is the new material name 
-                              %which must start with PPMat. PPMatOld is the 
-                              %materal from which the new one is being derived)
-      
+%Material type Null
+%To define a new material instance
+%   PPMatNull('Prop_Name_1', Prop_Value_1, 'Prop_Name_2', Prop_Value_2, etc)
+%
+%The following Prop_Names can be defined
+%   Name      
 
       methods
 

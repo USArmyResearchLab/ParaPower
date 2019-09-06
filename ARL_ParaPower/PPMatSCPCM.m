@@ -1,5 +1,23 @@
 classdef PPMatSCPCM < PPMatPCM
-    
+%Material type SuperCooledPhaseChangeMaterial.
+%To define a new material instance
+%   PPMatSCPCM('Prop_Name_1', Prop_Value_1, 'Prop_Name_2', Prop_Value_2, etc)
+%
+%The following Prop_Names can be defined
+%   Name
+%   cte     Coeff. Thermal Expansion
+%   E       Young's Modulus
+%   nu      Poisson's ratio
+%   k       Conductivity
+%   rho     Density
+%   cp      Specific Heat
+%   k_l     Liquid conductivity
+%   rho_l   Liquid Density
+%   cp_l    Liquid specific heat
+%   lf      Latent heat of fusion
+%   tmelt   Melting temperature   
+%   dT_Nucl Nucleation delta temperature
+
     properties (Access=public)
         dT_Nucl     = NaN %{mustBeNumeric(dT_Nucl), mustBeReal(dT_Nucl)}   = NaN
     end

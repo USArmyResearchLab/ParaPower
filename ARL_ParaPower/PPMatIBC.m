@@ -1,4 +1,12 @@
 classdef PPMatIBC < PPMat
+%Material type Internal Boundary Conditions.
+%To define a new material instance
+%   PPMatIBC('Prop_Name_1', Prop_Value_1, 'Prop_Name_2', Prop_Value_2, etc)
+%
+%The following Prop_Names can be defined
+%   Name
+%   h_ibc
+%   T_ibc
     
     properties (Access=public)
         h_ibc   = NaN %{mustBeNumeric(h_ibc), mustBeReal(h_ibc)}   = NaN

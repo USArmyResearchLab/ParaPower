@@ -1,4 +1,21 @@
 classdef PPMatPCM < PPMatSolid
+%Material type Phase Change Material.
+%To define a new material instance
+%   PPMatPCM('Prop_Name_1', Prop_Value_1, 'Prop_Name_2', Prop_Value_2, etc)
+%
+%The following Prop_Names can be defined
+%   Name
+%   cte     Coeff. Thermal Expansion
+%   E       Young's Modulus
+%   nu      Poisson's ratio
+%   k       Conductivity
+%   rho     Density
+%   cp      Specific Heat
+%   k_l     Liquid conductivity
+%   rho_l   Liquid Density
+%   cp_l    Liquid specific heat
+%   lf      Latent heat of fusion
+%   tmelt   Melting temperature
     
     properties (Access=public)
         k_l         = NaN %{mustBeNumeric(k_l), mustBeReal(k_l)}   = NaN
