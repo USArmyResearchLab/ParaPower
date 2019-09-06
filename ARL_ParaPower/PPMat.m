@@ -208,7 +208,7 @@ classdef PPMat
                             end
                             
                             if ~all(ismember(Name,obj.ValidChars))
-                                error(sprintf('Material name "%s" can contain only alphanumerics.',Name))
+                                warning(sprintf('Material name "%s" can contain only alphanumerics.',Name))
                             end
                         case obj.strleft('type',Pl)
                             [Value, PropValPairs]=obj.Pop(PropValPairs); 

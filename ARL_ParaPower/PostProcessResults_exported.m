@@ -280,8 +280,8 @@ classdef PostProcessResults_exported < matlab.apps.AppBase
             clf
             PlotAxis=axes;
             plot(PlotAxis,IndepAxis,DepAxis,'marker','o')
-            ylabel(PlotAxis,YLabel);
-            xlabel(PlotAxis,XLabel);
+            ylabel(PlotAxis,YLabel,'interp','none');
+            xlabel(PlotAxis,XLabel,'interp','none');
             if ~isempty(CurveName)
                 LegText=CurveName(:,1);
                 for Ci=1:length(CurveName(:,1))
