@@ -147,6 +147,10 @@ function InitializeGUI(handles)
     %Set Stress Model Directory
     MainPath=mfilename('fullpath');
     MainPath=strrep(MainPath,mfilename,'');
+    if not(isappdata(handles.figure1,'PATH'))
+        setappdata(handles.figure1,'PATH',MainPath);
+        addpath(MainPath);
+    end
     
     set(handles.StressModel,'userdata',[MainPath 'Stress_Models'])
 
@@ -1767,6 +1771,8 @@ function figure1_CloseRequestFcn(hObject, eventdata, handles)
     if strcmpi(P,'No')
         AddStatusLine('GUI close canceled.')
     else
+        PATH=getappdata(handles.figure1,'PATH');
+        rmpath(PATH)
         F=get(handles.features,'userdata');
         if not(isempty(F)) && ishandle(F)
             delete(F)
