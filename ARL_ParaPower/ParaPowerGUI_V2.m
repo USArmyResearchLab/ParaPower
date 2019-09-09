@@ -2973,6 +2973,11 @@ function ParamTable_CellEditCallback(hObject, eventdata, handles)
             AddStatusLine(sprintf('Parameter name contains non-alphanumerics, changed from ''%s'' to ''%s''',eventdata.NewData,NoSpace))
         end
     end
+    if eventdata.Indices(2)==3  %If modifying variable value
+        if ~isnan(str2num(eventdata.EditData)) & isnan(eventdata.NewData)
+            eventdata.Source.Data{eventdata.Indices(1), eventdata.Indices(2)}=eventdata.EditData;
+        end
+    end
 end
 
 

@@ -167,7 +167,7 @@ classdef PPMat
                 case 'type'
                     OutText='Type';
                 case 'maxplot'
-                    OutText='Show in MaxPlots';
+                    OutText='Show in Pk Plots';
                 
                 %otherwise
                 %    if isempty(OutText)
