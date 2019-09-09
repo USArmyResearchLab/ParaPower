@@ -3,6 +3,7 @@ classdef PPMat
 %  Properties
 %     Name - name of the material
 %     Type - material type (neadonly)
+%     MaxPlot - Does this material appear in the "MaxPlot" graph
 %
 %  Methods
 %     ParamList - List parameter of this material (w/o name/type)
@@ -88,6 +89,7 @@ classdef PPMat
     
     properties (Access=public)
         Name    {mustBeChar(Name)} 
+        MaxPlot {CheckLogical(MaxPlot)} = true
     end
     properties (Access = protected)
         PropValPairs = {}
@@ -152,6 +154,7 @@ classdef PPMat
             Params=properties(obj);
             Params=Params(~strcmpi(Params,'name'));
             Params=Params(~strcmpi(Params,'type'));
+            %Params=Params(~strcmpi(Params,'maxplot'));
             Params=Params(~strcmpi(Params,'ValidChars'));
             Params=Params(~strcmpi(Params,'NoExpandProps'));
         end
@@ -163,6 +166,9 @@ classdef PPMat
                     OutText='Name';
                 case 'type'
                     OutText='Type';
+                case 'maxplot'
+                    OutText='Show in MaxPlots';
+                
                 %otherwise
                 %    if isempty(OutText)
                 %        warning('Material type %s does not have a descriptor for parameter %s.',obj.Type,Param);
@@ -176,6 +182,7 @@ classdef PPMat
         % O = PPMat();  Default Type=Base, Name=''
             Type='Abstract';
             Name='';
+            MaxPlot=true;
             NoExpandProps={'Name' 'Type'};
             PropValPairs={};
             obj.PropValPairs={};
@@ -217,6 +224,11 @@ classdef PPMat
                             else
                                 error('Material type must be of type char')
                             end
+                        case obj.strleft('maxplot',Pl)
+                            [Value, PropValPairs]=obj.Pop(PropValPairs); 
+                            CheckLogical(Value);
+                            Value=logical(Value);
+                            MaxPlot=Value;
                         case obj.strleft('noexpandprops',Pl)
                             [Value, PropValPairs]=obj.Pop(PropValPairs); 
                             if ischar(Value)
@@ -243,6 +255,7 @@ classdef PPMat
 %             end
             obj.Name=Name;
             obj.Type=Type;
+            obj.MaxPlot=MaxPlot;
             %obj.NoExpandProps=NoExpandProps;
             obj.CheckProperties(mfilename('class'));
 
@@ -255,4 +268,11 @@ function mustBeChar(Value)
         error('Value must be a character.')
     end
 end
-    
+
+function CheckLogical(Value)
+    if ~islogical(Value)
+        if ~(Value==0 | Value ==1)
+            error('Value must be a logical/boolean.')
+        end
+    end
+end

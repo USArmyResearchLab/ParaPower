@@ -2626,25 +2626,30 @@ function MaxPlot_Callback(hObject, eventdata, handles, Results)
        if isfield(MI,'FeatureMatrix')
            TestCaseModel = Results.Case;
 
-           DoutT=[];
-           DoutM=[];
-           DoutS=[];
+           DoutT(:,1)=MI.GlobalTime;
+           DoutM(:,1)=MI.GlobalTime;
+           DoutS(:,1)=MI.GlobalTime;
+           Ftext=[];
+           FeatureMat=[];
            Fs=unique(MI.FeatureMatrix(~isnan(MI.FeatureMatrix)));
            Fs=Fs(Fs~=0);
            for Fi=1:length(Fs)
-               Ftext{Fi}=MI.FeatureDescr{Fs(Fi)};
-               Fmask=ismember(MI.FeatureMatrix,Fs(Fi));
-               Fmask=repmat(Fmask,1,1,1,length(MI.GlobalTime));
-               if ~isempty(Results.getState('thermal'))
-                    DoutT(:,1+Fi)=max(reshape(Results.getState('thermal',Fmask),[],length(MI.GlobalTime)),[],1);
+               ThisMat=TestCaseModel.MatLib.GetMatName(TestCaseModel.Features(Fi).Matl);
+               if ThisMat.MaxPlot
+                   Ftext{end+1}=MI.FeatureDescr{Fs(Fi)};
+                   Fmask=ismember(MI.FeatureMatrix,Fs(Fi));
+                   Fmask=repmat(Fmask,1,1,1,length(MI.GlobalTime));
+                   if ~isempty(Results.getState('thermal'))
+                        DoutT(:,end+1)=max(reshape(Results.getState('thermal',Fmask),[],length(MI.GlobalTime)),[],1);
+                   end
+                   if ~isempty(Results.getState('MeltFrac'))
+                        DoutM(:,end+1)=max(reshape(Results.getState('meltfrac',Fmask),[],length(MI.GlobalTime)),[],1);
+                   end
+                   if ~isempty(Results.getState('Stress'))
+                        DoutS(:,end+1)=max(reshape(Results.getState('stress',Fmask),[],length(MI.GlobalTime)),[],1);
+                   end
+                   FeatureMat{end+1}=TestCaseModel.Features(Fi).Matl;
                end
-               if ~isempty(Results.getState('MeltFrac'))
-                    DoutM(:,1+Fi)=max(reshape(Results.getState('meltfrac',Fmask),[],length(MI.GlobalTime)),[],1);
-               end
-               if ~isempty(Results.getState('Stress'))
-                    DoutS(:,1+Fi)=max(reshape(Results.getState('stress',Fmask),[],length(MI.GlobalTime)),[],1);
-               end
-               FeatureMat{Fi}=TestCaseModel.Features(Fi).Matl;
            end
            PCMFeatures=[];
            for Fi=1:length(FeatureMat)
@@ -2656,17 +2661,23 @@ function MaxPlot_Callback(hObject, eventdata, handles, Results)
                DoutM=[];
            end
            NumAx=0;
-           if ~isempty(DoutT)
+           if size(DoutT,2)>1
                DoutT(:,1)=MI.GlobalTime;
                NumAx=NumAx+1;
+           else
+               DoutT=[];
            end
-           if ~isempty(DoutM)
+           if size(DoutM,2)>1
                DoutM(:,1)=MI.GlobalTime;
                NumAx=NumAx+1;
+           else
+               DoutM=[];
            end
-           if ~isempty(DoutS)
+           if size(DoutS,2)>1
                DoutS(:,1)=MI.GlobalTime;
                NumAx=NumAx+1;
+           else
+               DoutS=[];
            end
            MaxTitle='Max Results';
            Figs=findobj('type','figure');

@@ -979,12 +979,14 @@ classdef PPMatLib < handle
                 ThisMat=BaseMatLib.GetMatNum(Imat);
                 ParamList=ThisMat.ParamList;
                 for Iprop=1:length(ParamList)
-                    ThisPropName=ParamList{Iprop};
+                    ThisPropName=ParamList{Iprop}; 
                     ThisPropVal=ThisMat.(ThisPropName);
                     if ~any(strcmpi(ThisPropName, ThisMat.NoExpandProps))
                         if ischar(ThisPropVal)
                             ThisPropVal={ThisPropVal};
                         elseif isnumeric(ThisPropVal)
+                            ThisPropVal={ThisPropVal};
+                        elseif islogical(ThisPropVal)
                             ThisPropVal={ThisPropVal};
                         end
                         for Ipv=1:length(ThisPropVal(:))

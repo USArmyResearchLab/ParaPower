@@ -39,7 +39,7 @@ classdef PPMatIBC < PPMat
             elseif nargin == 1 & iscell(varargin{1})
                 varargin=varargin{1};
             end
-            obj=obj@PPMat([ 'type' Type varargin]);
+            obj=obj@PPMat([ 'type' Type 'MaxPlot' false varargin]);
             
             PropValPairs=obj.PropValPairs;
             obj.PropValPairs={};
