@@ -150,13 +150,24 @@ classdef PPMat
     end
 
     methods 
-        function Params= ParamList(obj)
-            Params=properties(obj);
-            Params=Params(~strcmpi(Params,'name'));
-            Params=Params(~strcmpi(Params,'type'));
-            %Params=Params(~strcmpi(Params,'maxplot'));
-            Params=Params(~strcmpi(Params,'ValidChars'));
-            Params=Params(~strcmpi(Params,'NoExpandProps'));
+        function Params= ParamList(obj, IncludeNameType)
+            if ~exist('IncludeNameType','var')
+                IncludeNameType=false;
+            end
+            if strcmpi(class(obj),'PPMatNull')
+                TempMat=PPMat;
+                Params=TempMat.ParamList;
+            else
+                Params=properties(obj);
+                Params=Params(~strcmpi(Params,'name'));
+                Params=Params(~strcmpi(Params,'type'));
+                %Params=Params(~strcmpi(Params,'maxplot'));
+                Params=Params(~strcmpi(Params,'ValidChars'));
+                Params=Params(~strcmpi(Params,'NoExpandProps'));
+            end
+            if IncludeNameType
+                Params=['Name'; 'Type'; Params];
+            end
         end
         function OutText=ParamDesc(obj, Param)
            OutText='';
@@ -167,7 +178,7 @@ classdef PPMat
                 case 'type'
                     OutText='Type';
                 case 'maxplot'
-                    OutText='Show in Pk Plots';
+                    OutText='Show in Pk Plots (T/F)';
                 
                 %otherwise
                 %    if isempty(OutText)
@@ -226,6 +237,11 @@ classdef PPMat
                             end
                         case obj.strleft('maxplot',Pl)
                             [Value, PropValPairs]=obj.Pop(PropValPairs); 
+                            if strcmpi(Value,'true') || strcmpi(Value,'t')
+                                Value=true;
+                            elseif strcmpi(Value,'false') || strcmpi(Value,'f')
+                                Value=false;
+                            end
                             CheckLogical(Value);
                             Value=logical(Value);
                             MaxPlot=Value;

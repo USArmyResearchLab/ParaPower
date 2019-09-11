@@ -22,7 +22,7 @@
               end
               if length(varargin)>1
                   for I=1:2:length(varargin)
-                      if ~strcmpi(varargin{I},'name')
+                      if ~strcmpi(varargin{I},'name') & ~strcmpi(varargin{I},'maxplot')
                             warning('Property ''%s'' cannot be set in null material.',varargin{I})
                       end
                   end

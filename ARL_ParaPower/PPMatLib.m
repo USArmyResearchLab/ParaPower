@@ -452,12 +452,13 @@ classdef PPMatLib < handle
                     %NPl_delta=get(H.Name,'posit')-get(H.Type,'posit');
                     FS=get(H.Name,'fontsize');
                     
-                    if strcmpi(ThisType,'null')
-                        ParamList={};
-                     else
+%                    if strcmpi(ThisType,'null')  %This functionality has
+%                    been moved into the class def PPMat
+%                        ParamList={};
+%                     else
                         ParamList=NewMat.ParamList;
                         ParamList=ParamList(~strcmpi(ParamList,'SClass'));
-                    end
+%                    end
                     OldParam={};
                     if ~isempty(H.ParamL)
                         for I=1:length(H.ParamL)
@@ -510,9 +511,9 @@ classdef PPMatLib < handle
                     end
                     ArgList=sprintf('''Name'', ''%s'' ',Name);
                     ParamList=NewMat.ParamList;
-                    if strcmpi(NewMat.Type,'null')
-                        ParamList={};
-                    end
+%                     if strcmpi(NewMat.Type,'null')
+%                         ParamList={};
+%                     end
                     for I=1:length(ParamList)
                         Value=get(H.ParamE(I),'string');
                         if isempty(Value)
@@ -642,7 +643,8 @@ classdef PPMatLib < handle
                     ColNames={};
                     if obj.NumMat==0    
                         TempMat=PPMat;
-                        Params=properties(TempMat);
+                        %Params=properties(TempMat);
+                        Params=TempMat.ParamList(true);
                         for I=1:length(Params)
                             ColNames{I+1}=TempMat.ParamDesc(Params{I});
                         end
@@ -658,10 +660,11 @@ classdef PPMatLib < handle
                     Data={};
                     for I=1:obj.NumMat
                         Mat=obj.GetMatNum(I);
-                        MatProps=properties(Mat);
+                        %MatProps=properties(Mat);
+                        MatProps=Mat.ParamList(true);
                         Data{I,1}=false;
                         for J=1:length(MatProps)
-                            MatProps(J);
+                            %MatProps(J)
                             ColNum=find(strcmpi(Params,MatProps{J}))+1;
                             if isempty(ColNum)
                                 Data{I,ColNum}='';
