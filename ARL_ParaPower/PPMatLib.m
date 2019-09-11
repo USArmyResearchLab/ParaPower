@@ -1007,6 +1007,7 @@ classdef PPMatLib < handle
                                 ME.getReport
                                 ThisPropVal=NaN;
                             end
+                            fprintf('%s: %s\n',ThisMat.Name,ThisPropName)  %MSB
                             ScalarValue=length(ThisPropVal(:))==1; %If there is a single value it will be placed as a scalar not cell array
                             if OrigChar || length(ThisPropVal{Ipv})~=1  %If the value changed on eval, then cycle through mats
                                 NewMatLib=obj.ExpandMatLib(NewMatLib, ThisPropVal{Ipv}, Imat, ThisPropName, Ipv, ScalarValue);

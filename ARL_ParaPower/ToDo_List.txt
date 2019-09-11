@@ -3,7 +3,7 @@ Features to Add
 Enable 'stop' button on GUI
 Prettify results plots
 Add total mass output 
-Static Analysis is broken
+
 Object Oriented Material Matrix Construction:
     State Structure
         StateMatrix.Desc{i} = 'Melt Fraction', 'Temperature', 'Stress' -> Easily indexable by strcmpi
@@ -13,10 +13,22 @@ Object Oriented Material Matrix Construction:
             Input: Current State, X_index, Y_index, Z_index, X_length, Y_length, Z_length
             Output: StateMatrix for given X_index, Y_index, Z_index
         Fill A Matrix
-Stress Model Additions:
-    Must include substrate feature for PPTCM and then map into MI number of layers
-        And ensure underlying assumptions are met.  Kick out error if assumptinos are violated
-        
+Include non-directional stress model
+Custom timesteps
+User Manual
+Enable visualize by feature not material
+Add option for feature plot to plot selected features only
+Results object
+	include peak plots
+Post Processing App
+	Add optional X-axis vectors (such as time)
+Solver
+	Melt residuals
+	option for adaptive steps
+Enable h-infinity for constant temperature BC
+Visualize
+	Check speed impact of Q legend
+	
 
 Items Completed.
 ------------------
@@ -50,3 +62,7 @@ Error trap if time in Q table is not increasing.
 Split X and Y divisions into separate columns
 Add 'Cancel' button to mat database
 Re-enable stress analysis - there's now a stress function to be called.
+Static Analysis is broken
+Stress Model Additions:
+    Must include substrate feature for PPTCM and then map into MI number of layers
+        And ensure underlying assumptions are met.  Kick out error if assumptinos are violated
