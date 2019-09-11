@@ -464,10 +464,10 @@ classdef PPTCM  %PP Test Case Model
                     ErrText=sprintf('%sFeatures property must be a structure\n',ErrText);
                 end
             end
-            if isempty(obj.iFeatures) 
+            if isempty(obj.iFeatures) %If no features exist, populate with an empty feature
                 obj.iFeatures=F;
             end
-            for Fi=1:length(Fields)
+            for Fi=1:length(Fields)  %Ensure that field names in the input structure are the same as in the object
                 if ~any(strcmp(fieldnames(F),Fields(Fi)))
                     ErrText=sprintf('%s Field %s is not a valid  feature fieldname\n',ErrText,Fields{Fi});
                 end
@@ -480,7 +480,7 @@ classdef PPTCM  %PP Test Case Model
                 for Fi=1:length(Fields)
                     obj.iFeatures(I).(Fields{Fi})=Input(I).(Fields{Fi});
                 end
-                %obj.iFeatures(I)=ThisF;
+                %obj.iFeatures(I)=Input(I);
             end
         end
         

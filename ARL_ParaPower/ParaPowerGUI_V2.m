@@ -375,7 +375,8 @@ function savebutton_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-    Initialize_Callback(hObject, eventdata, handles, false)
+    Initialize_Callback(hObject, eventdata, handles, false, true)
+
     TestCaseModel = getappdata(handles.figure1,'TestCaseModel');
     if isempty(TestCaseModel)
         return
@@ -1020,14 +1021,19 @@ function AddMaterial_Callback(hObject, eventdata, handles)
 end
 
 % --- Executes on button press in Initialize.
-function Initialize_Callback(hObject, eventdata, handles, DrawModel)
+function Initialize_Callback(hObject, eventdata, handles, DrawModel, PopulateTCMOnly)
 % hObject    handle to Initialize (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+% DrawModel  True if model is to be drawn afterwards
+% PopulateTCMOnly Populate test case model only
 
 %Clear the main variables that are passed out from it.
-if not(exist('DrawModel'))
+if not(exist('DrawModel','var'))
     DrawModel=true;
+end
+if not(exist('PopulateTCMOnly','var'))
+    PopulateTCMOnly=false;
 end
 GUIDisable(handles.figure1)
 ErrorStatus()
@@ -1056,10 +1062,12 @@ Parameters=Parameters(:,2:3);
 
 for K=1:length(ExtBoundMatrix(:))
     if isempty(ExtBoundMatrix{K})
-        AddStatusLine('Error.',true,'error');
         AddStatusLine('Env. parameters must be fully populated','err');
-        GUIEnable
-        return
+        if not(PopulateTCMOnly)
+            AddStatusLine('Error.',true,'error');
+            GUIEnable
+            return
+        end
     end
 end
 
@@ -1116,15 +1124,17 @@ else
     CheckMatrix=FeaturesMatrix(:,[FTC('x1') FTC('x2') FTC('y1') FTC('y2') FTC('z1') FTC('y2') FTC('mat') FTC('divx') FTC('divy') FTC('divz') ]);  %FEATURESMATRIX
     for K=1:length(CheckMatrix(:))
         if isempty(CheckMatrix{K})
-            AddStatusLine('Error.',true,'error');
             if ischar(CheckMatrix{K})
                 EmptyPart='Material empty.';
             else
                 EmptyPart='X, Y or Z coordinates or divisions Empty.';
             end
+            if not(PopulateTCMOnly)
+                AddStatusLine('Error.',true,'error');
+                GUIEnable
+                return
+            end
             AddStatusLine(['Features table is not fully defined. ' EmptyPart],'err')
-            GUIEnable
-            return
         end
     end
     QData=getappdata(handles.figure1,TableDataName);
@@ -1262,89 +1272,92 @@ else
 
     setappdata(handles.figure1,'TestCaseModel',TestCaseModel);
     
-    Cases=TestCaseModel.GenerateCases;
-    
-    if ischar(Cases) || isempty(Cases)
-        KillInit=1;
-    elseif length(Cases)>1
-        AddStatusLine(sprintf('%.0f cases...',length(Cases)), true);
-    end
-    
-    if KillInit
-        AddStatusLine('Unable to fully build model due to errors.','error')
-        if ischar(Cases)
-            AddStatusLine(Cases)
-        end
-        set(handles.CaseSelect,'visible','off')
+    if not(PopulateTCMOnly)
 
-    else
-        ViewCase=Cases(1);
-        AddStatusLine('forming...',true)
-        try
-            MI=FormModel(ViewCase);
-        catch ME
-            disp(ME.getReport)
-            AddStatusLine('Error running forming model','Err')
-            AddStatusLine(ME.message)
-            GUIEnable
-            return
+        Cases=TestCaseModel.GenerateCases;
+
+        if ischar(Cases) || isempty(Cases)
+            KillInit=1;
+        elseif length(Cases)>1
+            AddStatusLine(sprintf('%.0f cases...',length(Cases)), true);
         end
-        if get(handles.transient,'value')==1
-            if isempty(MI.GlobalTime) || min(MI.GlobalTime) == max(MI.GlobalTime)
-                AddStatusLine('Error.',true,'error');
-                AddStatusLine('Globaltime min and max are the same or isempty.  Redefine time step or run as a static analysis.');
+
+        if KillInit
+            AddStatusLine('Unable to fully build model due to errors.','error')
+            if ischar(Cases)
+                AddStatusLine(Cases)
+            end
+            set(handles.CaseSelect,'visible','off')
+
+        else
+            ViewCase=Cases(1);
+            AddStatusLine('forming...',true)
+            try
+                MI=FormModel(ViewCase);
+            catch ME
+                disp(ME.getReport)
+                AddStatusLine('Error running forming model','Err')
+                AddStatusLine(ME.message)
                 GUIEnable
                 return
             end
-        end
-        
-        AddStatusLine('storing...',true)
-
-    %    axes(handles.GeometryVisualization);
-    %    Visualize ('Model Input', MI, 'modelgeom','ShowQ')
-
-        setappdata(handles.figure1,'RunCases',Cases);
-        setappdata(handles.figure1,'MI',MI);
-        CaseText=get(handles.CaseSelect,'string');
-        CaseNumber=get(handles.CaseSelect,'value');
-        if length(Cases) < CaseNumber
-            set(handles.CaseSelect,'value',CaseNumber);
-        end
-        if length(Cases)==1
-            set(handles.CaseSelect,'visible','off')
-            set(handles.CaseSelect,'value',1)
-        elseif length(Cases)>1
-            CaseText={};
-            for I=1:length(Cases)
-                CaseText{I}=sprintf('%.0f: ',I);
-                for JJ=1:length(Cases(1).ParamVar(:,1))
-                    CaseText{I}=[CaseText{I} sprintf('%s: %s; ',Cases(I).ParamVar{JJ,1},Cases(I).ParamVar{JJ,2})];
+            if get(handles.transient,'value')==1
+                if isempty(MI.GlobalTime) || min(MI.GlobalTime) == max(MI.GlobalTime)
+                    AddStatusLine('Error.',true,'error');
+                    AddStatusLine('Globaltime min and max are the same or isempty.  Redefine time step or run as a static analysis.');
+                    GUIEnable
+                    return
                 end
             end
-            set(handles.CaseSelect,'string',CaseText);
-            set(handles.CaseSelect,'visible','on')
-        elseif length(Cases)>1
-            set(handles.CaseSelect,'visible','on')
-        end
 
-        MI=getappdata(handles.figure1,'MI');
-        %axes(handles.GeometryVisualization)
-        %figure(2)
+            AddStatusLine('storing...',true)
 
-        if DrawModel
-            OldVis=get(handles.figure1,'handlevisibility');
-            set(handles.figure1,'handlevisibility','on');
-            AddStatusLine('drawing...',true)
-            Visualize ('', MI, 'modelgeom','ShowQ','ShowExtent','parent',handles.VisualizePanel)
-            VisUpdateStatus(handles,false);
-            AddStatusLine('Done',true)
-%             ThisAxis=findobj(handles.VisualizePanel,'type','axes');
-%             if length(ThisAxis)>1
-%                 delete(ThisAxis(2:end))
-%             end
+        %    axes(handles.GeometryVisualization);
+        %    Visualize ('Model Input', MI, 'modelgeom','ShowQ')
 
-            drawnow
-            set(handles.figure1,'handlevisibility',OldVis)
+            setappdata(handles.figure1,'RunCases',Cases);
+            setappdata(handles.figure1,'MI',MI);
+            CaseText=get(handles.CaseSelect,'string');
+            CaseNumber=get(handles.CaseSelect,'value');
+            if length(Cases) < CaseNumber
+                set(handles.CaseSelect,'value',CaseNumber);
+            end
+            if length(Cases)==1
+                set(handles.CaseSelect,'visible','off')
+                set(handles.CaseSelect,'value',1)
+            elseif length(Cases)>1
+                CaseText={};
+                for I=1:length(Cases)
+                    CaseText{I}=sprintf('%.0f: ',I);
+                    for JJ=1:length(Cases(1).ParamVar(:,1))
+                        CaseText{I}=[CaseText{I} sprintf('%s: %s; ',Cases(I).ParamVar{JJ,1},Cases(I).ParamVar{JJ,2})];
+                    end
+                end
+                set(handles.CaseSelect,'string',CaseText);
+                set(handles.CaseSelect,'visible','on')
+            elseif length(Cases)>1
+                set(handles.CaseSelect,'visible','on')
+            end
+
+            MI=getappdata(handles.figure1,'MI');
+            %axes(handles.GeometryVisualization)
+            %figure(2)
+
+            if DrawModel
+                OldVis=get(handles.figure1,'handlevisibility');
+                set(handles.figure1,'handlevisibility','on');
+                AddStatusLine('drawing...',true)
+                Visualize ('', MI, 'modelgeom','ShowQ','ShowExtent','parent',handles.VisualizePanel)
+                VisUpdateStatus(handles,false);
+                AddStatusLine('Done',true)
+    %             ThisAxis=findobj(handles.VisualizePanel,'type','axes');
+    %             if length(ThisAxis)>1
+    %                 delete(ThisAxis(2:end))
+    %             end
+
+                drawnow
+                set(handles.figure1,'handlevisibility',OldVis)
+            end
         end
     end
 end
