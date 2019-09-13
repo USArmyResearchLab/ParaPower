@@ -157,15 +157,23 @@ classdef PPTCM  %PP Test Case Model
                 PermMatrix=0;
             else
                 %Get permutations of the vector parameter list
-                PermMatrix=[];
-                for Row=1:length(VectorParamList(:,1))  %Construct 1D vector of all possible indices of all variables
-                    PermMatrix=[PermMatrix 1:length(VectorParamList{Row,2})];
-                end
-                PermMatrix=perms(PermMatrix);  %Compute permutations of all of those (square matrix that is product of dimensions)
-                PermMatrix=PermMatrix(:,1:length(VectorParamList(:,1))); %Keep number of columns equal to number of variables
-                PermMatrix=unique(PermMatrix,'rows'); %Retain only the unique rows
-                for VarI=1:length(VectorParamList(:,1)) %Keep only rows that have indices less than number of values in that variable
-                    PermMatrix=PermMatrix(PermMatrix(:,VarI)<=length(VectorParamList{VarI,2}),:);
+%                 PermMatrix=[];
+%                 for Row=1:length(VectorParamList(:,1))  %Construct 1D vector of all possible indices of all variables
+%                     PermMatrix=[PermMatrix 1:length(VectorParamList{Row,2})];
+%                 end
+%                 PermMatrix=perms(PermMatrix);  %Compute permutations of all of those (square matrix that is product of dimensions)
+%                 PermMatrix=PermMatrix(:,1:length(VectorParamList(:,1))); %Keep number of columns equal to number of variables
+%                 PermMatrix=unique(PermMatrix,'rows'); %Retain only the unique rows
+%                 for VarI=1:length(VectorParamList(:,1)) %Keep only rows that have indices less than number of values in that variable
+%                     PermMatrix=PermMatrix(PermMatrix(:,VarI)<=length(VectorParamList{VarI,2}),:);
+%                 end
+                PermMatrix=reshape([1:length(VectorParamList{1,2})],[],1); %Start Perts with length of first variable
+                for I=2:length(VectorParamList(:,1))
+                    OldPerts=PermMatrix;  %Save the existing structure to add new column to
+                    PermMatrix=[OldPerts ones(size(PermMatrix(:,1)))];  %Add new column for I'th variable
+                    for I=2:length(VectorParamList{I,2})
+                        PermMatrix=[PermMatrix; OldPerts I*ones(size(OldPerts(:,1)))];
+                    end
                 end
             end
             
