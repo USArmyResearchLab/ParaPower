@@ -1274,8 +1274,8 @@ else
     
     if not(PopulateTCMOnly)
 
+        AddStatusLine('gen. cases...',true)
         Cases=TestCaseModel.GenerateCases;
-
         if ischar(Cases) || isempty(Cases)
             KillInit=1;
         elseif length(Cases)>1
