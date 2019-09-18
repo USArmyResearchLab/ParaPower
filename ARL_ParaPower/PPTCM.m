@@ -261,7 +261,11 @@ classdef PPTCM  %PP Test Case Model
                                         end
                                     end
                                     ThisFieldVal=ThisFieldVal(~strcmpi(ThisFieldVal,'XXXX'));
-                                    TCMout=ExpandTCM(TCMout, ThisFieldVal, ThisPropName, Ipe, ThisFieldName);
+                                    if (length(ThisFieldVal)==1 ) && (length(TCMout)==1)
+                                        TCMout.(ThisPropName)(Ipe).(ThisFieldName)=ThisFieldVal;  %New
+                                    else
+                                        TCMout=ExpandTCM(TCMout, ThisFieldVal, ThisPropName, Ipe, ThisFieldName);
+                                    end
                                 elseif ismember(ThisFieldName,{'Q'})  %Q treated differently since they are more than 1 element
                                     if isempty(ThisFieldVal) || (isnumeric(ThisFieldVal) && length(ThisFieldVal(1,:))==2) %Q is a table
                                         %Do Nothing at this point as tables don't allow parameters
@@ -292,7 +296,12 @@ classdef PPTCM  %PP Test Case Model
                                                 ThisFieldVal=[];
                                             end
                                         end
-                                        TCMout=ExpandTCM(TCMout, ThisFieldVal, ThisPropName, Ipe, ThisFieldName);
+                                        if (length(ThisFieldVal) == 1) && (length(TCMout)==1)
+                                            TCMout.(ThisPropName)(Ipe).(ThisFieldName)=ThisFieldVal;  %New
+                                        else
+                                            TCMout=ExpandTCM(TCMout, ThisFieldVal, ThisPropName, Ipe, ThisFieldName);
+                                        end
+                                        
                                     else
                                         ErrText=[ErrText sprintf('Unknown form of Q in TCM.%s(%.0f).%s(%.0f).Q\n',ThisFieldValElement,ThisPropName, Ipe, ThisFieldName,Ife)];
                                     end
@@ -315,7 +324,11 @@ classdef PPTCM  %PP Test Case Model
                                                 ThisFieldValElement=[];
                                             end
                                         end
-                                        TCMout=ExpandTCM(TCMout, ThisFieldValElement, ThisPropName, Ipe, ThisFieldName, Ife);
+                                        if (length(ThisFieldValElement) == 1) && (length(TCMout)==1)
+                                            TCMout.(ThisPropName)(Ipe).(ThisFieldName){Ife}=ThisFieldValElement;  %New
+                                        else
+                                            TCMout=ExpandTCM(TCMout, ThisFieldValElement, ThisPropName, Ipe, ThisFieldName, Ife);  %Keep w/o the if...then
+                                        end
                                     end
                                 else %Single valued fields
                                     if ischar(ThisFieldVal)
@@ -331,7 +344,11 @@ classdef PPTCM  %PP Test Case Model
                                             ThisFieldVal=[];
                                         end
                                     end
-                                    TCMout=ExpandTCM(TCMout, ThisFieldVal, ThisPropName, Ipe, ThisFieldName);
+                                    if (length(ThisFieldVal) == 1) && (length(TCMout)==1)
+                                        TCMout.(ThisPropName)(Ipe).(ThisFieldName)=ThisFieldValElement;  %New
+                                    else
+                                        TCMout=ExpandTCM(TCMout, ThisFieldVal, ThisPropName, Ipe, ThisFieldName);
+                                    end
                                 end
                             end
                         end
@@ -717,15 +734,19 @@ function TCMnew=ExpandTCM(TCMinstance, Values, Prop, Iprop, Field, Ifield)
             for Ival=1:length(Values)
                 TCMnew=[TCMnew TCMinstance(Itcm)];
                 if exist('Ifield','var')
+%                    disp(TCMinstance(Itcm).(Prop)(Iprop).(Field){Ifield}),fprintf('   '), disp(Values{Ival} ) %MSB
                     TCMnew(end).(Prop)(Iprop).(Field){Ifield}=Values{Ival};
                     VarText=sprintf('TCM.%s(%.0f%s).%s(%.0f)',Prop,Iprop,FeatDesc,Field,Ifield);
                 elseif exist('Field','var')
-                    TCMnew(end).(Prop)(Iprop).(Field)=Values{Ival};
+%                    disp(TCMinstance(Itcm).(Prop)(Iprop).(Field)),fprintf('   ') , disp(Values{Ival}) %MSB
+                    TCMnew(end).(Prop)(Iprop).(Field)=Values{Ival} ;
                     VarText=sprintf('TCM.%s(%.0f%s).%s',Prop,Iprop,FeatDesc,Field);
                 elseif exist('Iprop','var')
+%                    disp(TCMinstance(Itcm).(Prop)(Iprop)),fprintf('   ') , disp(Values{Ival}) %MSB
                     TCMnew(end).(Prop)(Iprop)=Values{Ival};
                     VarText=sprintf('TCM.%s(%.0f%s)',Prop,Iprop,FeatDesc);
                 elseif exist('Prop','var')
+%                    disp(TCMinstance(Itcm).(Prop)),fprintf('   '),disp(Values{Ival})  %MSB
                     TCMnew(end).(Prop)=Values{Ival};
                     VarText=sprintf('TCM.%s',Prop);
                 end
