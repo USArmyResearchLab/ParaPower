@@ -32,8 +32,19 @@ classdef PPTCM  %PP Test Case Model
         ExternalConditions = [];
     end
     
+    properties (Constant, Access=private)
+        iFeaturesTemplate=struct('x',    [], ... %Structures of empty fields
+                                 'y',    [], ... 
+                            	 'z',    [], ...
+                                 'Matl', '', ...
+                                 'Q',    [], ...
+                                 'dx',   [], ...
+                                 'dy',   [], ...
+                                 'dz',   [], ...
+                                 'Desc', '' );
+    end
     properties (Constant)
-        Version='V3.0';
+        Version='V3.0'; 
     end
     
     methods (Static)
@@ -438,28 +449,24 @@ classdef PPTCM  %PP Test Case Model
             
         function FeaturesOut=get.Features(obj)
             FeaturesOut=obj.iFeatures;
-            if obj.iExpanded
-                for I=1:length(FeaturesOut)
-                    NumX=cell2mat(FeaturesOut(I).x);
-                    NumY=cell2mat(FeaturesOut(I).y);
-                    NumZ=cell2mat(FeaturesOut(I).z);
-                    FeaturesOut(I).x=NumX;
-                    FeaturesOut(I).y=NumY;
-                    FeaturesOut(I).z=NumZ;
+            if isempty(FeaturesOut)
+                FeaturesOut=obj.iFeaturesTemplate;
+            else
+                if obj.iExpanded
+                    for I=1:length(FeaturesOut)
+                        NumX=cell2mat(FeaturesOut(I).x);
+                        NumY=cell2mat(FeaturesOut(I).y);
+                        NumZ=cell2mat(FeaturesOut(I).z);
+                        FeaturesOut(I).x=NumX;
+                        FeaturesOut(I).y=NumY;
+                        FeaturesOut(I).z=NumZ;
+                    end
                 end
             end
         end
         
         function obj=set.Features(obj,Input)
-            F.x=[];
-            F.y=[];
-            F.z=[];
-            F.Matl='';
-            F.Q=[];
-            F.dx=[];
-            F.dy=[];
-            F.dz=[];
-            F.Desc='';
+            F=obj.iFeaturesTemplate;
             ErrText='';
             if isstruct(Input(1))
                 Fields = fieldnames(Input(1));
@@ -480,11 +487,11 @@ classdef PPTCM  %PP Test Case Model
             if ~isempty(ErrText)
                 error(ErrText)
             end
-            if isempty(obj.iFeatures) %If no features exist, populate with an empty feature
-                obj.iFeatures=F;
-            else
+%            if isempty(obj.iFeatures) %If no features exist, populate with an empty feature
                 obj.iFeatures=Input;
-            end
+%              else
+%                 obj.iFeatures=F;
+%            end
 %             for I=1:length(Input)
 %                 %ThisF=F;
 %                 for Fi=1:length(Fields)
@@ -496,6 +503,7 @@ classdef PPTCM  %PP Test Case Model
         
         function obj = PPTCM(ExternalConditions, Features, Params, PottingMaterial, MatLib)  %Constructor
             obj.SymAvail=license('test','symbolic_toolbox');
+
             if nargin==3
                 obj.ExternalConditions=ExternalConditions;
                 obj.Features=Features;
