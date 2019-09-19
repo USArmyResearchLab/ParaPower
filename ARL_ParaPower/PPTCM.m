@@ -486,21 +486,36 @@ classdef PPTCM  %PP Test Case Model
             F=obj.iFeaturesTemplate;
             ErrText='';
             if isstruct(Input(1))
-                Fields = fieldnames(Input(1));
+                FieldsInput = fieldnames(Input(1));
             else
                 if strcmpi(Input,'Init')
-                    Fields=[];
+                    FieldsInput=[];
                     Input=[];
                 else
-                    Fields={};
+                    FieldsInput={};
                     ErrText=sprintf('%sFeatures property must be a structure\n',ErrText);
                 end
             end
-            for Fi=1:length(Fields)  %Ensure that field names in the input structure are the same as in the object
-                if ~any(strcmp(fieldnames(F),Fields(Fi)))
-                    ErrText=sprintf('%s Field %s is not a valid  feature fieldname\n',ErrText,Fields{Fi});
+            FieldsObject=fieldnames(F);
+
+%             %tic
+%             InputFieldsNotInObject=setxor(FieldsObject,union(FieldsInput, FieldsObject));
+%             if ~isempty(InputFieldsNotInObject)
+%                 for Fi=1:length(InputFieldsNotInObject)
+%                     ErrText=sprintf('%s Field %s is not a valid  feature fieldname\n',ErrText,InputFieldsNotInObject{Fi});
+%                 end
+%             end
+%             %SetOps=toc;
+                
+            %tic
+            for Fi=1:length(FieldsInput)  %Ensure that field names in the input structure are the same as in the object
+                if ~any(strcmp(FieldsObject,FieldsInput(Fi)))
+                    ErrText=sprintf('%s Field %s is not a valid  feature fieldname\n',ErrText,FieldsInput{Fi});
                 end
             end
+%             %ExplOps=toc;
+            %fprintf('L(Input): %d, L(Object): %d, Set - Expl %d\n',length(FieldsInput), length(FieldsObject), SetOps - ExplOps)
+
             if ~isempty(ErrText)
                 error(ErrText)
             end

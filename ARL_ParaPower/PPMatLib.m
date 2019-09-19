@@ -1,4 +1,5 @@
-classdef PPMatLib < handle
+classdef PPMatLib < matlab.mixin.Copyable
+    %classdef PPMatLib < handle
 %classdef PPMatLib < handle
 %This object is used as a collection of materials objects.  To add a new
 %material object it must have the filename PPMatXXXX where XXXX is the
@@ -933,22 +934,24 @@ classdef PPMatLib < handle
         end
         
         function NewMatLib=CreateCopy(obj)
-            PermissibleErrors={'MATLAB:class:noSetMethod'};
-
-            NewMatLib=PPMatLib;
-            for I=1:obj.NumMat
-                NewMatLib.AddMatl(obj.GetMatNum(I))
-            end
-            Props=properties(obj);
-            for I=1:length(Props)
-                try
-                    NewMatLib.(Props{I})=obj.(Props{I});
-                catch ME
-                    if ~any(strcmpi(PermissibleErrors,ME.identifier))
-                        error(ME)
-                    end
-                end
-            end
+            
+            NewMatLib=copy(obj);
+% %             PermissibleErrors={'MATLAB:class:noSetMethod'};
+% % 
+% %             NewMatLib=PPMatLib;
+% %             for I=1:obj.NumMat
+% %                 NewMatLib.AddMatl(obj.GetMatNum(I))
+% %             end
+% %             Props=properties(obj);
+% %             for I=1:length(Props)
+% %                 try
+% %                     NewMatLib.(Props{I})=obj.(Props{I});
+% %                 catch ME
+% %                     if ~any(strcmpi(PermissibleErrors,ME.identifier))
+% %                         error(ME)
+% %                     end
+% %                 end
+% %             end
         end
         
         function NewMatLib=GenerateCases (obj, ParamTable)
@@ -976,8 +979,8 @@ classdef PPMatLib < handle
 %                 VarText  %DEBUG
 %                 eval(VarText)
 %             end
-            BaseMatLib=obj.CreateCopy;
-            NewMatLib=obj.CreateCopy;
+            BaseMatLib=obj.CreateCopy;  %Replaced with copyable handle type
+            NewMatLib=obj.CreateCopy;  %Replaced with copyable handle type
             for Imat=1:BaseMatLib.NumMat
                 ThisMat=BaseMatLib.GetMatNum(Imat);
                 ParamList=ThisMat.ParamList;
