@@ -266,6 +266,7 @@ classdef PPTCM  %PP Test Case Model
                                     else
                                         TCMout=ExpandTCM(TCMout, ThisFieldVal, ThisPropName, Ipe, ThisFieldName);
                                     end
+                                    clear ThisFieldVal
                                 elseif ismember(ThisFieldName,{'Q'})  %Q treated differently since they are more than 1 element
                                     if isempty(ThisFieldVal) || (isnumeric(ThisFieldVal) && length(ThisFieldVal(1,:))==2) %Q is a table
                                         %Do Nothing at this point as tables don't allow parameters
@@ -301,7 +302,7 @@ classdef PPTCM  %PP Test Case Model
                                         else
                                             TCMout=ExpandTCM(TCMout, ThisFieldVal, ThisPropName, Ipe, ThisFieldName);
                                         end
-                                        
+                                        clear ThisFieldVal
                                     else
                                         ErrText=[ErrText sprintf('Unknown form of Q in TCM.%s(%.0f).%s(%.0f).Q\n',ThisFieldValElement,ThisPropName, Ipe, ThisFieldName,Ife)];
                                     end
@@ -329,6 +330,7 @@ classdef PPTCM  %PP Test Case Model
                                         else
                                             TCMout=ExpandTCM(TCMout, ThisFieldValElement, ThisPropName, Ipe, ThisFieldName, Ife);  %Keep w/o the if...then
                                         end
+                                        clear ThisFieldValElement
                                     end
                                 else %Single valued fields
                                     if ischar(ThisFieldVal)
@@ -345,10 +347,11 @@ classdef PPTCM  %PP Test Case Model
                                         end
                                     end
                                     if (length(ThisFieldVal) == 1) && (length(TCMout)==1)
-                                        TCMout.(ThisPropName)(Ipe).(ThisFieldName)=ThisFieldValElement;  %New
+                                        TCMout.(ThisPropName)(Ipe).(ThisFieldName)=ThisFieldVal;  %New
                                     else
                                         TCMout=ExpandTCM(TCMout, ThisFieldVal, ThisPropName, Ipe, ThisFieldName);
                                     end
+                                    clear ThisFieldVal
                                 end
                             end
                         end

@@ -114,6 +114,7 @@ Zu=[]; %Z coordinates, user defined.
 %the special list that covers zero thickness features and user defined locations.
 MinFeatureSize=[1 1 1]*inf;
 for i=1:length(Features)
+%    warning(Features(i).Desc) %MSB
     Fd=Features(i).x;
     if isscalar(Fd)
         Fd=[1 1]*Fd;
