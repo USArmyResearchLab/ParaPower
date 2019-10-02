@@ -32,11 +32,48 @@ classdef PPTCM  %PP Test Case Model
         ExternalConditions = [];
     end
     
+    properties (Constant, Access=private)
+        iFeaturesTemplate=struct('x',    [], ... %Structures of empty fields
+                                 'y',    [], ... 
+                            	 'z',    [], ...
+                                 'Matl', '', ...
+                                 'Q',    [], ...
+                                 'dx',   [], ...
+                                 'dy',   [], ...
+                                 'dz',   [], ...
+                                 'Desc', '' );
+    end
     properties (Constant)
-        Version='V3.0';
+        Version='V3.0'; 
     end
     
     methods (Static)
+        function OutVar=ProtectedEval(InString, VarList, StartString)
+            ErrText='';
+            OutVar=[];
+            if exist('StartString','var')
+                EvalText=StartString;
+            else
+                EvalText='';
+            end
+            if ~isempty(VarList)
+                for Ivar=1:length(VarList(:,1))
+                    if exist(VarList{Ivar,1},'var')
+                        Stxt=sprintf('''%s'' variable already exists in the namespace. Please change your variable name.\n',VarName);
+                        ErrText=[ErrText Stxt];
+                    else
+                        EvalText=[EvalText VarList{Ivar,1} '=VarList{' num2str(Ivar) ',2};'];
+                    end
+                end
+            end
+            EvalText=[EvalText 'OutVar=' InString ';'];
+            if length(ErrText)==0
+                eval(EvalText)
+            else
+                error(ErrText)
+            end
+        end
+        
         function ObjIn=loadobj(ObjIn) %Generate error on version mismatch
             %ObjCur=PPModelDef();
             if str2num(ObjIn.Version(2:end))<str2num(ObjIn.Version(2:end)) 
@@ -60,7 +97,7 @@ classdef PPTCM  %PP Test Case Model
             end
             QTextOut={};
             if SymAvail
-                QHFn=ProtectedEval(Qtext,Parameters, 't=sym(''t'');');
+                QHFn=PPTCM.ProtectedEval(Qtext,Parameters, 't=sym(''t'');');
                 %t=sym('t');
                 %EvalText=[VarText 'QHFn=' Qtext];
                 %eval([EvalText ';']);  %if the Q function evaluates to multiple formulae it will be an array
@@ -157,15 +194,23 @@ classdef PPTCM  %PP Test Case Model
                 PermMatrix=0;
             else
                 %Get permutations of the vector parameter list
-                PermMatrix=[];
-                for Row=1:length(VectorParamList(:,1))  %Construct 1D vector of all possible indices of all variables
-                    PermMatrix=[PermMatrix 1:length(VectorParamList{Row,2})];
-                end
-                PermMatrix=perms(PermMatrix);  %Compute permutations of all of those (square matrix that is product of dimensions)
-                PermMatrix=PermMatrix(:,1:length(VectorParamList(:,1))); %Keep number of columns equal to number of variables
-                PermMatrix=unique(PermMatrix,'rows'); %Retain only the unique rows
-                for VarI=1:length(VectorParamList(:,1)) %Keep only rows that have indices less than number of values in that variable
-                    PermMatrix=PermMatrix(PermMatrix(:,VarI)<=length(VectorParamList{VarI,2}),:);
+%                 PermMatrix=[];
+%                 for Row=1:length(VectorParamList(:,1))  %Construct 1D vector of all possible indices of all variables
+%                     PermMatrix=[PermMatrix 1:length(VectorParamList{Row,2})];
+%                 end
+%                 PermMatrix=perms(PermMatrix);  %Compute permutations of all of those (square matrix that is product of dimensions)
+%                 PermMatrix=PermMatrix(:,1:length(VectorParamList(:,1))); %Keep number of columns equal to number of variables
+%                 PermMatrix=unique(PermMatrix,'rows'); %Retain only the unique rows
+%                 for VarI=1:length(VectorParamList(:,1)) %Keep only rows that have indices less than number of values in that variable
+%                     PermMatrix=PermMatrix(PermMatrix(:,VarI)<=length(VectorParamList{VarI,2}),:);
+%                 end
+                PermMatrix=reshape([1:length(VectorParamList{1,2})],[],1); %Start Perts with length of first variable
+                for I=2:length(VectorParamList(:,1))
+                    OldPerts=PermMatrix;  %Save the existing structure to add new column to
+                    PermMatrix=[OldPerts ones(size(PermMatrix(:,1)))];  %Add new column for I'th variable
+                    for I=2:length(VectorParamList{I,2})
+                        PermMatrix=[PermMatrix; OldPerts I*ones(size(OldPerts(:,1)))];
+                    end
                 end
             end
             
@@ -242,7 +287,12 @@ classdef PPTCM  %PP Test Case Model
                                         end
                                     end
                                     ThisFieldVal=ThisFieldVal(~strcmpi(ThisFieldVal,'XXXX'));
-                                    TCMout=ExpandTCM(TCMout, ThisFieldVal, ThisPropName, Ipe, ThisFieldName);
+                                    if (length(ThisFieldVal)==1 ) && (length(TCMout)==1)
+                                        TCMout.(ThisPropName)(Ipe).(ThisFieldName)=ThisFieldVal;  %New
+                                    else
+                                        TCMout=ExpandTCM(TCMout, ThisFieldVal, ThisPropName, Ipe, ThisFieldName);
+                                    end
+                                    clear ThisFieldVal
                                 elseif ismember(ThisFieldName,{'Q'})  %Q treated differently since they are more than 1 element
                                     if isempty(ThisFieldVal) || (isnumeric(ThisFieldVal) && length(ThisFieldVal(1,:))==2) %Q is a table
                                         %Do Nothing at this point as tables don't allow parameters
@@ -259,7 +309,7 @@ classdef PPTCM  %PP Test Case Model
                                             %EvalString='';
                                             %EvalString=[EvalString sprintf('ThisFieldVal=%s;\n',ThisFieldVal)];
                                             %eval(EvalString)
-                                            ThisFieldVal=ProtectedEval(ThisFieldVal, TempScalarParamList);
+                                            ThisFieldVal=PPTCM.ProtectedEval(ThisFieldVal, TempScalarParamList);
                                             t=Old_t;
                                         catch ME  %If it is dependent on 't' then use create array
                                             try
@@ -273,7 +323,12 @@ classdef PPTCM  %PP Test Case Model
                                                 ThisFieldVal=[];
                                             end
                                         end
-                                        TCMout=ExpandTCM(TCMout, ThisFieldVal, ThisPropName, Ipe, ThisFieldName);
+                                        if (length(ThisFieldVal) == 1) && (length(TCMout)==1)
+                                            TCMout.(ThisPropName)(Ipe).(ThisFieldName)=ThisFieldVal;  %New
+                                        else
+                                            TCMout=ExpandTCM(TCMout, ThisFieldVal, ThisPropName, Ipe, ThisFieldName);
+                                        end
+                                        clear ThisFieldVal
                                     else
                                         ErrText=[ErrText sprintf('Unknown form of Q in TCM.%s(%.0f).%s(%.0f).Q\n',ThisFieldValElement,ThisPropName, Ipe, ThisFieldName,Ife)];
                                     end
@@ -285,7 +340,7 @@ classdef PPTCM  %PP Test Case Model
                                         ThisFieldValElement=ThisFieldVal{Ife};
                                         if ischar(ThisFieldValElement)
                                             try
-                                                ThisFieldValElement=ProtectedEval(ThisFieldValElement,TempScalarParamList);
+                                                ThisFieldValElement=PPTCM.ProtectedEval(ThisFieldValElement,TempScalarParamList);
                                                 %eval(['ThisFieldValElement=' ThisFieldValElement ';'])
                                                 if ~isnumeric(ThisFieldValElement)
                                                     ErrText=[ErrText sprintf('Non-numeric: "%s" for TCM.%s(%.0f).%s(%.0f)\n',ThisFieldValElement,ThisPropName, Ipe, ThisFieldName,Ife)];
@@ -296,13 +351,18 @@ classdef PPTCM  %PP Test Case Model
                                                 ThisFieldValElement=[];
                                             end
                                         end
-                                        TCMout=ExpandTCM(TCMout, ThisFieldValElement, ThisPropName, Ipe, ThisFieldName, Ife);
+                                        if (length(ThisFieldValElement) == 1) && (length(TCMout)==1)
+                                            TCMout.(ThisPropName)(Ipe).(ThisFieldName){Ife}=ThisFieldValElement;  %New
+                                        else
+                                            TCMout=ExpandTCM(TCMout, ThisFieldValElement, ThisPropName, Ipe, ThisFieldName, Ife);  %Keep w/o the if...then
+                                        end
+                                        clear ThisFieldValElement
                                     end
                                 else %Single valued fields
                                     if ischar(ThisFieldVal)
                                         try
                                             %eval(['ThisFieldVal=' ThisFieldVal ';'])
-                                            ThisFieldVal=ProtectedEval(ThisFieldVal,TempScalarParamList);
+                                            ThisFieldVal=PPTCM.ProtectedEval(ThisFieldVal,TempScalarParamList);
                                             if  ~isnumeric(ThisFieldVal)
                                                 ErrText=[ErrText sprintf('Non-numeric: "%s" for TCM.%s(%.0f).%s\n',ThisFieldVal,ThisPropName, Ipe, ThisFieldName)];
                                                 ThisFieldVal=[];
@@ -312,14 +372,19 @@ classdef PPTCM  %PP Test Case Model
                                             ThisFieldVal=[];
                                         end
                                     end
-                                    TCMout=ExpandTCM(TCMout, ThisFieldVal, ThisPropName, Ipe, ThisFieldName);
+                                    if (length(ThisFieldVal) == 1) && (length(TCMout)==1)
+                                        TCMout.(ThisPropName)(Ipe).(ThisFieldName)=ThisFieldVal;  %New
+                                    else
+                                        TCMout=ExpandTCM(TCMout, ThisFieldVal, ThisPropName, Ipe, ThisFieldName);
+                                    end
+                                    clear ThisFieldVal
                                 end
                             end
                         end
                     else
                         if ischar(ThisPropVal)
                             try
-                                ThisPropVal=ProtectedEval(ThisPropVal,TempScalarParamList);
+                                ThisPropVal=PPTCM.ProtectedEval(ThisPropVal,TempScalarParamList);
                                 %eval(['ThisPropVal=' ThisPropVal ';']) 
                                 if  ~isnumeric(ThisPropVal)
                                     ErrText=[ErrText sprintf('Non-numeric value: "%s" for TCM.%s\n',ThisFieldVal,ThisPropName)];
@@ -430,62 +495,76 @@ classdef PPTCM  %PP Test Case Model
             
         function FeaturesOut=get.Features(obj)
             FeaturesOut=obj.iFeatures;
-            if obj.iExpanded
-                for I=1:length(FeaturesOut)
-                    NumX=cell2mat(FeaturesOut(I).x);
-                    NumY=cell2mat(FeaturesOut(I).y);
-                    NumZ=cell2mat(FeaturesOut(I).z);
-                    FeaturesOut(I).x=NumX;
-                    FeaturesOut(I).y=NumY;
-                    FeaturesOut(I).z=NumZ;
+            if isempty(FeaturesOut)
+                FeaturesOut=obj.iFeaturesTemplate;
+            else
+                if obj.iExpanded
+                    for I=1:length(FeaturesOut)
+                        NumX=cell2mat(FeaturesOut(I).x);
+                        NumY=cell2mat(FeaturesOut(I).y);
+                        NumZ=cell2mat(FeaturesOut(I).z);
+                        FeaturesOut(I).x=NumX;
+                        FeaturesOut(I).y=NumY;
+                        FeaturesOut(I).z=NumZ;
+                    end
                 end
             end
         end
         
         function obj=set.Features(obj,Input)
-            F.x=[];
-            F.y=[];
-            F.z=[];
-            F.Matl='';
-            F.Q=[];
-            F.dx=[];
-            F.dy=[];
-            F.dz=[];
-            F.Desc='';
+            F=obj.iFeaturesTemplate;
             ErrText='';
             if isstruct(Input(1))
-                Fields = fieldnames(Input(1));
+                FieldsInput = fieldnames(Input(1));
             else
                 if strcmpi(Input,'Init')
-                    Fields=[];
+                    FieldsInput=[];
                     Input=[];
                 else
-                    Fields={};
+                    FieldsInput={};
                     ErrText=sprintf('%sFeatures property must be a structure\n',ErrText);
                 end
             end
-            if isempty(obj.iFeatures) 
-                obj.iFeatures=F;
-            end
-            for Fi=1:length(Fields)
-                if ~any(strcmp(fieldnames(F),Fields(Fi)))
-                    ErrText=sprintf('%s Field %s is not a valid  feature fieldname\n',ErrText,Fields{Fi});
+            FieldsObject=fieldnames(F);
+
+%             %tic
+%             InputFieldsNotInObject=setxor(FieldsObject,union(FieldsInput, FieldsObject));
+%             if ~isempty(InputFieldsNotInObject)
+%                 for Fi=1:length(InputFieldsNotInObject)
+%                     ErrText=sprintf('%s Field %s is not a valid  feature fieldname\n',ErrText,InputFieldsNotInObject{Fi});
+%                 end
+%             end
+%             %SetOps=toc;
+                
+            %tic
+            for Fi=1:length(FieldsInput)  %Ensure that field names in the input structure are the same as in the object
+                if ~any(strcmp(FieldsObject,FieldsInput(Fi)))
+                    ErrText=sprintf('%s Field %s is not a valid  feature fieldname\n',ErrText,FieldsInput{Fi});
                 end
             end
+%             %ExplOps=toc;
+            %fprintf('L(Input): %d, L(Object): %d, Set - Expl %d\n',length(FieldsInput), length(FieldsObject), SetOps - ExplOps)
+
             if ~isempty(ErrText)
                 error(ErrText)
             end
-            for I=1:length(Input)
-                %ThisF=F;
-                for Fi=1:length(Fields)
-                    obj.iFeatures(I).(Fields{Fi})=Input(I).(Fields{Fi});
-                end
-                %obj.iFeatures(I)=ThisF;
-            end
+%            if isempty(obj.iFeatures) %If no features exist, populate with an empty feature
+                obj.iFeatures=Input;
+%              else
+%                 obj.iFeatures=F;
+%            end
+%             for I=1:length(Input)
+%                 %ThisF=F;
+%                 for Fi=1:length(Fields)
+%                     obj.iFeatures(I).(Fields{Fi})=Input(I).(Fields{Fi});
+%                 end
+%                 %obj.iFeatures(I)=Input(I);
+%             end
         end
         
         function obj = PPTCM(ExternalConditions, Features, Params, PottingMaterial, MatLib)  %Constructor
             obj.SymAvail=license('test','symbolic_toolbox');
+
             if nargin==3
                 obj.ExternalConditions=ExternalConditions;
                 obj.Features=Features;
@@ -592,33 +671,6 @@ function VA=ComputeVA(DCoord)
     VA=VA + (Ax+Ay+Az)*1i;
 end
 
-function OutVar=ProtectedEval(InString, VarList, StartString)
-    ErrText='';
-    OutVar=[];
-    if exist('StartString','var')
-        EvalText=StartString;
-    else
-        EvalText='';
-    end
-    if ~isempty(VarList)
-        for Ivar=1:length(VarList(:,1))
-            if exist(VarList{Ivar,1},'var')
-                Stxt=sprintf('''%s'' variable already exists in the namespace. Please change your variable name.\n',VarName);
-                ErrText=[ErrText Stxt];
-            else
-                EvalText=[EvalText VarList{Ivar,1} '=VarList{' num2str(Ivar) ',2};'];
-            end
-        end
-    end
-    EvalText=[EvalText 'OutVar=' InString ';'];
-    if length(ErrText)==0
-        eval(EvalText)
-    else
-        error(ErrText)
-    end
-    
-end
-        
 function [Scalar, Vector]=SeparateScalarVector(VariableList)
     Scalar={};
     Vector={};
@@ -699,15 +751,19 @@ function TCMnew=ExpandTCM(TCMinstance, Values, Prop, Iprop, Field, Ifield)
             for Ival=1:length(Values)
                 TCMnew=[TCMnew TCMinstance(Itcm)];
                 if exist('Ifield','var')
+%                    disp(TCMinstance(Itcm).(Prop)(Iprop).(Field){Ifield}),fprintf('   '), disp(Values{Ival} ) %MSB
                     TCMnew(end).(Prop)(Iprop).(Field){Ifield}=Values{Ival};
                     VarText=sprintf('TCM.%s(%.0f%s).%s(%.0f)',Prop,Iprop,FeatDesc,Field,Ifield);
                 elseif exist('Field','var')
-                    TCMnew(end).(Prop)(Iprop).(Field)=Values{Ival};
+%                    disp(TCMinstance(Itcm).(Prop)(Iprop).(Field)),fprintf('   ') , disp(Values{Ival}) %MSB
+                    TCMnew(end).(Prop)(Iprop).(Field)=Values{Ival} ;
                     VarText=sprintf('TCM.%s(%.0f%s).%s',Prop,Iprop,FeatDesc,Field);
                 elseif exist('Iprop','var')
+%                    disp(TCMinstance(Itcm).(Prop)(Iprop)),fprintf('   ') , disp(Values{Ival}) %MSB
                     TCMnew(end).(Prop)(Iprop)=Values{Ival};
                     VarText=sprintf('TCM.%s(%.0f%s)',Prop,Iprop,FeatDesc);
                 elseif exist('Prop','var')
+%                    disp(TCMinstance(Itcm).(Prop)),fprintf('   '),disp(Values{Ival})  %MSB
                     TCMnew(end).(Prop)=Values{Ival};
                     VarText=sprintf('TCM.%s',Prop);
                 end

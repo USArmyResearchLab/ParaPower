@@ -147,6 +147,10 @@ function InitializeGUI(handles)
     %Set Stress Model Directory
     MainPath=mfilename('fullpath');
     MainPath=strrep(MainPath,mfilename,'');
+    if not(isappdata(handles.figure1,'PATH'))
+        setappdata(handles.figure1,'PATH',MainPath);
+        addpath(MainPath);
+    end
     
     set(handles.StressModel,'userdata',[MainPath 'Stress_Models'])
 
@@ -371,7 +375,8 @@ function savebutton_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-    Initialize_Callback(hObject, eventdata, handles, false)
+    Initialize_Callback(hObject, eventdata, handles, false, true)
+
     TestCaseModel = getappdata(handles.figure1,'TestCaseModel');
     if isempty(TestCaseModel)
         return
@@ -1016,14 +1021,19 @@ function AddMaterial_Callback(hObject, eventdata, handles)
 end
 
 % --- Executes on button press in Initialize.
-function Initialize_Callback(hObject, eventdata, handles, DrawModel)
+function Initialize_Callback(hObject, eventdata, handles, DrawModel, PopulateTCMOnly)
 % hObject    handle to Initialize (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+% DrawModel  True if model is to be drawn afterwards
+% PopulateTCMOnly Populate test case model only
 
 %Clear the main variables that are passed out from it.
-if not(exist('DrawModel'))
+if not(exist('DrawModel','var'))
     DrawModel=true;
+end
+if not(exist('PopulateTCMOnly','var'))
+    PopulateTCMOnly=false;
 end
 GUIDisable(handles.figure1)
 ErrorStatus()
@@ -1052,10 +1062,12 @@ Parameters=Parameters(:,2:3);
 
 for K=1:length(ExtBoundMatrix(:))
     if isempty(ExtBoundMatrix{K})
-        AddStatusLine('Error.',true,'error');
         AddStatusLine('Env. parameters must be fully populated','err');
-        GUIEnable
-        return
+        if not(PopulateTCMOnly)
+            AddStatusLine('Error.',true,'error');
+            GUIEnable
+            return
+        end
     end
 end
 
@@ -1085,7 +1097,8 @@ end
         FindEps = 0;
      elseif get(handles.transient,'value')==1
          Params.Tsteps=(get(handles.NumTimeSteps,'String')); %Number of time steps
-%         FindEps = Params.Tsteps * Params.DeltaT;
+         FindEps = [Params.Tsteps '*' Params.DeltaT '+' Params.Tinit];
+         FindEps = PPTCM.ProtectedEval(FindEps, Parameters);  %Convert to a number
 %         if FindEps==0
 %             AddStatusLine('Error.',true,'error');
 %             AddStatusLine('End time is 0.  Redefine time step or run as a static analysis.');
@@ -1112,20 +1125,28 @@ else
     CheckMatrix=FeaturesMatrix(:,[FTC('x1') FTC('x2') FTC('y1') FTC('y2') FTC('z1') FTC('y2') FTC('mat') FTC('divx') FTC('divy') FTC('divz') ]);  %FEATURESMATRIX
     for K=1:length(CheckMatrix(:))
         if isempty(CheckMatrix{K})
-            AddStatusLine('Error.',true,'error');
             if ischar(CheckMatrix{K})
                 EmptyPart='Material empty.';
             else
                 EmptyPart='X, Y or Z coordinates or divisions Empty.';
             end
+            if not(PopulateTCMOnly)
+                AddStatusLine('Error.',true,'error');
+                GUIEnable
+                return
+            end
             AddStatusLine(['Features table is not fully defined. ' EmptyPart],'err')
-            GUIEnable
-            return
         end
     end
     QData=getappdata(handles.figure1,TableDataName);
     if isempty(QData)
         QData{length(FeaturesMatrix(:,1))}=[];
+    end
+    %FindEps=0;  %This FindEps now initialized to max time from Tstep * NumSteps + Tinit
+    for I=1:length(QData)
+        if ~isempty(QData{I})
+            FindEps=max([FindEps; QData{I}(:,1)]);
+        end
     end
     for count = 1:rows
 
@@ -1163,10 +1184,7 @@ else
         QValue=FeaturesMatrix{count, FTC('qval')};
         Qtype=FeaturesMatrix{count, FTC('qtype')};
         Qtype=lower(Qtype(1:5));
-        FindEps=0;
-        for I=1:length(QData)
-            FindEps=max([FindEps; QData{I}(:)]);
-        end
+
         switch Qtype
             case 'scala'
                 if ischar(QValue) && isempty(QValue)
@@ -1181,17 +1199,19 @@ else
                 end
                 MakeUnique=eps(FindEps)*2; %Use a value of 3 * epsilon to add to the time steps
                 DeltaT=Table(2:end,1)-Table(1:end-1,1);
-                if min(DeltaT(DeltaT~=0)) < eps(FindEps)*9
-                    AddStatusLine(['Smallest Delta T must be greater than 3*epsilon (machine precision for MaxTime) for feature ' num2str(count)],'warning');
+                if min(abs(DeltaT(DeltaT~=0))) < eps(FindEps)*9
+                    AddStatusLine(['Smallest Delta T must be greater than 9*epsilon (machine precision for MaxTime) for feature ' num2str(count)],'warning');
                     KillInit=1;
                 else
-                    DupTime=(Table(2:end,1)-Table(1:end-1,1)==0)*eps(FindEps)*10;
-                    DupTime=[0; DupTime];
-                    Table(:,1)=Table(:,1)+DupTime;
+                    DupTime=(Table(2:end,1)-Table(1:end-1,1)==0)*eps(FindEps)*10; %Create vector with Eps*10 where time values are duplicates
+                    DupTime=[0; DupTime]; %Create a vector that corresponds to the time column
+                    Table(:,1)=Table(:,1)+DupTime; %Add the columns which will increase the duplicate time's by eps.
                     if isempty(Params.Tsteps)
                         AddStatusLine('Static analysis, Q will be evaluated at t=0...','warning');
                     end
-                    if min(Table(2:end,1)-Table(1:end-1,1)) <= 0
+                    TimeCheck=Table(2:end,1)-Table(1:end-1,1);
+                    TimeCheck=TimeCheck(abs(TimeCheck)~=Inf);  %Remove infinities that mark repetition
+                    if min(TimeCheck) <= 0
                         AddStatusLine(['Time must be increasing.  It is not for feature ' num2str(count)],'warning');
                         AddStatusLine('...')
                         KillInit=1;
@@ -1258,89 +1278,92 @@ else
 
     setappdata(handles.figure1,'TestCaseModel',TestCaseModel);
     
-    Cases=TestCaseModel.GenerateCases;
-    
-    if ischar(Cases) || isempty(Cases)
-        KillInit=1;
-    elseif length(Cases)>1
-        AddStatusLine(sprintf('%.0f cases...',length(Cases)), true);
-    end
-    
-    if KillInit
-        AddStatusLine('Unable to fully build model due to errors.','error')
-        if ischar(Cases)
-            AddStatusLine(Cases)
-        end
-        set(handles.CaseSelect,'visible','off')
+    if not(PopulateTCMOnly)
 
-    else
-        ViewCase=Cases(1);
-        AddStatusLine('forming...',true)
-        try
-            MI=FormModel(ViewCase);
-        catch ME
-            disp(ME.getReport)
-            AddStatusLine('Error running forming model','Err')
-            AddStatusLine(ME.message)
-            GUIEnable
-            return
+        AddStatusLine('gen. cases...',true)
+        Cases=TestCaseModel.GenerateCases;
+        if ischar(Cases) || isempty(Cases)
+            KillInit=1;
+        elseif length(Cases)>1
+            AddStatusLine(sprintf('%.0f cases...',length(Cases)), true);
         end
-        if get(handles.transient,'value')==1
-            if isempty(MI.GlobalTime) || min(MI.GlobalTime) == max(MI.GlobalTime)
-                AddStatusLine('Error.',true,'error');
-                AddStatusLine('Globaltime min and max are the same or isempty.  Redefine time step or run as a static analysis.');
+
+        if KillInit
+            AddStatusLine('Unable to fully build model due to errors.','error')
+            if ischar(Cases)
+                AddStatusLine(Cases)
+            end
+            set(handles.CaseSelect,'visible','off')
+
+        else
+            ViewCase=Cases(1);
+            AddStatusLine('forming...',true)
+            try
+                MI=FormModel(ViewCase);
+            catch ME
+                disp(ME.getReport)
+                AddStatusLine('Error running forming model','Err')
+                AddStatusLine(ME.message)
                 GUIEnable
                 return
             end
-        end
-        
-        AddStatusLine('storing...',true)
-
-    %    axes(handles.GeometryVisualization);
-    %    Visualize ('Model Input', MI, 'modelgeom','ShowQ')
-
-        setappdata(handles.figure1,'RunCases',Cases);
-        setappdata(handles.figure1,'MI',MI);
-        CaseText=get(handles.CaseSelect,'string');
-        CaseNumber=get(handles.CaseSelect,'value');
-        if length(Cases) < CaseNumber
-            set(handles.CaseSelect,'value',CaseNumber);
-        end
-        if length(Cases)==1
-            set(handles.CaseSelect,'visible','off')
-            set(handles.CaseSelect,'value',1)
-        elseif length(Cases)>1
-            CaseText={};
-            for I=1:length(Cases)
-                CaseText{I}=sprintf('%.0f: ',I);
-                for JJ=1:length(Cases(1).ParamVar(:,1))
-                    CaseText{I}=[CaseText{I} sprintf('%s: %s; ',Cases(I).ParamVar{JJ,1},Cases(I).ParamVar{JJ,2})];
+            if get(handles.transient,'value')==1
+                if isempty(MI.GlobalTime) || min(MI.GlobalTime) == max(MI.GlobalTime)
+                    AddStatusLine('Error.',true,'error');
+                    AddStatusLine('Globaltime min and max are the same or isempty.  Redefine time step or run as a static analysis.');
+                    GUIEnable
+                    return
                 end
             end
-            set(handles.CaseSelect,'string',CaseText);
-            set(handles.CaseSelect,'visible','on')
-        elseif length(Cases)>1
-            set(handles.CaseSelect,'visible','on')
-        end
 
-        MI=getappdata(handles.figure1,'MI');
-        %axes(handles.GeometryVisualization)
-        %figure(2)
+            AddStatusLine('storing...',true)
 
-        if DrawModel
-            OldVis=get(handles.figure1,'handlevisibility');
-            set(handles.figure1,'handlevisibility','on');
-            AddStatusLine('drawing...',true)
-            Visualize ('', MI, 'modelgeom','ShowQ','ShowExtent','parent',handles.VisualizePanel)
-            VisUpdateStatus(handles,false);
-            AddStatusLine('Done',true)
-%             ThisAxis=findobj(handles.VisualizePanel,'type','axes');
-%             if length(ThisAxis)>1
-%                 delete(ThisAxis(2:end))
-%             end
+        %    axes(handles.GeometryVisualization);
+        %    Visualize ('Model Input', MI, 'modelgeom','ShowQ')
 
-            drawnow
-            set(handles.figure1,'handlevisibility',OldVis)
+            setappdata(handles.figure1,'RunCases',Cases);
+            setappdata(handles.figure1,'MI',MI);
+            CaseText=get(handles.CaseSelect,'string');
+            CaseNumber=get(handles.CaseSelect,'value');
+            if length(Cases) < CaseNumber
+                set(handles.CaseSelect,'value',CaseNumber);
+            end
+            if length(Cases)==1
+                set(handles.CaseSelect,'visible','off')
+                set(handles.CaseSelect,'value',1)
+            elseif length(Cases)>1
+                CaseText={};
+                for I=1:length(Cases)
+                    CaseText{I}=sprintf('%.0f: ',I);
+                    for JJ=1:length(Cases(1).ParamVar(:,1))
+                        CaseText{I}=[CaseText{I} sprintf('%s: %s; ',Cases(I).ParamVar{JJ,1},Cases(I).ParamVar{JJ,2})];
+                    end
+                end
+                set(handles.CaseSelect,'string',CaseText);
+                set(handles.CaseSelect,'visible','on')
+            elseif length(Cases)>1
+                set(handles.CaseSelect,'visible','on')
+            end
+
+            MI=getappdata(handles.figure1,'MI');
+            %axes(handles.GeometryVisualization)
+            %figure(2)
+
+            if DrawModel
+                OldVis=get(handles.figure1,'handlevisibility');
+                set(handles.figure1,'handlevisibility','on');
+                AddStatusLine('drawing...',true)
+                Visualize ('', MI, 'modelgeom','ShowQ','ShowExtent','parent',handles.VisualizePanel)
+                VisUpdateStatus(handles,false);
+                AddStatusLine('Done',true)
+    %             ThisAxis=findobj(handles.VisualizePanel,'type','axes');
+    %             if length(ThisAxis)>1
+    %                 delete(ThisAxis(2:end))
+    %             end
+
+                drawnow
+                set(handles.figure1,'handlevisibility',OldVis)
+            end
         end
     end
 end
@@ -1767,6 +1790,8 @@ function figure1_CloseRequestFcn(hObject, eventdata, handles)
     if strcmpi(P,'No')
         AddStatusLine('GUI close canceled.')
     else
+        PATH=getappdata(handles.figure1,'PATH');
+        rmpath(PATH)
         F=get(handles.features,'userdata');
         if not(isempty(F)) && ishandle(F)
             delete(F)
@@ -2529,17 +2554,12 @@ function HelpButton_Callback(hObject, eventdata, handles)
     HelpText{end+1}='   Mr. Morris Berman (ARL)';
     HelpText{end+1}='   Mr. Michael Rego (Drexel)';
     HelpText{end+1}='   Mr. Michael Deckard (Texas A&M)';
-    HelpText{end+1}='';
-    HelpText{end+1}='Code Developers:';
-    HelpText{end+1}='   Dr. Lauren Boteler (ARL)';
-    HelpText{end+1}='   Dr. Michael Fish (ORAU)';
-    HelpText{end+1}='   Dr. Steven Miner (USNA)';
-    HelpText{end+1}='   Mr. Morris Berman (ARL)';
     HelpText{end+1}='';  
     HelpText{end+1}='For additional informatoin contact Dr. Lauren Boteler (lauren.m.boteler.civ@mail.mil)';
     HelpText{end+1}='';
-    HelpText{end+1}='DISTRIBUTION A';
-    HelpText{end+1}=['Public Dissemination: Distribution Unlimited '];
+    HelpText{end+1}='DISTRIBUTION C';
+    HelpText{end+1}=['Distribution authorized to U.S. Government agencies (premature dissemination) 12/12/2018. Other requests ' ...
+                    'for this document shall be referred to US Army Research Laboratory, Power Conditioning Branch (RDRL-SED-P). '];
     HelpText{end+1}='';
     set(T,'string',HelpText)
     GUIEnable;
@@ -2625,25 +2645,30 @@ function MaxPlot_Callback(hObject, eventdata, handles, Results)
        if isfield(MI,'FeatureMatrix')
            TestCaseModel = Results.Case;
 
-           DoutT=[];
-           DoutM=[];
-           DoutS=[];
+           DoutT(:,1)=MI.GlobalTime;
+           DoutM(:,1)=MI.GlobalTime;
+           DoutS(:,1)=MI.GlobalTime;
+           Ftext=[];
+           FeatureMat=[];
            Fs=unique(MI.FeatureMatrix(~isnan(MI.FeatureMatrix)));
            Fs=Fs(Fs~=0);
            for Fi=1:length(Fs)
-               Ftext{Fi}=MI.FeatureDescr{Fs(Fi)};
-               Fmask=ismember(MI.FeatureMatrix,Fs(Fi));
-               Fmask=repmat(Fmask,1,1,1,length(MI.GlobalTime));
-               if ~isempty(Results.getState('thermal'))
-                    DoutT(:,1+Fi)=max(reshape(Results.getState('thermal',Fmask),[],length(MI.GlobalTime)),[],1);
+               ThisMat=TestCaseModel.MatLib.GetMatName(TestCaseModel.Features(Fi).Matl);
+               if ThisMat.MaxPlot
+                   Ftext{end+1}=MI.FeatureDescr{Fs(Fi)};
+                   Fmask=ismember(MI.FeatureMatrix,Fs(Fi));
+                   Fmask=repmat(Fmask,1,1,1,length(MI.GlobalTime));
+                   if ~isempty(Results.getState('thermal'))
+                        DoutT(:,end+1)=max(reshape(Results.getState('thermal',Fmask),[],length(MI.GlobalTime)),[],1);
+                   end
+                   if ~isempty(Results.getState('MeltFrac'))
+                        DoutM(:,end+1)=max(reshape(Results.getState('meltfrac',Fmask),[],length(MI.GlobalTime)),[],1);
+                   end
+                   if ~isempty(Results.getState('Stress'))
+                        DoutS(:,end+1)=max(reshape(Results.getState('stress',Fmask),[],length(MI.GlobalTime)),[],1);
+                   end
+                   FeatureMat{end+1}=TestCaseModel.Features(Fi).Matl;
                end
-               if ~isempty(Results.getState('MeltFrac'))
-                    DoutM(:,1+Fi)=max(reshape(Results.getState('meltfrac',Fmask),[],length(MI.GlobalTime)),[],1);
-               end
-               if ~isempty(Results.getState('Stress'))
-                    DoutS(:,1+Fi)=max(reshape(Results.getState('stress',Fmask),[],length(MI.GlobalTime)),[],1);
-               end
-               FeatureMat{Fi}=TestCaseModel.Features(Fi).Matl;
            end
            PCMFeatures=[];
            for Fi=1:length(FeatureMat)
@@ -2655,17 +2680,23 @@ function MaxPlot_Callback(hObject, eventdata, handles, Results)
                DoutM=[];
            end
            NumAx=0;
-           if ~isempty(DoutT)
+           if size(DoutT,2)>1
                DoutT(:,1)=MI.GlobalTime;
                NumAx=NumAx+1;
+           else
+               DoutT=[];
            end
-           if ~isempty(DoutM)
+           if size(DoutM,2)>1
                DoutM(:,1)=MI.GlobalTime;
                NumAx=NumAx+1;
+           else
+               DoutM=[];
            end
-           if ~isempty(DoutS)
+           if size(DoutS,2)>1
                DoutS(:,1)=MI.GlobalTime;
                NumAx=NumAx+1;
+           else
+               DoutS=[];
            end
            MaxTitle='Max Results';
            Figs=findobj('type','figure');
@@ -2959,6 +2990,11 @@ function ParamTable_CellEditCallback(hObject, eventdata, handles)
             Data{eventdata.Indices(1),eventdata.Indices(2)}=NoSpace;
             set(hObject,'data',Data);
             AddStatusLine(sprintf('Parameter name contains non-alphanumerics, changed from ''%s'' to ''%s''',eventdata.NewData,NoSpace))
+        end
+    end
+    if eventdata.Indices(2)==3  %If modifying variable value
+        if ~isnan(str2num(eventdata.EditData)) & isnan(eventdata.NewData)
+            eventdata.Source.Data{eventdata.Indices(1), eventdata.Indices(2)}=eventdata.EditData;
         end
     end
 end
