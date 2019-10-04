@@ -58,11 +58,13 @@ classdef PPTCM  %PP Test Case Model
             end
             if ~isempty(VarList)
                 for Ivar=1:length(VarList(:,1))
-                    if exist(VarList{Ivar,1},'var')
-                        Stxt=sprintf('''%s'' variable already exists in the namespace. Please change your variable name.\n',VarName);
-                        ErrText=[ErrText Stxt];
-                    else
-                        EvalText=[EvalText VarList{Ivar,1} '=VarList{' num2str(Ivar) ',2};'];
+                    if ~isempty(VarList{Ivar,1})
+                        if exist(VarList{Ivar,1},'var')
+                            Stxt=sprintf('''%s'' variable already exists in the namespace. Please change your variable name.\n',VarName);
+                            ErrText=[ErrText Stxt];
+                        else
+                            EvalText=[EvalText VarList{Ivar,1} '=VarList{' num2str(Ivar) ',2};'];
+                        end
                     end
                 end
             end
