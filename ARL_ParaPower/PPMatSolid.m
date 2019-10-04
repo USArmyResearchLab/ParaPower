@@ -1,5 +1,17 @@
 classdef PPMatSolid < PPMat
-    
+%Material type Solid.
+%To define a new material instance
+%   PPMatSolid('Prop_Name_1', Prop_Value_1, 'Prop_Name_2', Prop_Value_2, etc)
+%
+%The following Prop_Names can be defined
+%   Name
+%   cte     Coeff. Thermal Expansion
+%   E       Young's Modulus
+%   nu      Poisson's ratio
+%   k       Conductivity
+%   rho     Density
+%   cp      Specific Heat
+
     properties (Access=public)
         cte     = NaN %{mustBeNumeric(cte), mustBeReal(cte)}   = NaN
         E       = NaN %{mustBeNumeric(E), mustBeReal(E)}     = NaN

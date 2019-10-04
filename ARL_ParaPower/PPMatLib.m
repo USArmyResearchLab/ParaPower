@@ -1,4 +1,5 @@
-classdef PPMatLib < handle
+classdef PPMatLib < matlab.mixin.Copyable
+    %classdef PPMatLib < handle
 %classdef PPMatLib < handle
 %This object is used as a collection of materials objects.  To add a new
 %material object it must have the filename PPMatXXXX where XXXX is the
@@ -452,12 +453,13 @@ classdef PPMatLib < handle
                     %NPl_delta=get(H.Name,'posit')-get(H.Type,'posit');
                     FS=get(H.Name,'fontsize');
                     
-                    if strcmpi(ThisType,'null')
-                        ParamList={};
-                     else
+%                    if strcmpi(ThisType,'null')  %This functionality has
+%                    been moved into the class def PPMat
+%                        ParamList={};
+%                     else
                         ParamList=NewMat.ParamList;
                         ParamList=ParamList(~strcmpi(ParamList,'SClass'));
-                    end
+%                    end
                     OldParam={};
                     if ~isempty(H.ParamL)
                         for I=1:length(H.ParamL)
@@ -510,9 +512,9 @@ classdef PPMatLib < handle
                     end
                     ArgList=sprintf('''Name'', ''%s'' ',Name);
                     ParamList=NewMat.ParamList;
-                    if strcmpi(NewMat.Type,'null')
-                        ParamList={};
-                    end
+%                     if strcmpi(NewMat.Type,'null')
+%                         ParamList={};
+%                     end
                     for I=1:length(ParamList)
                         Value=get(H.ParamE(I),'string');
                         if isempty(Value)
@@ -642,7 +644,8 @@ classdef PPMatLib < handle
                     ColNames={};
                     if obj.NumMat==0    
                         TempMat=PPMat;
-                        Params=properties(TempMat);
+                        %Params=properties(TempMat);
+                        Params=TempMat.ParamList(true);
                         for I=1:length(Params)
                             ColNames{I+1}=TempMat.ParamDesc(Params{I});
                         end
@@ -658,10 +661,11 @@ classdef PPMatLib < handle
                     Data={};
                     for I=1:obj.NumMat
                         Mat=obj.GetMatNum(I);
-                        MatProps=properties(Mat);
+                        %MatProps=properties(Mat);
+                        MatProps=Mat.ParamList(true);
                         Data{I,1}=false;
                         for J=1:length(MatProps)
-                            MatProps(J);
+                            %MatProps(J)
                             ColNum=find(strcmpi(Params,MatProps{J}))+1;
                             if isempty(ColNum)
                                 Data{I,ColNum}='';
@@ -930,22 +934,24 @@ classdef PPMatLib < handle
         end
         
         function NewMatLib=CreateCopy(obj)
-            PermissibleErrors={'MATLAB:class:noSetMethod'};
-
-            NewMatLib=PPMatLib;
-            for I=1:obj.NumMat
-                NewMatLib.AddMatl(obj.GetMatNum(I))
-            end
-            Props=properties(obj);
-            for I=1:length(Props)
-                try
-                    NewMatLib.(Props{I})=obj.(Props{I});
-                catch ME
-                    if ~any(strcmpi(PermissibleErrors,ME.identifier))
-                        error(ME)
-                    end
-                end
-            end
+            
+            NewMatLib=copy(obj);
+% %             PermissibleErrors={'MATLAB:class:noSetMethod'};
+% % 
+% %             NewMatLib=PPMatLib;
+% %             for I=1:obj.NumMat
+% %                 NewMatLib.AddMatl(obj.GetMatNum(I))
+% %             end
+% %             Props=properties(obj);
+% %             for I=1:length(Props)
+% %                 try
+% %                     NewMatLib.(Props{I})=obj.(Props{I});
+% %                 catch ME
+% %                     if ~any(strcmpi(PermissibleErrors,ME.identifier))
+% %                         error(ME)
+% %                     end
+% %                 end
+% %             end
         end
         
         function NewMatLib=GenerateCases (obj, ParamTable)
@@ -973,18 +979,20 @@ classdef PPMatLib < handle
 %                 VarText  %DEBUG
 %                 eval(VarText)
 %             end
-            BaseMatLib=obj.CreateCopy;
-            NewMatLib=obj.CreateCopy;
+            BaseMatLib=obj.CreateCopy;  %Replaced with copyable handle type
+            NewMatLib=obj.CreateCopy;  %Replaced with copyable handle type
             for Imat=1:BaseMatLib.NumMat
                 ThisMat=BaseMatLib.GetMatNum(Imat);
                 ParamList=ThisMat.ParamList;
                 for Iprop=1:length(ParamList)
-                    ThisPropName=ParamList{Iprop};
+                    ThisPropName=ParamList{Iprop}; 
                     ThisPropVal=ThisMat.(ThisPropName);
                     if ~any(strcmpi(ThisPropName, ThisMat.NoExpandProps))
                         if ischar(ThisPropVal)
                             ThisPropVal={ThisPropVal};
                         elseif isnumeric(ThisPropVal)
+                            ThisPropVal={ThisPropVal};
+                        elseif islogical(ThisPropVal)
                             ThisPropVal={ThisPropVal};
                         end
                         for Ipv=1:length(ThisPropVal(:))
@@ -1007,7 +1015,7 @@ classdef PPMatLib < handle
                                 ME.getReport
                                 ThisPropVal=NaN;
                             end
-                            fprintf('%s: %s\n',ThisMat.Name,ThisPropName)  %MSB
+                                                                                                                                                      %fprintf('%s: %s\n',ThisMat.Name,ThisPropName)  %MSB
                             ScalarValue=length(ThisPropVal(:))==1; %If there is a single value it will be placed as a scalar not cell array
                             if OrigChar || length(ThisPropVal{Ipv})~=1  %If the value changed on eval, then cycle through mats
                                 NewMatLib=obj.ExpandMatLib(NewMatLib, ThisPropVal{Ipv}, Imat, ThisPropName, Ipv, ScalarValue);
@@ -1026,15 +1034,17 @@ function OutVar=ProtectedEval(InString, VarList)
     ErrText='';
     OutVar=[];
     EvalText='';
-    for Ivar=1:length(VarList(:,1))
-        if exist(VarList{Ivar,1},'var')
-            Stxt=sprintf('''%s'' variable already exists in the namespace. Please change your variable name.\n',VarName);
-            ErrText=[ErrText Stxt];
-        else
-            if ischar(VarList{Ivar,2})
-                EvalText=[EvalText VarList{Ivar,1} '=' VarList{Ivar,2} ';'];
+    if ~isempty(VarList)
+        for Ivar=1:length(VarList(:,1))
+            if exist(VarList{Ivar,1},'var')
+                Stxt=sprintf('''%s'' variable already exists in the namespace. Please change your variable name.\n',VarName);
+                ErrText=[ErrText Stxt];
             else
-                EvalText=[EvalText VarList{Ivar,1} '=VarList{' num2str(Ivar) ',2};'];
+                if ischar(VarList{Ivar,2})
+                    EvalText=[EvalText VarList{Ivar,1} '=' VarList{Ivar,2} ';'];
+                else
+                    EvalText=[EvalText VarList{Ivar,1} '=VarList{' num2str(Ivar) ',2};'];
+                end
             end
         end
     end
