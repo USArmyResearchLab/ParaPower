@@ -25,7 +25,8 @@ classdef PostProcessResults_exported < matlab.apps.AppBase
     end
     
     properties (Constant)
-        AvailStates={'Max Temperature' 'Min Melt Frac'};
+        %AvailStates={'Max Temperature' 'Min Melt Frac'};
+        AvailStates={'Max Temperature' }; %Removed until it can be limited to PCM only
         ParaPowerName='ParaPowerGUI_V2';
     end
     
@@ -340,7 +341,7 @@ classdef PostProcessResults_exported < matlab.apps.AppBase
 
             % Create DependentVariableDropDown
             app.DependentVariableDropDown = uidropdown(app.PPPP);
-            app.DependentVariableDropDown.Items = {'Max Temp', 'Max Melt Fraction'};
+            app.DependentVariableDropDown.Items = {'Max Temp'};
             app.DependentVariableDropDown.Position = [437 459 100 22];
             app.DependentVariableDropDown.Value = 'Max Temp';
 
