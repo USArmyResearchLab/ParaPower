@@ -370,7 +370,8 @@ for Fi=1:length(Features)
          ThisQ=@(t)(-1)*interp1(RepPulse(:,1),RepPulse(:,2),t); %Construct the function handle for the heat source
          %ThisQ=@(t)(-1)*interp1(Features(Fi).Q(:,1),Features(Fi).Q(:,2),t);
          if ~isempty(Params.Tsteps)  %Only add to global time if Tsteps is not empty indicating a transient solution
-            TimeToAddToGlobal=Features(Fi).Q(:,1)';
+%            TimeToAddToGlobal=Features(Fi).Q(:,1)';
+            TimeToAddToGlobal=RepPulse(:,1)';
             TimeToAddToGlobal=TimeToAddToGlobal(TimeToAddToGlobal<=max(GlobalTime));
             GlobalTime=[GlobalTime TimeToAddToGlobal];
          end

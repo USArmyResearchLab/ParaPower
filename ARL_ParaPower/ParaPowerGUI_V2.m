@@ -1097,7 +1097,8 @@ end
         FindEps = 0;
      elseif get(handles.transient,'value')==1
          Params.Tsteps=(get(handles.NumTimeSteps,'String')); %Number of time steps
-%         FindEps = Params.Tsteps * Params.DeltaT;
+         FindEps = [Params.Tsteps '*' Params.DeltaT '+' Params.Tinit];
+         FindEps = PPTCM.ProtectedEval(FindEps, Parameters);  %Convert to a number
 %         if FindEps==0
 %             AddStatusLine('Error.',true,'error');
 %             AddStatusLine('End time is 0.  Redefine time step or run as a static analysis.');
@@ -1141,6 +1142,12 @@ else
     if isempty(QData)
         QData{length(FeaturesMatrix(:,1))}=[];
     end
+    %FindEps=0;  %This FindEps now initialized to max time from Tstep * NumSteps + Tinit
+    for I=1:length(QData)
+        if ~isempty(QData{I})
+            FindEps=max([FindEps; QData{I}(:,1)]);
+        end
+    end
     for count = 1:rows
 
         Features(count).Desc = FeaturesMatrix{count, FTC('desc')};
@@ -1177,10 +1184,7 @@ else
         QValue=FeaturesMatrix{count, FTC('qval')};
         Qtype=FeaturesMatrix{count, FTC('qtype')};
         Qtype=lower(Qtype(1:5));
-        FindEps=0;
-        for I=1:length(QData)
-            FindEps=max([FindEps; QData{I}(:)]);
-        end
+
         switch Qtype
             case 'scala'
                 if ischar(QValue) && isempty(QValue)
@@ -1195,17 +1199,19 @@ else
                 end
                 MakeUnique=eps(FindEps)*2; %Use a value of 3 * epsilon to add to the time steps
                 DeltaT=Table(2:end,1)-Table(1:end-1,1);
-                if min(DeltaT(DeltaT~=0)) < eps(FindEps)*9
-                    AddStatusLine(['Smallest Delta T must be greater than 3*epsilon (machine precision for MaxTime) for feature ' num2str(count)],'warning');
+                if min(abs(DeltaT(DeltaT~=0))) < eps(FindEps)*9
+                    AddStatusLine(['Smallest Delta T must be greater than 9*epsilon (machine precision for MaxTime) for feature ' num2str(count)],'warning');
                     KillInit=1;
                 else
-                    DupTime=(Table(2:end,1)-Table(1:end-1,1)==0)*eps(FindEps)*10;
-                    DupTime=[0; DupTime];
-                    Table(:,1)=Table(:,1)+DupTime;
+                    DupTime=(Table(2:end,1)-Table(1:end-1,1)==0)*eps(FindEps)*10; %Create vector with Eps*10 where time values are duplicates
+                    DupTime=[0; DupTime]; %Create a vector that corresponds to the time column
+                    Table(:,1)=Table(:,1)+DupTime; %Add the columns which will increase the duplicate time's by eps.
                     if isempty(Params.Tsteps)
                         AddStatusLine('Static analysis, Q will be evaluated at t=0...','warning');
                     end
-                    if min(Table(2:end,1)-Table(1:end-1,1)) <= 0
+                    TimeCheck=Table(2:end,1)-Table(1:end-1,1);
+                    TimeCheck=TimeCheck(abs(TimeCheck)~=Inf);  %Remove infinities that mark repetition
+                    if min(TimeCheck) <= 0
                         AddStatusLine(['Time must be increasing.  It is not for feature ' num2str(count)],'warning');
                         AddStatusLine('...')
                         KillInit=1;

@@ -8,7 +8,7 @@ function OutText=ARLParaPowerVersion(Entity)
         case 'file'
             OutText='V3.0';
         case 'program'
-            OutText='4.0.0';
+            OutText='0.4.0.0';
         otherwise
             OutText='';
             disp('Unknown entity for version info.')

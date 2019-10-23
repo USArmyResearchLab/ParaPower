@@ -48,6 +48,34 @@ classdef PPTCM  %PP Test Case Model
     end
     
     methods (Static)
+        function OutVar=ProtectedEval(InString, VarList, StartString)
+            ErrText='';
+            OutVar=[];
+            if exist('StartString','var')
+                EvalText=StartString;
+            else
+                EvalText='';
+            end
+            if ~isempty(VarList)
+                for Ivar=1:length(VarList(:,1))
+                    if ~isempty(VarList{Ivar,1})
+                        if exist(VarList{Ivar,1},'var')
+                            Stxt=sprintf('''%s'' variable already exists in the namespace. Please change your variable name.\n',VarName);
+                            ErrText=[ErrText Stxt];
+                        else
+                            EvalText=[EvalText VarList{Ivar,1} '=VarList{' num2str(Ivar) ',2};'];
+                        end
+                    end
+                end
+            end
+            EvalText=[EvalText 'OutVar=' InString ';'];
+            if length(ErrText)==0
+                eval(EvalText)
+            else
+                error(ErrText)
+            end
+        end
+        
         function ObjIn=loadobj(ObjIn) %Generate error on version mismatch
             %ObjCur=PPModelDef();
             if str2num(ObjIn.Version(2:end))<str2num(ObjIn.Version(2:end)) 
@@ -71,7 +99,7 @@ classdef PPTCM  %PP Test Case Model
             end
             QTextOut={};
             if SymAvail
-                QHFn=ProtectedEval(Qtext,Parameters, 't=sym(''t'');');
+                QHFn=PPTCM.ProtectedEval(Qtext,Parameters, 't=sym(''t'');');
                 %t=sym('t');
                 %EvalText=[VarText 'QHFn=' Qtext];
                 %eval([EvalText ';']);  %if the Q function evaluates to multiple formulae it will be an array
@@ -283,7 +311,7 @@ classdef PPTCM  %PP Test Case Model
                                             %EvalString='';
                                             %EvalString=[EvalString sprintf('ThisFieldVal=%s;\n',ThisFieldVal)];
                                             %eval(EvalString)
-                                            ThisFieldVal=ProtectedEval(ThisFieldVal, TempScalarParamList);
+                                            ThisFieldVal=PPTCM.ProtectedEval(ThisFieldVal, TempScalarParamList);
                                             t=Old_t;
                                         catch ME  %If it is dependent on 't' then use create array
                                             try
@@ -314,7 +342,7 @@ classdef PPTCM  %PP Test Case Model
                                         ThisFieldValElement=ThisFieldVal{Ife};
                                         if ischar(ThisFieldValElement)
                                             try
-                                                ThisFieldValElement=ProtectedEval(ThisFieldValElement,TempScalarParamList);
+                                                ThisFieldValElement=PPTCM.ProtectedEval(ThisFieldValElement,TempScalarParamList);
                                                 %eval(['ThisFieldValElement=' ThisFieldValElement ';'])
                                                 if ~isnumeric(ThisFieldValElement)
                                                     ErrText=[ErrText sprintf('Non-numeric: "%s" for TCM.%s(%.0f).%s(%.0f)\n',ThisFieldValElement,ThisPropName, Ipe, ThisFieldName,Ife)];
@@ -336,7 +364,7 @@ classdef PPTCM  %PP Test Case Model
                                     if ischar(ThisFieldVal)
                                         try
                                             %eval(['ThisFieldVal=' ThisFieldVal ';'])
-                                            ThisFieldVal=ProtectedEval(ThisFieldVal,TempScalarParamList);
+                                            ThisFieldVal=PPTCM.ProtectedEval(ThisFieldVal,TempScalarParamList);
                                             if  ~isnumeric(ThisFieldVal)
                                                 ErrText=[ErrText sprintf('Non-numeric: "%s" for TCM.%s(%.0f).%s\n',ThisFieldVal,ThisPropName, Ipe, ThisFieldName)];
                                                 ThisFieldVal=[];
@@ -358,7 +386,7 @@ classdef PPTCM  %PP Test Case Model
                     else
                         if ischar(ThisPropVal)
                             try
-                                ThisPropVal=ProtectedEval(ThisPropVal,TempScalarParamList);
+                                ThisPropVal=PPTCM.ProtectedEval(ThisPropVal,TempScalarParamList);
                                 %eval(['ThisPropVal=' ThisPropVal ';']) 
                                 if  ~isnumeric(ThisPropVal)
                                     ErrText=[ErrText sprintf('Non-numeric value: "%s" for TCM.%s\n',ThisFieldVal,ThisPropName)];
@@ -645,33 +673,6 @@ function VA=ComputeVA(DCoord)
     VA=VA + (Ax+Ay+Az)*1i;
 end
 
-function OutVar=ProtectedEval(InString, VarList, StartString)
-    ErrText='';
-    OutVar=[];
-    if exist('StartString','var')
-        EvalText=StartString;
-    else
-        EvalText='';
-    end
-    if ~isempty(VarList)
-        for Ivar=1:length(VarList(:,1))
-            if exist(VarList{Ivar,1},'var')
-                Stxt=sprintf('''%s'' variable already exists in the namespace. Please change your variable name.\n',VarName);
-                ErrText=[ErrText Stxt];
-            else
-                EvalText=[EvalText VarList{Ivar,1} '=VarList{' num2str(Ivar) ',2};'];
-            end
-        end
-    end
-    EvalText=[EvalText 'OutVar=' InString ';'];
-    if length(ErrText)==0
-        eval(EvalText)
-    else
-        error(ErrText)
-    end
-    
-end
-        
 function [Scalar, Vector]=SeparateScalarVector(VariableList)
     Scalar={};
     Vector={};

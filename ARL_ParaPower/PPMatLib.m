@@ -172,6 +172,26 @@ classdef PPMatLib < matlab.mixin.Copyable
                 
         end
         
+        function OutObj=loadobj(InObj)
+          EmptyMats=cellfun(@isempty,InObj.iMatObjList);
+          if any(EmptyMats) && strcmpi(class(InObj),'PPMatLib')
+
+              T=sprintf(['The following materials will be removed from the library just loaded.' newline ...
+                   'It is likely that there is no class file for that material type.']);
+              for I=find(EmptyMats)
+                  T=sprintf('%s\n  %3.0d: %s, Type %s\n',T,I, InObj.iNameList{I},'Unknown');
+              end
+              OutObj=PPMatLib;
+              for I=find(~EmptyMats)
+                  OutObj.AddMatl(InObj.GetMatNum(I));
+              end
+              OutObj.AddError(T)
+              OutObj.ShowErrorText;
+          else
+              OutObj=InObj;
+          end
+        end
+        
         function NewMatLib=ExpandMatLib(MatLibInstance, PropVals, MatNum, PropName, PropCellIndex, ScalarValue)
             %The passed PropVal is the set of values of a single cell of
             %property named in PropName.
@@ -895,22 +915,26 @@ classdef PPMatLib < matlab.mixin.Copyable
         function AddMatl(obj, PPMatObject)
             obj.AddError;
            % ValidChars=char([char('0'):char('9') '_' char('a'):char('z') char('A'):char('Z')]);
-            if any(strcmpi(PPMatObject.Name, obj.iNameList))
-                obj.AddError(sprintf('Material "%s" already exists in library (material names MUST be unique).',PPMatObject.Name))
-            end
-            if ~all(ismember(PPMatObject.Name,PPMatObject.ValidChars))
-                NewName=PPMatObject.Name;
-                Spaces=find(NewName==' ');
-                NewName(Spaces)='_';
-                if ~all(ismember(NewName,PPMatObject.ValidChars))
-                    obj.AddError(sprintf('Material name "%s" can contain only alphanumerics.',PPMatObject.Name))
-                else
-                    disp(sprintf('Material name changed from %s to %s\n',PPMatObject.Name, NewName));
-                    PPMatObject.Name=NewName;
+            if isempty(PPMatObject)
+                obj.AddError('Empty material object.  Likely trying to load a material type for which there is no object file.')
+            else
+                if any(strcmpi(PPMatObject.Name, obj.iNameList))
+                    obj.AddError(sprintf('Material "%s" already exists in library (material names MUST be unique).',PPMatObject.Name))
                 end
-            end
-            if strcmpi(PPMatObject.Type,'abstract')
-                obj.AddError(sprintf('Abstract materials cannot be added to the library. (%s)',PPMatObject.Name))
+                if ~all(ismember(PPMatObject.Name,PPMatObject.ValidChars))
+                    NewName=PPMatObject.Name;
+                    Spaces=find(NewName==' ');
+                    NewName(Spaces)='_';
+                    if ~all(ismember(NewName,PPMatObject.ValidChars))
+                        obj.AddError(sprintf('Material name "%s" can contain only alphanumerics.',PPMatObject.Name))
+                    else
+                        disp(sprintf('Material name changed from %s to %s\n',PPMatObject.Name, NewName));
+                        PPMatObject.Name=NewName;
+                    end
+                end
+                if strcmpi(PPMatObject.Type,'abstract')
+                    obj.AddError(sprintf('Abstract materials cannot be added to the library. (%s)',PPMatObject.Name))
+                end
             end
             if isempty(obj.ErrorText)
                 obj.iMatObjList{end+1}=PPMatObject;
