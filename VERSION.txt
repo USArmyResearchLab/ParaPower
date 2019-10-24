@@ -35,6 +35,7 @@ VX.X.X - Parameterization added (both vector and scalar).  Not implemented for t
 		 Testcases updated for PPTCM
 V0.4.0.0 - Initial Open Source Approval
 V0.4.01a - Minor documentation tweaks
+V0.4.01b - Text file fixes, Validation case fixes.
 		 
 
 Features to Add
