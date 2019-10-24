@@ -1,0 +1,68 @@
+Features to Add
+-------------------
+Enable 'stop' button on GUI
+Prettify results plots
+Add total mass output 
+
+Object Oriented Material Matrix Construction:
+    State Structure
+        StateMatrix.Desc{i} = 'Melt Fraction', 'Temperature', 'Stress' -> Easily indexable by strcmpi
+        StateMatrix.Value(i, Xindex, Yindex, Zindex, t_index) -> Vectorized extraction of any state of state at any time or state at any location & time
+    Functions in each material:
+        State Initialization
+            Input: Current State, X_index, Y_index, Z_index, X_length, Y_length, Z_length
+            Output: StateMatrix for given X_index, Y_index, Z_index
+        Fill A Matrix
+Include non-directional stress model
+Custom timesteps
+User Manual
+Enable visualize by feature not material
+Add option for feature plot to plot selected features only
+Results object
+	include peak plots
+Post Processing App
+	Add optional X-axis vectors (such as time)
+Solver
+	Melt residuals
+	option for adaptive steps
+Enable h-infinity for constant temperature BC
+Visualize
+	Check speed impact of Q legend
+	
+
+Items Completed.
+------------------
+Add button to simply do XY plot so you don't have to rerun analysis.
+Save profile w/o results
+Melt fraction issues
+Reduce # of decimals on colorbars
+In 'visualize' click different materials 'on' and 'off'
+Double clicking on figure to load is not working right for Lauren...not valid functionality.
+Plot state on detailed visual output doesn't match GUI time step (off by 1)
+Add notice of finished save in status window.
+Clarify Materials database save
+Only redraw when 'redraw' is pressed not on all inits
+Delete results on GUI clear
+Save Feature descriptors
+Ensure that Load/Save Profile includes proper material information
+Q is NaN
+Change to mm
+Make line and point elements material type 0
+Visualization, materials sometimes only cover 1/2 the colorbar
+Address the defined Q for features that are overwritten
+Show full hexahedral domain in green outline or equiv
+Enable voids in solution
+Add 'Cancel' button to table view for Q
+In feature table add buttons to insert/move up/move down
+Visualization, space starts at 0
+Change sense of Q in visualize to match model
+Add feature descriptor
+Ensure Q as a table with repeated times works correctly.
+Error trap if time in Q table is not increasing.
+Split X and Y divisions into separate columns
+Add 'Cancel' button to mat database
+Re-enable stress analysis - there's now a stress function to be called.
+Static Analysis is broken
+Stress Model Additions:
+    Must include substrate feature for PPTCM and then map into MI number of layers
+        And ensure underlying assumptions are met.  Kick out error if assumptinos are violated

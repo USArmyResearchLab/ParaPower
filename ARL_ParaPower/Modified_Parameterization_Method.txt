@@ -1,0 +1,73 @@
+Loop over parameter cell array
+	Eval Param_N
+	If Param_N is vector, clear and store it in VectorParamCellArray
+	If Param_N is a scalar, store it in ScalarParamCellArray
+End Loop
+Loop Over VecParam1
+ Store 1st Value of VecParm1 into ThisVecParm1 and put in ScalarParamCellArray
+ Eval material at scalarparamcellarray
+ Eval rest at ScalarParamcellarray
+Workspace has scalar Parameters defined defined.
+Loop over props.
+
+
+A(1)=[1 2];
+A(2)=[3 4];
+
+
+Feat0=A(1)
+Feat1=A(1)
+Feat2=A(2)
+Feat3=A(2)
+
+for k=1:2
+	Set i=1:2
+		if A(i) is vector
+			A(i)=A(i)[1]
+			lastI=i
+		end
+	Next i
+	A(1)=2
+	A(2)=4
+	A(k)=A(lastI)[2:end]
+next k
+
+
+
+
+
+
+Set A(1)=1:3
+	set A(2)=3:4
+		Assign Feat0=1
+		Assign Feat1=1
+		Assign Feat2=3
+		Assign Feat3=3
+	next B
+Next A
+
+End Results should be
+
+Feat0=1
+Feat1=1
+Feat2=3
+Feat2=3
+
+Feat0=1
+Feat1=1
+Feat2=4
+Feat3=4
+
+Feat0=2
+Feat1=2
+Feat2=3
+Feat2=3
+
+Feat0=2
+Feat1=2
+Feat2=4
+Feat3=4
+
+
+
+

@@ -1,0 +1,31 @@
+(includes Morris's testcases.m and CLI_input.m)
+
+-added index function to assist in converting from flattened indices to 3-space
+
+-reshaped K, CP, and RHO vectors, broke out from inside PCM_init.m
+-updated PCM_init.m to output reshaped meltfrac and hft vectors
+-updated Resistance_Network.m to un-reshape the K vector input argument (this is the only routine where working in 3-space is sensible)
+
+-split B vector into 3 terms that are summed right before solve to maintain traceability of components
+
+-modified mass.m function to operate on and output vectors of nodal properties rather than 3-space
+now also can output vector of node volumes. dependence on timestep broken out to prepare for non-uniform time
+
+-updated/vectorized transient initialization to take advantage of above
+
+-update Phase_Change.m to be vectorized. new m-function vec_Phase_Change.m
+
+****Still to do, wont work until finished
+
+
+Pull A matrix update inside, use targeted update rather than Resistance_Network
+
+vectorize recalculation of C and B vectors
+
+
+
+
+
+*****to harmonize with Morris
+figure out the deal with Qv and time dep stuff
+material properties as structure
