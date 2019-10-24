@@ -992,7 +992,7 @@ function TogglePanel(ButtonH,Action)
         set(Entities,'visible','on');
         if strcmpi(get(Entities(1), 'type'),'patch')
             Vals=get(Entities(1),'FaceVertexcdata');
-            fprintf('%s: Min: %g, Max: %g\n',strtrim(get(ButtonH,'string')),min(Vals),max(Vals));
+            %fprintf('%s: Min: %g, Max: %g\n',strtrim(get(ButtonH,'string')),min(Vals),max(Vals));
         end
     else
         %Values(Index)=0;
