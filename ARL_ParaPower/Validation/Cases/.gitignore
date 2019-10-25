@@ -1,3 +1,4 @@
 #Ignore files in this directory
 *.m
-*.lnk
+#*.lnk
+
