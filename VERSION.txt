@@ -36,8 +36,10 @@ VX.X.X - Parameterization added (both vector and scalar).  Not implemented for t
 V0.4.0.0 - Initial Open Source Approval
 V0.4.01a - Minor documentation tweaks
 V0.4.01b - Text file fixes, Validation case fixes.
+V0.4.01c - Clean start repository
+V0.4.01d - .gitignore in validation/cases now allows .lnk, Master renamed to Release
+V0.4.02  - Fine tuned workflow docs
 		 
-
 Features to Add
 1. Enable 'stop' button on GUI
 3. Ensure potting material in testmodelcase structure is 0
