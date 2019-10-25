@@ -38,6 +38,7 @@ V0.4.01a - Minor documentation tweaks
 V0.4.01b - Text file fixes, Validation case fixes.
 V0.4.01c - Clean start repository
 V0.4.01d - .gitignore in validation/cases now allows .lnk, Master renamed to Release
+V0.4.02  - Fine tuned workflow docs
 		 
 Features to Add
 1. Enable 'stop' button on GUI
