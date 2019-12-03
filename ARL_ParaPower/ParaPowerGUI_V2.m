@@ -2557,9 +2557,8 @@ function HelpButton_Callback(hObject, eventdata, handles)
     HelpText{end+1}='';  
     HelpText{end+1}='For additional informatoin contact Dr. Lauren Boteler (lauren.m.boteler.civ@mail.mil)';
     HelpText{end+1}='';
-    HelpText{end+1}='DISTRIBUTION C';
-    HelpText{end+1}=['Distribution authorized to U.S. Government agencies (premature dissemination) 12/12/2018. Other requests ' ...
-                    'for this document shall be referred to US Army Research Laboratory, Power Conditioning Branch (RDRL-SED-P). '];
+    HelpText{end+1}='DISTRIBUTION A';
+    HelpText{end+1}=['Cleared for public dissemination. Distribution unlimited.'];
     HelpText{end+1}='';
     set(T,'string',HelpText)
     GUIEnable;
