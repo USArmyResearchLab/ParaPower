@@ -8,7 +8,7 @@ function OutText=ARLParaPowerVersion(Entity)
         case 'file'
             OutText='V3.0';
         case 'program'
-            OutText='0.4.0.0';
+            OutText='4.0.1';
         otherwise
             OutText='';
             disp('Unknown entity for version info.')
@@ -47,6 +47,7 @@ function OutText=ARLParaPowerVersion(Entity)
 % 		   Timing for testcases validation changed to fraction
 % V4.0.0 - Initial implementation of parametric functionality (File version
 %          updated as all items in testcasemodel may be strings.
+% V4.0.1 - Created function for Dist statement.  Adjusted dist statement to A
 %
 % Features to Add
 % 1. Enable 'stop' button on GUI
