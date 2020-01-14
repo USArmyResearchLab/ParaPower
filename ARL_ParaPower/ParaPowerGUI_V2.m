@@ -154,7 +154,7 @@ function InitializeGUI(handles)
     
     set(handles.StressModel,'userdata',[MainPath 'Stress_Models'])
 
-    T=uicontrol(handles.figure1,'style','text','units','normal','posit',[0.01 0 .3 .02],'string','DISTRIBUTION C: See Help for details','horiz','left');
+    T=uicontrol(handles.figure1,'style','text','units','normal','posit',[0.01 0 .3 .02],'string',[DistStatement('short') ': See Help for details'],'horiz','left');
     E=get(T,'extent');
     P=get(T,'posit');
     set(T,'posit',[P(1) P(2) E(3) E(4)]);
@@ -193,6 +193,14 @@ function InitializeGUI(handles)
     end
 end
 
+function TextOut=DistStatement(Option)
+    TextOut='DISTRIBUTION A';
+    if strcmpi(Option,'long')
+        TextOut=[TextOut ': Cleared for public dissemination, Distribution unlimited'];
+    end
+    
+end
+
 % %LogoAxes_CreateFcn(hObject, eventdata, handles)
 
 % --- Outputs from this function are returned to the command line.
@@ -203,9 +211,9 @@ function varargout = ParaPowerGUI_V2_OutputFcn(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Get default command line output from handles structure
-if isfield(handles,'output')
-    varargout{1} = handles.output;
-end
+    if isfield(handles,'output')
+        varargout{1} = handles.output;
+    end
 end
 
 %{
@@ -2557,8 +2565,8 @@ function HelpButton_Callback(hObject, eventdata, handles)
     HelpText{end+1}='';  
     HelpText{end+1}='For additional informatoin contact Dr. Lauren Boteler (lauren.m.boteler.civ@mail.mil)';
     HelpText{end+1}='';
-    HelpText{end+1}='DISTRIBUTION A';
-    HelpText{end+1}=['Cleared for public dissemination. Distribution unlimited.'];
+    HelpText{end+1}=DistStatement('long');
+    %HelpText{end+1}=['Cleared for public dissemination. Distribution unlimited.'];
     HelpText{end+1}='';
     set(T,'string',HelpText)
     GUIEnable;
