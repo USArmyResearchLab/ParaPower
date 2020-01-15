@@ -186,6 +186,9 @@ function InitializeGUI(handles)
     set(handles.figure1,'unit','normal')
     Children=findobj(handles.figure1);
     set(handles.figure1,'resize','on')
+    BtnParameters_Callback(handles.BtnParameters, [], handles);
+    drawnow
+    pClose_Callback(handles.pClose, [], handles);
     for I=1:length(Children)
         if ~isempty(find(strcmpi(properties(Children(I)),'units')))
             set(Children(I),'unit','normal')
