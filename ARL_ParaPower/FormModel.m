@@ -336,6 +336,13 @@ for Fi=1:length(Features)
          catch ErrTrap
              error(['"' Features(Fi).Q '" is not a valid function.'])
          end
+      elseif iscell(Features(Fi).Q) && length(Features(Fi).Q)==1
+         ThisQ=@(t)eval(Features(Fi).Q{1})*(-1);
+         try
+             ThisQ(0);
+         catch ErrTrap
+             error(['"' Features(Fi).Q '" is not a valid function.'])
+         end
      elseif isempty(Features(Fi).Q)
          ThisQ=[];
      elseif length(Features(Fi).Q(1,:))==2
