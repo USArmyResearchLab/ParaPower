@@ -1,4 +1,4 @@
-function a = stress_Random(Results)
+function a = Stress_Random(Results)
 % Purpose: learn how to take input from GUI and process it into an output
 % that can be read by the GUI
 % generate 4D matrix from GUI input (PPResults obj) that GUI can read
