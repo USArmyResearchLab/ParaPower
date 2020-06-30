@@ -1,8 +1,10 @@
 Features to Add
 -------------------
+200629 - Checkboxes for results are ignored for 2d plots.
+
 Enable 'stop' button on GUI
 Prettify results plots
-Add total mass output 
+Add total mass output
 
 Object Oriented Material Matrix Construction:
     State Structure
