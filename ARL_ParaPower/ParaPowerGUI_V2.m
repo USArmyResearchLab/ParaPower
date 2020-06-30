@@ -163,7 +163,7 @@ function InitializeGUI(handles)
     StressDir=get(handles.StressModel,'user');
     StressModels=dir([StressDir '/Stress*.m']);
     for Fi=1:length(StressModels)
-        StressModelFunctions{Fi}=StressModels.name;
+        StressModelFunctions{Fi}=StressModels(Fi).name;
         StressModelFunctions{Fi}=strrep(StressModelFunctions{Fi},'.m','');
         StressModelFunctions{Fi}=strrep(StressModelFunctions{Fi},'Stress_','');
         AddStatusLine(['Adding stress model ' StressModelFunctions{Fi} '.'])
