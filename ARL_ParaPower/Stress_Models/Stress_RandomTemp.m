@@ -37,13 +37,13 @@ for t=1:t_size
             one_y_normalized = y_normalized(i);
             for j=1:z_size
                 one_z_normalized = z_normalized(j);
-                mat_loc_val(h,i,j,t) = material_number(h,i,j) + one_x_normalized*one_y_normalized*one_z_normalized;
+                mat_loc_val(h,i,j,t) = (material_number(h,i,j) + one_x_normalized*one_y_normalized*one_z_normalized)*temperature(h,i,j,t);
             end
         end
     end
 end
 
-a = mat_loc_val.*temperature;
+a = mat_loc_val;
 
 return
 
