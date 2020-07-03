@@ -101,7 +101,36 @@ classdef PPResults  %PP Results
                 error('State %s not available in this results structure',Desc)
             else
                 if exist('Mask','var')
-                    Vals=obj.iStateVals{Is}(Mask);
+                    %
+                    % Problem:
+                    % Error of "The logical indices contain a true value outside of the array bounds."
+                    % when running NonDirectional"
+                    %
+                    % Cause:
+                    % variable Mask is 4D matrix but iStateVals{3} is a 1
+                    % by 1 struct with 3 fields (3D matrices X, Y and Z)
+                    %
+                    size_of_Mask = size(Mask);
+                    size_of_iStateVals = size(obj.iStateVals{Is});
+                    if length(size_of_Mask) ~= length(size_of_iStateVals)
+                        'PPResults line #115: error detected, dumping data...'
+                        Is
+                        size_of_Mask
+                        size_of_iStateVals
+                        data = obj.iStateVals{Is}
+                        if 0   
+                            % Option 1: terminate
+                            assert(length(size_of_Mask) == length(size_of_iStateVals))
+                        else
+                            % Option 2: try to "fix" it by making up a function
+                            % and expanding along the time dimension
+                            '"Fixing" error with fake data...'
+                            cube_XYZ = data.X .* data.Y .* data.Z;
+                            Vals = repmat(cube_XYZ,size_of_Mask(4));
+                        end
+                    else
+                        Vals=obj.iStateVals{Is}(Mask);
+                    end
                 else
                     Vals=obj.iStateVals{Is};
                 end
