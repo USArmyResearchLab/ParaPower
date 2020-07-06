@@ -928,7 +928,12 @@ function RunAnalysis_Callback(hObject, eventdata, handles)
 
            %not used StateN=round(length(GlobalTime)*TimeStepOutput,0);
            
-           Results(ThisCase)=Results(ThisCase).addState('Stress',Stress);
+           %Results(ThisCase)=Results(ThisCase).addState('Stress',Stress);
+           Results(ThisCase)=Results(ThisCase).addState('Stress_X',Stress.X);
+           Results(ThisCase)=Results(ThisCase).addState('Stress_Y',Stress.Y);
+           Results(ThisCase)=Results(ThisCase).addState('Stress_Z',Stress.Z);
+           Results(ThisCase)=Results(ThisCase).addState('Stress_VM',Stress.VM);
+           
            
        end
        if get(handles.transient,'value')==1
@@ -2674,7 +2679,7 @@ function MaxPlot_Callback(hObject, eventdata, handles, Results)
                    if ~isempty(Results.getState('MeltFrac'))
                         DoutM(:,end+1)=max(reshape(Results.getState('meltfrac',Fmask),[],length(MI.GlobalTime)),[],1);
                    end
-                   if ~isempty(Results.getState('Stress'))
+                   if ~isempty(Results.getState('Stress_VM'))
                         DoutS(:,end+1)=max(reshape(Results.getState('stress',Fmask),[],length(MI.GlobalTime)),[],1);
                    end
                    FeatureMat{end+1}=TestCaseModel.Features(Fi).Matl;
