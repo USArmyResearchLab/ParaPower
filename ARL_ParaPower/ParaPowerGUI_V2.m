@@ -2679,8 +2679,23 @@ function MaxPlot_Callback(hObject, eventdata, handles, Results)
                    if ~isempty(Results.getState('MeltFrac'))
                         DoutM(:,end+1)=max(reshape(Results.getState('meltfrac',Fmask),[],length(MI.GlobalTime)),[],1);
                    end
-                   if ~isempty(Results.getState('Stress_VM'))
-                        DoutS(:,end+1)=max(reshape(Results.getState('stress_vm',Fmask),[],length(MI.GlobalTime)),[],1);
+                   
+                   stress_name = 'Stress_VM';
+                   if ~isempty(Results.getState(stress_name))
+                       % Trinity, 7-7-2020
+                       
+                       % obtain state "stress_x" with a mask
+                       stress_data = Results.getState(stress_name,Fmask);
+                       
+                       % reshape(): https://www.mathworks.com/help/matlab/ref/reshape.html
+                       % provide the #columns, automatically get #rows
+                       stress_data_reshaped = reshape(stress_data,[],length(MI.GlobalTime));
+                       
+                       % max(): https://www.mathworks.com/help/matlab/ref/max.html#d120e766511
+                       stress_data_reshaped_max = max(stress_data_reshaped,[],1);
+                       
+                       % append it to DoutS
+                       DoutS(:,end+1) = stress_data_reshaped_max;
                    end
                    FeatureMat{end+1}=TestCaseModel.Features(Fi).Matl;
                end

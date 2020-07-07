@@ -44,26 +44,10 @@ classdef PPResults  %PP Results
                 error('Invalid number of input argument for initialization of PPModelDef')
             end
         end
-        
-        function obj=setState(obj,Desc,Vals)
-            Is=find(strcmpi(obj.iStates, Desc));
-            
-            if isempty(Is)
-                error('State %s not available in this results structure',Desc)
-            else
-                obj.iStateVals{Is}=Vals;
-            end
-        end
-
-        function obj = addState (obj, StateName, StateVal)
+        function validateInput(obj, StateVal)
             
             % the input data must be a 4D array
-            assert(length(size(StateVal))==4);
-            
-            % why is this needed?
-            if ~exist('StateVal','var')
-                StateVal=[];
-            end
+            assert(length(size(StateVal))==4, 'Input data must be a 4D array');
             
             % first, check whether the dimensions match
             % (a) StateVal and obj.Model.Model match in #1, #2, and
@@ -82,18 +66,38 @@ classdef PPResults  %PP Results
             step_b = isequal(input_size(1,4),ref_size_4);
             
             % terminate if mismatch
-            assert(~step_a || ~step_b);
+            assert(~step_a || ~step_b, 'Stored results state does not match dimensions with existing model.');
+            
+            
+        end
+        function obj=setState(obj,StateName,StateVal)
             
             % try to find if the input "StateName" already exists in iStates
             % then return the index or indices as Is
+            Is=find(strcmpi(obj.iStates, StateName));
+            
+            if isempty(Is)
+                error('State %s not available in this results structure',StateName)
+            else
+                validateInput(obj, StateVal)
+                obj.iStateVals{Is}=StateVal;
+            end
+        end
+
+        function obj = addState (obj, StateName, StateVal)
+            if ~exist('StateVal','var')
+                StateVal=[];
+            end
+
             Is = find(strcmpi(obj.iStates, StateName), 1);
             
             if isempty(Is) % if not found, add one more with StateName
+                validateInput(obj, StateVal)
                 obj.iStates{end+1}=StateName;  % add one more iStates
                 obj.iStateVals{end+1}=StateVal;
-            else % if already exists, use setState() to override it(?)
-                obj.setState(StateName,StateVal);
-                % error('State %s already exists in this structure', StateName);
+                %obj.setState(StateName,StateVal);
+            else
+                error('State %s already exists in this structure', StateName);
             end
             
         end

@@ -1,4 +1,4 @@
-function [stressx,stressy,stressz]=Stress_NoSubstrate1(Results)
+function [stressx,stressy,stressz] = Stress_NoSubstrate1(Results,t)
 % This function calculates the thermal stress based on CTE mismatch for each element in the model.
 % This is a quasi 3-D approach that sums the forces in one plane to get the
 % final length of all the elelments in that plane. Each plane is taken
@@ -11,9 +11,9 @@ function [stressx,stressy,stressz]=Stress_NoSubstrate1(Results)
 
 time = Results.Model.GlobalTime
 Temp=Results.getState('Thermal');
-Temp=Temp(:,:,:,2);
+Temp=Temp(:,:,:,t);
 Melt=Results.getState('MeltFrac');
-Melt=Melt(:,:,:,2);
+Melt=Melt(:,:,:,t);
 ProcT=Results.Model.Tproc;
 % Load material properties E, cte, nu
 EX=Results.Model.MatLib.GetParam('E');
@@ -130,13 +130,13 @@ for Zkk=1:NLz
     for Xii=1:NRx
         for Yjj=1:NCy
             if  ckMatl(Xii,Yjj,Zkk) == 0 || Melt(Xii,Yjj,Zkk) > 0
-                stressx(Xii,Yjj,Zkk)=NaN;
-                stressy(Xii,Yjj,Zkk)=NaN;
-                stressz(Xii,Yjj,Zkk)=NaN;
+                stressx(Xii,Yjj,Zkk,t)=NaN;
+                stressy(Xii,Yjj,Zkk,t)=NaN;
+                stressz(Xii,Yjj,Zkk,t)=NaN;
             else
-                stressx(Xii,Yjj,Zkk)=(EX(Mats(Xii,Yjj,Zkk))/(1-nuX(Mats(Xii,Yjj,Zkk))))*((Lfx(Yjj)/(dx(Xii)*(cteX(Mats(Xii,Yjj,Zkk))*delT(Xii,Yjj,Zkk)+1)))-1);
-                stressy(Xii,Yjj,Zkk)=(EY(Mats(Xii,Yjj,Zkk))/(1-nuY(Mats(Xii,Yjj,Zkk))))*((Lfy(Xii)/(dy(Yjj)*(cteY(Mats(Xii,Yjj,Zkk))*delT(Xii,Yjj,Zkk)+1)))-1);
-                stressz(Xii,Yjj,Zkk)=(EZ(Mats(Xii,Yjj,Zkk))/(1-nuZ(Mats(Xii,Yjj,Zkk))))*((Lfz(Zkk)/(dz(Zkk)*(cteZ(Mats(Xii,Yjj,Zkk))*delT(Xii,Yjj,Zkk)+1)))-1);
+                stressx(Xii,Yjj,Zkk,t)=(EX(Mats(Xii,Yjj,Zkk))/(1-nuX(Mats(Xii,Yjj,Zkk))))*((Lfx(Yjj)/(dx(Xii)*(cteX(Mats(Xii,Yjj,Zkk))*delT(Xii,Yjj,Zkk)+1)))-1);
+                stressy(Xii,Yjj,Zkk,t)=(EY(Mats(Xii,Yjj,Zkk))/(1-nuY(Mats(Xii,Yjj,Zkk))))*((Lfy(Xii)/(dy(Yjj)*(cteY(Mats(Xii,Yjj,Zkk))*delT(Xii,Yjj,Zkk)+1)))-1);
+                stressz(Xii,Yjj,Zkk,t)=(EZ(Mats(Xii,Yjj,Zkk))/(1-nuZ(Mats(Xii,Yjj,Zkk))))*((Lfz(Zkk)/(dz(Zkk)*(cteZ(Mats(Xii,Yjj,Zkk))*delT(Xii,Yjj,Zkk)+1)))-1);
             end
         end
     end
@@ -148,12 +148,19 @@ clear Xi Yj Zk Xii Yjj Zkk
 SumforceX=0;
 SumforceY=0;
 SumforceZ=0;
+
+% [cubex, cubey, cubez] = meshgrid(dy, dx, dz);
+% 
+% ForceX=stressx.*cubey.*cubez;
+% ForceY=stressy.*cubex.*cubez;
+% ForceZ=stressz.*cubey.*cubex;
+
 for Xii=1:NRx
     for Yjj=1:NCy
         for Zkk=1:NLz
-            ForceX(Xii,Yjj,Zkk)=stressx(Xii,Yjj,Zkk)*dy(Yjj)*dz(Zkk);
-            ForceY(Xii,Yjj,Zkk)=stressy(Xii,Yjj,Zkk)*dx(Xii)*dz(Zkk);
-            ForceZ(Xii,Yjj,Zkk)=stressz(Xii,Yjj,Zkk)*dy(Yjj)*dx(Xii);
+            ForceX(Xii,Yjj,Zkk,t)=stressx(Xii,Yjj,Zkk,t)*dy(Yjj)*dz(Zkk);
+            ForceY(Xii,Yjj,Zkk,t)=stressy(Xii,Yjj,Zkk,t)*dx(Xii)*dz(Zkk);
+            ForceZ(Xii,Yjj,Zkk,t)=stressz(Xii,Yjj,Zkk,t)*dy(Yjj)*dx(Xii);
         end
     end
 end
@@ -162,4 +169,5 @@ SumforceY=sum(ForceY(~isnan(ForceY)));
 SumforceZ=sum(ForceZ(~isnan(ForceZ)));
 
 
-%fprintf('Net Force X: %f, Y: %f, Z: %f\n',SumforceX, SumforceY, SumforceZ)
+fprintf('Net Force X: %f, Y: %f, Z: %f\n',SumforceX, SumforceY, SumforceZ)
+return
