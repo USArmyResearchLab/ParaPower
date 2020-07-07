@@ -17,7 +17,7 @@ function Stress=Stress_NonDirectional(Results)
         return
     else
         
-        [StressX,StressY,StressZ]=Stress_NoSubstrate1(Results);        
+        [StressX,StressY,StressZ]=Stress_NoSubstrateTrinity(Results);        
         path(OldPath);
         Stress.X=StressX;
         Stress.Y=StressY;

@@ -2680,7 +2680,7 @@ function MaxPlot_Callback(hObject, eventdata, handles, Results)
                         DoutM(:,end+1)=max(reshape(Results.getState('meltfrac',Fmask),[],length(MI.GlobalTime)),[],1);
                    end
                    if ~isempty(Results.getState('Stress_VM'))
-                        DoutS(:,end+1)=max(reshape(Results.getState('stress',Fmask),[],length(MI.GlobalTime)),[],1);
+                        DoutS(:,end+1)=max(reshape(Results.getState('stress_vm',Fmask),[],length(MI.GlobalTime)),[],1);
                    end
                    FeatureMat{end+1}=TestCaseModel.Features(Fi).Matl;
                end

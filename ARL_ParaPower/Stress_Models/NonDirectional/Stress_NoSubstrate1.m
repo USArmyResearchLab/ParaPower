@@ -8,6 +8,8 @@ function [stressx,stressy,stressz]=Stress_NoSubstrate1(Results)
 % direction; x-Direction: y-z plane; y-direction: x-z plane; z-Direction:
 % x-y plane.
 % Load Temperature Results, Melt Fraction Results and Processing Temp
+
+time = Results.Model.GlobalTime
 Temp=Results.getState('Thermal');
 Temp=Temp(:,:,:,2);
 Melt=Results.getState('MeltFrac');
@@ -60,19 +62,19 @@ clear Xi Yj Zk Xii Yjj Zkk
 for Yjj=1:NCy
     sumn=0;
     sumd=0;
-        for Zk=1:NLz
-            for Xi=1:NRx
-                % Skip locations that have no material, IBC's, Fluid and
-                % non-zero Melt fractions
-                if  ckMatl(Xi,Yjj,Zk) == 0 || Melt(Xi,Yjj,Zk) > 0
-                    sumn=sumn+0;
-                    sumd=sumd+0;
-                else
-                    sumn=sumn+(EX(Mats(Xi,Yjj,Zk))/(1-nuX(Mats(Xi,Yjj,Zk))))*dy(Yjj)*dz(Zk);
-                    sumd=sumd+((EX(Mats(Xi,Yjj,Zk))/(1-nuX(Mats(Xi,Yjj,Zk))))*dy(Yjj)*dz(Zk))/(dx(Xi)*(cteX(Mats(Xi,Yjj,Zk))*delT(Xi,Yjj,Zk)+1));
-                end
-           end
+    for Zk=1:NLz
+        for Xi=1:NRx
+            % Skip locations that have no material, IBC's, Fluid and
+            % non-zero Melt fractions
+            if  ckMatl(Xi,Yjj,Zk) == 0 || Melt(Xi,Yjj,Zk) > 0
+                sumn=sumn+0;
+                sumd=sumd+0;
+            else
+                sumn=sumn+(EX(Mats(Xi,Yjj,Zk))/(1-nuX(Mats(Xi,Yjj,Zk))))*dy(Yjj)*dz(Zk);
+                sumd=sumd+((EX(Mats(Xi,Yjj,Zk))/(1-nuX(Mats(Xi,Yjj,Zk))))*dy(Yjj)*dz(Zk))/(dx(Xi)*(cteX(Mats(Xi,Yjj,Zk))*delT(Xi,Yjj,Zk)+1));
+            end
         end
+    end
     Lfx(Yjj)=sumn/sumd;
 end
 
@@ -82,19 +84,19 @@ clear Xi Yj Zk Xii Yjj Zkk
 for Xii=1:NRx
     sumn=0;
     sumd=0;
-        for Zk=1:NLz
-            for Yj=1:NCy
-                % Skip locations that have no material, IBC's, Fluid and
-                % non-zero Melt fractions
-                if  ckMatl(Xii,Yj,Zk) == 0 || Melt(Xii,Yj,Zk) > 0
-                    sumn=sumn+0;
-                    sumd=sumd+0;
-                else
-                    sumn=sumn+(EY(Mats(Xii,Yj,Zk))/(1-nuY(Mats(Xii,Yj,Zk))))*dx(Xii)*dz(Zk);
-                    sumd=sumd+((EY(Mats(Xii,Yj,Zk))/(1-nuY(Mats(Xii,Yj,Zk))))*dx(Xii)*dz(Zk))/(dy(Yj)*(cteY(Mats(Xii,Yj,Zk))*delT(Xii,Yj,Zk)+1));
-                end
+    for Zk=1:NLz
+        for Yj=1:NCy
+            % Skip locations that have no material, IBC's, Fluid and
+            % non-zero Melt fractions
+            if  ckMatl(Xii,Yj,Zk) == 0 || Melt(Xii,Yj,Zk) > 0
+                sumn=sumn+0;
+                sumd=sumd+0;
+            else
+                sumn=sumn+(EY(Mats(Xii,Yj,Zk))/(1-nuY(Mats(Xii,Yj,Zk))))*dx(Xii)*dz(Zk);
+                sumd=sumd+((EY(Mats(Xii,Yj,Zk))/(1-nuY(Mats(Xii,Yj,Zk))))*dx(Xii)*dz(Zk))/(dy(Yj)*(cteY(Mats(Xii,Yj,Zk))*delT(Xii,Yj,Zk)+1));
             end
         end
+    end
     Lfy(Xii)=sumn/sumd;
 end
 
@@ -104,19 +106,19 @@ clear Xi Yj Zk Xii Yjj Zkk
 for Zkk=1:NLz
     sumn=0;
     sumd=0;
-        for Xi=1:NRx
-            for Yj=1:NCy
-                % Skip locations that have no material, IBC's, Fluid and
-                % non-zero Melt fractions
-                if  ckMatl(Xi,Yj,Zkk) == 0 || Melt(Xi,Yj,Zkk) > 0
-                    sumn=sumn+0;
-                    sumd=sumd+0;
-                else
-                    sumn=sumn+(EZ(Mats(Xi,Yj,Zkk))/(1-nuZ(Mats(Xi,Yj,Zkk))))*dx(Xi)*dy(Yj);
-                    sumd=sumd+((EZ(Mats(Xi,Yj,Zkk))/(1-nuZ(Mats(Xi,Yj,Zkk))))*dx(Xi)*dy(Yj))/(dz(Zkk)*(cteZ(Mats(Xi,Yj,Zkk))*delT(Xi,Yj,Zkk)+1));
-                end
+    for Xi=1:NRx
+        for Yj=1:NCy
+            % Skip locations that have no material, IBC's, Fluid and
+            % non-zero Melt fractions
+            if  ckMatl(Xi,Yj,Zkk) == 0 || Melt(Xi,Yj,Zkk) > 0
+                sumn=sumn+0;
+                sumd=sumd+0;
+            else
+                sumn=sumn+(EZ(Mats(Xi,Yj,Zkk))/(1-nuZ(Mats(Xi,Yj,Zkk))))*dx(Xi)*dy(Yj);
+                sumd=sumd+((EZ(Mats(Xi,Yj,Zkk))/(1-nuZ(Mats(Xi,Yj,Zkk))))*dx(Xi)*dy(Yj))/(dz(Zkk)*(cteZ(Mats(Xi,Yj,Zkk))*delT(Xi,Yj,Zkk)+1));
             end
         end
+    end
     Lfz(Zkk)=sumn/sumd;
 end
 
@@ -160,4 +162,4 @@ SumforceY=sum(ForceY(~isnan(ForceY)));
 SumforceZ=sum(ForceZ(~isnan(ForceZ)));
 
 
-fprintf('Net Force X: %f, Y: %f, Z: %f\n',SumforceX, SumforceY, SumforceZ)
+%fprintf('Net Force X: %f, Y: %f, Z: %f\n',SumforceX, SumforceY, SumforceZ)
