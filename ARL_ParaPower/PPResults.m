@@ -54,17 +54,46 @@ classdef PPResults  %PP Results
                 obj.iStateVals{Is}=Vals;
             end
         end
-        
-        function obj=addState(obj, StateName, StateVal)
+
+        function obj = addState (obj, StateName, StateVal)
+            
+            % the input data must be a 4D array
+            assert(length(size(StateVal))==4);
+            
+            % why is this needed?
             if ~exist('StateVal','var')
                 StateVal=[];
             end
-            Is=find(strcmpi(obj.iStates, StateName), 1);
-            if isempty(Is)
-                obj.iStates{end+1}=StateName;
+            
+            % first, check whether the dimensions match
+            % (a) StateVal and obj.Model.Model match in #1, #2, and
+            % #3 dimensions, and
+            % (b) StateVal and obj.GlobalTime in #4 dimension
+            
+            % things to compare
+            input_size = size(StateVal);
+            ref_size_123 = size(obj.Model.Model);
+            ref_size_4 = size(obj.Model.GlobalTime);
+            
+            % step (a)
+            step_a = isequal(input_size(1,1:3),ref_size_123);
+            
+            % step (b)
+            step_b = isequal(input_size(1,4),ref_size_4);
+            
+            % terminate if mismatch
+            assert(~step_a || ~step_b);
+            
+            % try to find if the input "StateName" already exists in iStates
+            % then return the index or indices as Is
+            Is = find(strcmpi(obj.iStates, StateName), 1);
+            
+            if isempty(Is) % if not found, add one more with StateName
+                obj.iStates{end+1}=StateName;  % add one more iStates
                 obj.iStateVals{end+1}=StateVal;
-            else
-                error('State %s already exists in this structure', StateName);
+            else % if already exists, use setState() to override it(?)
+                obj.setState(StateName,StateVal);
+                % error('State %s already exists in this structure', StateName);
             end
             
         end
@@ -101,7 +130,36 @@ classdef PPResults  %PP Results
                 error('State %s not available in this results structure',Desc)
             else
                 if exist('Mask','var')
-                    Vals=obj.iStateVals{Is}(Mask);
+                    %
+                    % Problem:
+                    % Error of "The logical indices contain a true value outside of the array bounds."
+                    % when running NonDirectional"
+                    %
+                    % Cause:
+                    % variable Mask is 4D matrix but iStateVals{3} is a 1
+                    % by 1 struct with 3 fields (3D matrices X, Y and Z)
+                    %
+                    size_of_Mask = size(Mask);
+                    size_of_iStateVals = size(obj.iStateVals{Is});
+                    if length(size_of_Mask) ~= length(size_of_iStateVals)
+                        'PPResults line #115: error detected, dumping data...'
+                        Is
+                        size_of_Mask
+                        size_of_iStateVals
+                        data = obj.iStateVals{Is}
+                        if 0   
+                            % Option 1: terminate
+                            assert(length(size_of_Mask) == length(size_of_iStateVals))
+                        else
+                            % Option 2: try to "fix" it by making up a function
+                            % and expanding along the time dimension
+                            '"Fixing" error with fake data...'
+                            cube_XYZ = data.X .* data.Y .* data.Z;
+                            Vals = repmat(cube_XYZ,size_of_Mask(4));
+                        end
+                    else
+                        Vals=obj.iStateVals{Is}(Mask);
+                    end
                 else
                     Vals=obj.iStateVals{Is};
                 end
