@@ -9,7 +9,7 @@ classdef PPResults  %PP Results
         TimeDate          = [];
     end
     
-    properties (Dependent, SetAccess=private)
+    properties (Dependent, SetAccess = private)
         StatesAvail
     end
     
@@ -19,37 +19,40 @@ classdef PPResults  %PP Results
     end
     
     properties (Constant)
-        Version='V1.0';
+        Version = 'V1.0';
     end
     
     methods
-        function S=get.StatesAvail(obj)
-            S=obj.listStates;
+        
+        function S = get.StatesAvail(obj)
+            S = obj.listStates;
         end
+        
         function obj = PPResults(varargin) %TimeDate, MI, Case, varargin)  %Constructor
             if nargin==0
-                obj.Model=[];
-                obj.Case=[];
-                obj.TimeDate=[];
-                obj.iStates={};
-                obj.iStateVals={};
+                obj.Model = [];
+                obj.Case = [];
+                obj.TimeDate = [];
+                obj.iStates = {};
+                obj.iStateVals = {};
             elseif nargin>=3
-                obj.TimeDate=varargin{1};
-                obj.Model=varargin{2};
-                obj.Case=varargin{3};
-                for I=4:length(varargin)
-                    obj.iStates{end+1}=varargin{I};
+                obj.TimeDate = varargin{1};
+                obj.Model = varargin{2};
+                obj.Case = varargin{3};
+                for I = 4:length(varargin)
+                    obj.iStates{end+1} = varargin{I};
                 end
             else
                 error('Invalid number of input argument for initialization of PPModelDef')
             end
         end
+        
         function validateInput(obj, StateVal)
-            
-            % the input data must be a 4D array
+
+            % stage 1: the input data must be a 4D array
             assert(length(size(StateVal))==4, 'Input data must be a 4D array');
             
-            % first, check whether the dimensions match
+            % stage 2: check whether the dimensions match
             % (a) StateVal and obj.Model.Model match in #1, #2, and
             % #3 dimensions, and
             % (b) StateVal and obj.GlobalTime in #4 dimension
@@ -59,54 +62,65 @@ classdef PPResults  %PP Results
             ref_size_123 = size(obj.Model.Model);
             ref_size_4 = size(obj.Model.GlobalTime);
             
-            % step (a)
+            % stage 2a
             step_a = isequal(input_size(1,1:3),ref_size_123);
             
-            % step (b)
+            % stage 2b 
             step_b = isequal(input_size(1,4),ref_size_4);
             
             % terminate if mismatch
             assert(~step_a || ~step_b, 'Stored results state does not match dimensions with existing model.');
             
-            
         end
-        function obj=setState(obj,StateName,StateVal)
+        
+        % change value of existing state
+        function obj = setState(obj,StateName,StateVal)
             
             % try to find if the input "StateName" already exists in iStates
             % then return the index or indices as Is
-            Is=find(strcmpi(obj.iStates, StateName));
+            Is = find(strcmpi(obj.iStates, StateName));
             
-            if isempty(Is)
+            if isempty(Is) % if state doesn't exist, error
                 error('State %s not available in this results structure',StateName)
             else
+                % if exists, change value in iStateVals after checking for valid input
                 validateInput(obj, StateVal)
-                obj.iStateVals{Is}=StateVal;
+                obj.iStateVals{Is} = StateVal;
             end
         end
 
+        % add state (used when state does not already exist)
         function obj = addState (obj, StateName, StateVal)
+            
+            % check 1: if no StateVal is input, assign empty vector
             if ~exist('StateVal','var')
-                StateVal=[];
+                StateVal = [];
             end
 
+            % check 2: does StateName already exist?
             Is = find(strcmpi(obj.iStates, StateName), 1);
             
-            if isempty(Is) % if not found, add one more with StateName
+            if isempty(Is) % if doesn't exist, add state
+                
+                % check 3: do input dimensions match with those of
+                % existing model?
                 validateInput(obj, StateVal)
-                obj.iStates{end+1}=StateName;  % add one more iStates
-                obj.iStateVals{end+1}=StateVal;
-                %obj.setState(StateName,StateVal);
-            else
+                
+                % all checks passed, proceed to add state
+                % append StateName to iStates and StateVal to iStateVals
+                obj.iStates{end+1} = StateName;
+                obj.iStateVals{end+1} = StateVal;
+            else % if state exists, error
                 error('State %s already exists in this structure', StateName);
             end
             
         end
         
-        function S=listStates(obj)
+        function S = listStates(obj)
             if length(obj)==1
-                S=obj(1).iStates;
-                for I=1:length(S)
-                    V=size(obj(1).iStateVals{I});
+                S = obj(1).iStates;
+                for I = 1:length(S)
+                    V = size(obj(1).iStateVals{I});
                     if isempty(V)
                         disp([sprintf('%s: %g',S{I},0)]);
                     else
@@ -114,10 +128,10 @@ classdef PPResults  %PP Results
                     end
                 end
             else
-                for Oi=1:length(obj)
-                    S=obj(Oi).iStates;
-                    for I=1:length(S)
-                        V=size(obj(Oi).iStateVals{I});
+                for Oi = 1:length(obj)
+                    S = obj(Oi).iStates;
+                    for I = 1:length(S)
+                        V = size(obj(Oi).iStateVals{I});
                         if isempty(V)
                             disp([sprintf('R(%g), %s: %g',Oi,S{I},0)]);
                         else
@@ -128,14 +142,16 @@ classdef PPResults  %PP Results
             end
         end
         
-        function Vals=getState(obj,Desc, Mask)
-            Is=strcmpi(obj.iStates, Desc);
+        function Vals = getState(obj,Desc, Mask)
+            % search for desired state (Desc) in iStates
+            Is = strcmpi(obj.iStates, Desc);
+            
             if isempty(Is)
                 error('State %s not available in this results structure',Desc)
             else
                 if exist('Mask','var')
                     %
-                    % Problem:
+                    % Problem (07-03-20):
                     % Error of "The logical indices contain a true value outside of the array bounds."
                     % when running NonDirectional"
                     %
@@ -162,10 +178,10 @@ classdef PPResults  %PP Results
                             Vals = repmat(cube_XYZ,size_of_Mask(4));
                         end
                     else
-                        Vals=obj.iStateVals{Is}(Mask);
+                        Vals = obj.iStateVals{Is}(Mask);
                     end
                 else
-                    Vals=obj.iStateVals{Is};
+                    Vals = obj.iStateVals{Is};
                 end
             end
         end
@@ -177,7 +193,7 @@ end
 %Validation functions
 function ValidLength(Array, Sz)
     if ~(all(size(Array)==Sz))
-        ErrText=[ 'Input array is not [' ErrText sprintf('%.0f', Sz) '] Elements'];
+        ErrText = [ 'Input array is not [' ErrText sprintf('%.0f', Sz) '] Elements'];
         error(ErrText)
     end
 end
@@ -186,7 +202,7 @@ function ValidCellToNumericMap(CellArray)
 
     try
         if iscell(CellArray)
-            for I=1:length(CellArray(:))
+            for I = 1:length(CellArray(:))
                 eval([CellArray{I} ';'])
             end
         else
@@ -198,26 +214,26 @@ function ValidCellToNumericMap(CellArray)
 end
 
 function ValidStruct(Structure, FieldList)
-    ErrFlag=false;
-    ErrText='';
+    ErrFlag = false;
+    ErrText = '';
     if isstruct(Structure)
-        Fields=fieldnames(Structure);
-        for Fi=1:length(FieldList)
+        Fields = fieldnames(Structure);
+        for Fi = 1:length(FieldList)
             if ~isfield(Structure,FieldList{Fi})
-                ErrText=[ErrText sprintf('Field %s must exist.\n',FieldList{Fi})];
-                ErrFlag=true;
+                ErrText = [ErrText sprintf('Field %s must exist.\n',FieldList{Fi})];
+                ErrFlag = true;
             else
-                Fields=Fields(~strcmp(FieldList{Fi},Fields));
+                Fields = Fields(~strcmp(FieldList{Fi},Fields));
             end
         end
         if ~isempty(Fields)
             warning(sprintf('Extra fields (%s) in structure will be ignored.\n',char(Fields)'))
         end
     elseif ~isempty(Structure)
-        ErrFlag=true;
-         ErrText=[ErrText sprintf('Variable must be a structure with fields:\n')];
-        for Fi=1:length(FieldList)
-            ErrText=[ErrText sprintf('  %s\n',FieldList{Fi})];
+        ErrFlag = true;
+         ErrText = [ErrText sprintf('Variable must be a structure with fields:\n')];
+        for Fi = 1:length(FieldList)
+            ErrText = [ErrText sprintf('  %s\n',FieldList{Fi})];
         end
     end
     if ErrFlag
@@ -226,32 +242,32 @@ function ValidStruct(Structure, FieldList)
 end
 
 
-function VA=ComputeVA(DCoord)
+function VA = ComputeVA(DCoord)
 %Compute the volume and area of the model elements.  Volumes are R, areas are i
 
     %Get length of each coordinate
-    Lx=length(DCoord.X);
-    Ly=length(DCoord.Y);
-    Lz=length(DCoord.Z);
+    Lx = length(DCoord.X);
+    Ly = length(DCoord.Y);
+    Lz = length(DCoord.Z);
     
     %Matrix multiply Nx1(x) * 1xN(y), then reshape and Nx1(xy) * 1xN(z) then reshape into nxmxo
-    VA=reshape(reshape(DCoord.X' * DCoord.Y,[],1) * DCoord.Z,Lx, Ly,[]);
+    VA = reshape(reshape(DCoord.X' * DCoord.Y,[],1) * DCoord.Z,Lx, Ly,[]);
     
     %Construct vector that is 0's for all non-zero elements and 1 for all Zeros
-    Xz=(DCoord.X==0);
-    Yz=(DCoord.Y==0);
-    Zz=(DCoord.Z==0);
+    Xz = (DCoord.X==0);
+    Yz = (DCoord.Y==0);
+    Zz = (DCoord.Z==0);
 
     %Compute (sequentially) Areas for zero thickness X, then Y, then Z
-    Az=reshape(reshape(DCoord.X' * DCoord.Y,[],1) * Zz,Lx, Ly,[]);
-    Ay=reshape(reshape(DCoord.X' * Yz,[],1) * DCoord.Z,Lx, Ly,[]);
-    Ax=reshape(reshape(Xz' * DCoord.Y,[],1) * DCoord.Z,Lx, Ly,[]);
+    Az = reshape(reshape(DCoord.X' * DCoord.Y,[],1) * Zz,Lx, Ly,[]);
+    Ay = reshape(reshape(DCoord.X' * Yz,[],1) * DCoord.Z,Lx, Ly,[]);
+    Ax = reshape(reshape(Xz' * DCoord.Y,[],1) * DCoord.Z,Lx, Ly,[]);
 
     %Combine the areas of the zero thickness elements and make them imag.
-    VA=VA + (Ax+Ay+Az)*1i;
+    VA = VA + (Ax+Ay+Az)*1i;
 end
 
-function TCMnew=ExpandTCM(TCMinstance, Values, Prop, Iprop, Field, Ifield)
+function TCMnew = ExpandTCM(TCMinstance, Values, Prop, Iprop, Field, Ifield)
 %Note that TCM looks like: TCM.Prop(iProp).Field{Ifield}
 %                          TCM.Prop(iProp).Field
 %                          TCM.Prop(iProp)
@@ -261,48 +277,48 @@ function TCMnew=ExpandTCM(TCMinstance, Values, Prop, Iprop, Field, Ifield)
         error('Must pass at least a property and Values.')
     end
         
-    TCMnew=[];
+    TCMnew = [];
     if isnumeric(Values)
-        Values=num2cell(Values);
+        Values = num2cell(Values);
     end
-    for Itcm=1:length(TCMinstance)
+    for Itcm = 1:length(TCMinstance)
         if exist('Prop','var') && strcmpi(Prop,'Features')
             if exist('Iprop','var')
-                FeatDesc=['-' TCMinstance(Itcm).(Prop)(Iprop).Desc];
+                FeatDesc = ['-' TCMinstance(Itcm).(Prop)(Iprop).Desc];
             else
-                FeatDesc=['-' TCMinstance(Itcm).(Prop)(1).Desc];
+                FeatDesc = ['-' TCMinstance(Itcm).(Prop)(1).Desc];
             end
         else
-            FeatDesc='';
+            FeatDesc = '';
         end
         if ~isempty(Values)
-            for Ival=1:length(Values)
-                TCMnew=[TCMnew TCMinstance(Itcm)];
+            for Ival = 1:length(Values)
+                TCMnew = [TCMnew TCMinstance(Itcm)];
                 if exist('Ifield','var')
-                    TCMnew(end).(Prop)(Iprop).(Field){Ifield}=Values{Ival};
-                    VarText=sprintf('TCM.%s(%.0f%s).%s(%.0f)',Prop,Iprop,FeatDesc,Field,Ifield);
+                    TCMnew(end).(Prop)(Iprop).(Field){Ifield} = Values{Ival};
+                    VarText = sprintf('TCM.%s(%.0f%s).%s(%.0f)',Prop,Iprop,FeatDesc,Field,Ifield);
                 elseif exist('Field','var')
-                    TCMnew(end).(Prop)(Iprop).(Field)=Values{Ival};
-                    VarText=sprintf('TCM.%s(%.0f%s).%s',Prop,Iprop,FeatDesc,Field);
+                    TCMnew(end).(Prop)(Iprop).(Field) = Values{Ival};
+                    VarText = sprintf('TCM.%s(%.0f%s).%s',Prop,Iprop,FeatDesc,Field);
                 elseif exist('Iprop','var')
-                    TCMnew(end).(Prop)(Iprop)=Values{Ival};
-                    VarText=sprintf('TCM.%s(%.0f%s)',Prop,Iprop,FeatDesc);
+                    TCMnew(end).(Prop)(Iprop) = Values{Ival};
+                    VarText = sprintf('TCM.%s(%.0f%s)',Prop,Iprop,FeatDesc);
                 elseif exist('Prop','var')
-                    TCMnew(end).(Prop)=Values{Ival};
-                    VarText=sprintf('TCM.%s',Prop);
+                    TCMnew(end).(Prop) = Values{Ival};
+                    VarText = sprintf('TCM.%s',Prop);
                 end
                 if length(Values)>1
-                    TCMnew(end).ParamVar{end+1,1}=VarText;
+                    TCMnew(end).ParamVar{end+1,1} = VarText;
                     if isnumeric(Values{Ival})
-                        TCMnew(end).ParamVar{end,2}=sprintf('%g, ',Values{Ival});
-                        TCMnew(end).ParamVar{end,2}=TCMnew(end).ParamVar{end,2}(1:end-2);
+                        TCMnew(end).ParamVar{end,2} = sprintf('%g, ',Values{Ival});
+                        TCMnew(end).ParamVar{end,2} = TCMnew(end).ParamVar{end,2}(1:end-2);
                     else
-                        TCMnew(end).ParamVar{end,2}=Values{Ival};
+                        TCMnew(end).ParamVar{end,2} = Values{Ival};
                     end
                 end
             end
         else
-            TCMnew=[TCMnew TCMinstance(Itcm)];
+            TCMnew = [TCMnew TCMinstance(Itcm)];
         end
     end
 end

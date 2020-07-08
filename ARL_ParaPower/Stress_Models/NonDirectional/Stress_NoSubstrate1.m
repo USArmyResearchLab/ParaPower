@@ -9,6 +9,9 @@ function [stressx,stressy,stressz] = Stress_NoSubstrate1(Results,t)
 % x-y plane.
 % Load Temperature Results, Melt Fraction Results and Processing Temp
 
+% 07-08-2020: Trinity added second argument (t), so that this stress model can be
+% expanded to the time dimension in Stress_NoSubstrateTrinity.m
+
 time = Results.Model.GlobalTime
 Temp=Results.getState('Thermal');
 Temp=Temp(:,:,:,t);
@@ -41,6 +44,12 @@ NCy=length(dy);  %to match the substrate based model
 
 % Load Material Numbers for every element in the model
 Mats=Results.Model.Model;
+
+% save the data for debugging
+if 1
+save('debug_mats.mat','Mats')
+end
+
 % Loop over Cols, Rows and Lays to determine locations that have no
 % material, IBC's, or Fluid
 for Xi=1:NRx
