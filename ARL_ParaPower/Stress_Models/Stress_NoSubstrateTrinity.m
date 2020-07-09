@@ -7,7 +7,7 @@ function [stressx,stressy,stressz] = Stress_NoSubstrateTrinity (Results)
 
 time = Results.Model.GlobalTime;
 for t = 1:length(time)
-    [stressx, stressy, stressz] = Stress_NoSubstrate1(Results,t);
+    [stressx, stressy, stressz] = Stress_NoSubstrateVectorized(Results,t);
 end
 
 % save the data for debugging

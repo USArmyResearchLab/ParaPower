@@ -2646,27 +2646,30 @@ function MaxPlot_Callback(hObject, eventdata, handles, Results)
 % hObject    handle to MaxPlot (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-   ThisCase=get(handles.CaseSelect,'value');
+   ThisCase = get(handles.CaseSelect,'value');
    if ~exist('Results','var')
-       Results=getappdata(handles.figure1, 'Results');
+       Results = getappdata(handles.figure1, 'Results');
        if ~isempty(Results)
-           Results=Results(ThisCase);
+           Results = Results(ThisCase);
        end
    end
    if isempty(Results)
        AddStatusLine('No results available');
    else
-       MI=Results.Model;
+       MI = Results.Model;
        if isfield(MI,'FeatureMatrix')
            TestCaseModel = Results.Case;
-
-           DoutT(:,1)=MI.GlobalTime;
-           DoutM(:,1)=MI.GlobalTime;
-           DoutS(:,1)=MI.GlobalTime;
-           Ftext=[];
-           FeatureMat=[];
-           Fs=unique(MI.FeatureMatrix(~isnan(MI.FeatureMatrix)));
-           Fs=Fs(Fs~=0);
+           
+           % create column vector with time steps
+           DoutT(:,1) = MI.GlobalTime;
+           DoutM(:,1) = MI.GlobalTime;
+           DoutS(:,1) = MI.GlobalTime;
+           Ftext = [];
+           FeatureMat = [];
+           % get each material in model
+           % Fs (vector) contains the unique material numberes in Feature Matrix
+           Fs = unique(MI.FeatureMatrix(~isnan(MI.FeatureMatrix)));
+           Fs = Fs(Fs~=0);
            for Fi=1:length(Fs)
                ThisMat=TestCaseModel.MatLib.GetMatName(TestCaseModel.Features(Fi).Matl);
                if ThisMat.MaxPlot

@@ -50,6 +50,43 @@ if 1
 save('debug_mats.mat','Mats')
 end
 
+% Trinity 07-08-20
+% original: Mats cube with values from 0 to 5 representing materials
+% create "table" mapping material number to PPMatSolid (true/false)
+% use table to create a mask
+% extract materials that are PPMatSolid, replace with true
+% assign to ckMat cube
+
+% get the different material numbers in Mats
+uniq_mat = unique(Mats)
+% see if it is PPMatSolid
+for i = 1:length(uniq_mat)
+    mat_num = uniq_mat(i)
+    if mat_num == 0
+        solid_mat(i) = false
+    else
+        solid_mat(i) = isa(Results.Model.MatLib.GetMatNum(mat_num),'PPMatSolid')
+    end
+end
+
+%solid_mat = uniq_mat(solid_mat)
+
+mat_size = size(Mats)
+ckMat = logical(zeros(mat_size))
+
+for i = 1:length(uniq_mat)
+    mat_no = uniq_mat(i)
+    mask = (Mats == mat_no)
+    ckMat(mask) = solid_mat(i)
+end
+
+for i = 1:length(solid_mat)
+%    mask_mat = (Mats == solid_mat(i))
+%    ckMat = Mats(mask_mat)
+%    Mats == solid_mat (i) = true
+end
+return
+
 % Loop over Cols, Rows and Lays to determine locations that have no
 % material, IBC's, or Fluid
 for Xi=1:NRx
@@ -155,24 +192,31 @@ end
 
 clear Xi Yj Zk Xii Yjj Zkk
 
+
 % Stress check, sum forces to be sure they go to zero
 SumforceX=0;
 SumforceY=0;
 SumforceZ=0;
 
+% Trinity 07-07-20
+[cubex, cubey, cubez] = meshgrid(dy, dx, dz);
 
-for Xii=1:NRx
-    for Yjj=1:NCy
-        for Zkk=1:NLz
-            ForceX(Xii,Yjj,Zkk,t)=stressx(Xii,Yjj,Zkk,t)*dy(Yjj)*dz(Zkk);
-            ForceY(Xii,Yjj,Zkk,t)=stressy(Xii,Yjj,Zkk,t)*dx(Xii)*dz(Zkk);
-            ForceZ(Xii,Yjj,Zkk,t)=stressz(Xii,Yjj,Zkk,t)*dy(Yjj)*dx(Xii);
-        end
-    end
-end
-SumforceX=sum(ForceX(~isnan(ForceX)));
-SumforceY=sum(ForceY(~isnan(ForceY)));
-SumforceZ=sum(ForceZ(~isnan(ForceZ)));
+ForceX=stressx.*cubey.*cubez;
+ForceY=stressy.*cubex.*cubez;
+ForceZ=stressz.*cubey.*cubex;
+
+% for Xii=1:NRx
+%     for Yjj=1:NCy
+%         for Zkk=1:NLz
+%             ForceX(Xii,Yjj,Zkk,t)=stressx(Xii,Yjj,Zkk,t)*dy(Yjj)*dz(Zkk);
+%             ForceY(Xii,Yjj,Zkk,t)=stressy(Xii,Yjj,Zkk,t)*dx(Xii)*dz(Zkk);
+%             ForceZ(Xii,Yjj,Zkk,t)=stressz(Xii,Yjj,Zkk,t)*dy(Yjj)*dx(Xii);
+%         end
+%     end
+% end
+% SumforceX=sum(ForceX(~isnan(ForceX)));
+% SumforceY=sum(ForceY(~isnan(ForceY)));
+% SumforceZ=sum(ForceZ(~isnan(ForceZ)));
 
 
 fprintf('Net Force X: %f, Y: %f, Z: %f\n',SumforceX, SumforceY, SumforceZ)
