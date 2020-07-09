@@ -58,32 +58,34 @@ end
 % assign to ckMat cube
 
 % get the different material numbers in Mats
-uniq_mat = unique(Mats);
-% see if it is PPMatSolid
-for i = 1:length(uniq_mat)
-    mat_num = uniq_mat(i);
-    if mat_num == 0
-        solid_mat(i) = false;
-    else
-        solid_mat(i) = isa(Results.Model.MatLib.GetMatNum(mat_num),'PPMatSolid');
-    end
+mat_num = unique(Mats);
+
+% extract nonzero material numbers
+zero_mask = (mat_num ~= 0)
+lut_mat_num = mat_num(zero_mask)
+
+%initialize lut_solid_mat so that same size as lut_mat_num
+lut_solid_mat = logical(zeros(size(lut_mat_num)))
+
+% see if material number is PPMatSolid, if yes --> true
+for i = 1:length(lut_mat_num)
+    lut_solid_mat(i) = isa(Results.Model.MatLib.GetMatNum(lut_mat_num(i)),'PPMatSolid');
 end
 
+% create look-up table (cell array) mapping material number to logical
+lut = {lut_mat_num, lut_solid_mat}
+
+% initialize ckMat
 mat_size = size(Mats);
 ckMat = logical(zeros(mat_size));
 
-for i = 1:length(uniq_mat)
-    mat_no = uniq_mat(i);
+% PPMatSolid materials assigned true
+for i = 1:length(lut{1})
+    mat_no = lut{1}(i);
     mask = (Mats == mat_no);
-    ckMat(mask) = solid_mat(i);
+    ckMat(mask) = lut{2}(i);
 end
 
-% for i = 1:length(solid_mat)
-% %    mask_mat = (Mats == solid_mat(i))
-% %    ckMat = Mats(mask_mat)
-% %    Mats == solid_mat (i) = true
-% end
-% return
 
 % Loop over Cols, Rows and Lays to determine locations that have no
 % material, IBC's, or Fluid
