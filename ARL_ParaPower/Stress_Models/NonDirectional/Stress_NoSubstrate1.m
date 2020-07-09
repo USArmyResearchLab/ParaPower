@@ -12,7 +12,6 @@ function [stressx,stressy,stressz] = Stress_NoSubstrate1(Results,t)
 % 07-08-2020: Trinity added second argument (t), so that this stress model can be
 % expanded to the time dimension in Stress_NoSubstrateTrinity.m
 
-time = Results.Model.GlobalTime
 Temp=Results.getState('Thermal');
 Temp=Temp(:,:,:,t);
 Melt=Results.getState('MeltFrac');
