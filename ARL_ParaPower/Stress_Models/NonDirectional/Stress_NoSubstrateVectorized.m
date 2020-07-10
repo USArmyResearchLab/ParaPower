@@ -1,4 +1,4 @@
-function [stressx,stressy,stressz] = Stress_NoSubstrate1(Results,t)
+function [stressx,stressy,stressz] = Stress_NoSubstrateVectorized(Results,t)
 % This function calculates the thermal stress based on CTE mismatch for each element in the model.
 % This is a quasi 3-D approach that sums the forces in one plane to get the
 % final length of all the elelments in that plane. Each plane is taken
@@ -80,7 +80,7 @@ mat_size = size(Mats);
 ckMat = logical(zeros(mat_size));
 
 % PPMatSolid materials assigned true
-for i = 1:length(lut{1})
+for i = 1:length(lut_mat_num)
     mat_no = lut{1}(i);
     mask = (Mats == mat_no);
     ckMat(mask) = lut{2}(i);
@@ -118,6 +118,37 @@ for Yjj=1:NCy
                 sumn=sumn+0;
                 sumd=sumd+0;
             else
+                %{
+                mat_no = Mats(Xi,Yjj,Zk);
+                youngs_X = EX(mat_no);
+                poisson_X = nuX(mat_no);
+                cte_X = cteX(mat_no)
+                d_Y = dy(Yjj);
+                d_Z = dz(Zk);
+                %}
+                
+                % initialize Young's Modulus cube
+                % mat_size = size(Mats)
+                youngs_X = zeros(mat_size);
+                poisson_X = zeros(mat_size);
+                cte_X = zeros(mat_size);
+                
+                % loop through nonzero material numbers
+                for i = 1:length(lut_mat_num)
+                    mat_no = lut_mat_num(i);
+                    mask = (Mats == mat_no);
+                    youngs_X(mask) = EX(mat_no);
+                    poisson_X(mask) = nuX(mat_no);
+                    cte_X(mask) = cteX(mat_no);
+                end
+                
+                % make dy and dz into column vectors
+                dy = dy'
+                d_Y = repmat(dy, [1 length(dy) length(dz)])
+                d_Z = zeros(1,1,length(dz))
+                d_Z(1,1,:) = dz
+                d_Z = repmat(d_Z, [length(dx) length(dy) 1])
+                
                 sumn=sumn+(EX(Mats(Xi,Yjj,Zk))/(1-nuX(Mats(Xi,Yjj,Zk))))*dy(Yjj)*dz(Zk);
                 sumd=sumd+((EX(Mats(Xi,Yjj,Zk))/(1-nuX(Mats(Xi,Yjj,Zk))))*dy(Yjj)*dz(Zk))/(dx(Xi)*(cteX(Mats(Xi,Yjj,Zk))*delT(Xi,Yjj,Zk)+1));
             end
