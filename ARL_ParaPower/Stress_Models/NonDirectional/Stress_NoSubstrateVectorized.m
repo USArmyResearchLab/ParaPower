@@ -1,4 +1,4 @@
-function [stressx,stressy,stressz] = Stress_NoSubstrateVectorized(Results,t)
+function [stressx,stressy,stressz] = Stress_NoSubstrateVectorized(Results,time_t)
 % This function calculates the thermal stress based on CTE mismatch for each element in the model.
 % This is a quasi 3-D approach that sums the forces in one plane to get the
 % final length of all the elelments in that plane. Each plane is taken
@@ -14,9 +14,9 @@ function [stressx,stressy,stressz] = Stress_NoSubstrateVectorized(Results,t)
 
 time = Results.Model.GlobalTime
 Temp=Results.getState('Thermal');
-Temp=Temp(:,:,:,t);
+Temp=Temp(:,:,:,time_t);
 Melt=Results.getState('MeltFrac');
-Melt=Melt(:,:,:,t);
+Melt=Melt(:,:,:,time_t);
 ProcT=Results.Model.Tproc;
 % Load material properties E, cte, nu
 EX=Results.Model.MatLib.GetParam('E');
@@ -61,11 +61,11 @@ end
 mat_num = unique(Mats);
 
 % extract nonzero material numbers
-zero_mask = (mat_num ~= 0)
-lut_mat_num = mat_num(zero_mask)
+zero_mask = (mat_num ~= 0);
+lut_mat_num = mat_num(zero_mask);
 
 %initialize lut_solid_mat so that same size as lut_mat_num
-lut_solid_mat = logical(zeros(size(lut_mat_num)))
+lut_solid_mat = logical(zeros(size(lut_mat_num)));
 
 % see if material number is PPMatSolid, if yes --> true
 for i = 1:length(lut_mat_num)
@@ -73,7 +73,7 @@ for i = 1:length(lut_mat_num)
 end
 
 % create look-up table (cell array) mapping material number to logical
-lut = {lut_mat_num, lut_solid_mat}
+lut = {lut_mat_num, lut_solid_mat};
 
 % initialize ckMat
 mat_size = size(Mats);
@@ -137,7 +137,7 @@ cube_dx(mask_ckMatl_or_Melt) = 0;
 sumnx = sum(cube_nx,[1 3]);
 sumdx = sum(cube_dx,[1 3]);
 
-my_Lfx = sumnx ./ sumdx
+my_Lfx = sumnx ./ sumdx;
 
 % Loop over Cols, Rows and Lays to determine the final x, y and z lengths of
 % the elements, as a result of the CTE mismatch between the materials in all the layers
@@ -189,8 +189,8 @@ cube_dy(mask_ckMatl_or_Melt) = 0;
 sumny = sum(cube_ny,[2 3]);
 sumdy = sum(cube_dy,[2 3]);
 
-my_Lfy = sumny ./ sumdy
-my_Lfy = my_Lfy'
+my_Lfy = sumny ./ sumdy;
+my_Lfy = my_Lfy';
 
 % y-direction final length
 for Xii=1:NRx
@@ -227,7 +227,7 @@ cube_dz(mask_ckMatl_or_Melt) = 0;
 sumnz = sum(cube_nz,[1 2]);
 sumdz = sum(cube_dz,[1 2]);
 
-my_Lfz = sumnz ./ sumdz
+my_Lfz = sumnz ./ sumdz;
 % my_Lfz = squeeze(squeeze(my_Lfz))
 % my_Lfz = my_Lfz'
 
@@ -255,21 +255,23 @@ end
 
 clear Xi Yj Zk Xii Yjj Zkk
 
+% pre-calculated cubes to be removed out of loops
+Lfx_cube = repmat(my_Lfx, [length(dx) 1 length(dz)]);
+Lfy_cube = repmat(my_Lfy', [1 length(dy) length(dz)]);
+Lfz_cube = repmat(my_Lfz, [length(dx) length(dy) 1]);
+
 % make stress cubes
 stresscube_x = zeros(mat_size);
 stresscube_y = zeros(mat_size);
 stresscube_z = zeros(mat_size);
+
+stresscube_x = (youngs_X./(onescube-poisson_X)).*((Lfx_cube./(d_X.*(cte_X.*delT+onescube)))-onescube);
+stresscube_y = (youngs_X./(onescube-poisson_X)).*((Lfy_cube./(d_Y.*(cte_X.*delT+onescube)))-onescube);
+stresscube_z = (youngs_X./(onescube-poisson_X)).*((Lfz_cube./(d_Z.*(cte_X.*delT+onescube)))-onescube);
+
 stresscube_x(mask_ckMatl_or_Melt) = NaN;
 stresscube_y(mask_ckMatl_or_Melt) = NaN;
 stresscube_z(mask_ckMatl_or_Melt) = NaN;
-
-Lfx_cube = repmat(my_Lfx', [1 length(dy) length(dz)]);
-Lfy_cube = repmat(my_Lfy, [length(dx) 1 length(dz)]);
-Lfz_cube = repmat(my_Lfz, [length(dx) length(dy) 1]);
-
-stresscube_x=(youngs_X./(onescube-poisson_X)).*((Lfx_cube./(d_X.*(cte_X.*delT+onescube)))-onescube);
-stresscube_y=(youngs_X./(onescube-poisson_X)).*((Lfy_cube./(d_Y.*(cte_X.*delT+onescube)))-onescube);
-stresscube_z=(youngs_X./(onescube-poisson_X)).*((Lfz_cube./(d_Z.*(cte_X.*delT+onescube)))-onescube);
 
 % Loop over all elements to claculate stress due to CTE mismatch for each
 % element
@@ -277,30 +279,65 @@ for Zkk=1:NLz
     for Xii=1:NRx
         for Yjj=1:NCy
             if  ckMatl(Xii,Yjj,Zkk) == 0 || Melt(Xii,Yjj,Zkk) > 0
-                stressx(Xii,Yjj,Zkk,t)=NaN;
-                stressy(Xii,Yjj,Zkk,t)=NaN;
-                stressz(Xii,Yjj,Zkk,t)=NaN;
+                stressx(Xii,Yjj,Zkk)=NaN;
+                stressy(Xii,Yjj,Zkk)=NaN;
+                stressz(Xii,Yjj,Zkk)=NaN;
             else
-                if 1
+                if 0
+                    
                     [Xii Yjj Zkk]
-                    assert(Lfx_cube(Xii,Yjj,Zkk)==Lfx(Yjj));
-                    assert(Lfy_cube(Xii,Yjj,Zkk)==Lfy(Xii));
-                    assert(Lfy_cube(Xii,Yjj,Zkk)==Lfz(Zkk));
-%                     assert(youngs_X(Xi,Yjj,Zk) == EX(Mats(Xi,Yjj,Zk)));
-%                     assert(poisson_X(Xi,Yjj,Zk) == nuX(Mats(Xi,Yjj,Zk)));
-%                     assert(cte_X(Xi,Yjj,Zk) == cteX(Mats(Xi,Yjj,Zk)));
-%                     assert(cube_nx(Xi,Yjj,Zk) == (EX(Mats(Xi,Yjj,Zk))/(1-nuX(Mats(Xi,Yjj,Zk))))*dy(Yjj)*dz(Zk));
-%                     assert(cube_dx(Xi,Yjj,Zk) == ((EX(Mats(Xi,Yjj,Zk))/(1-nuX(Mats(Xi,Yjj,Zk))))*dy(Yjj)*dz(Zk))/(dx(Xi)*(cteX(Mats(Xi,Yjj,Zk))*delT(Xi,Yjj,Zk)+1)));
+                    [Lfx_cube(Xii,Yjj,Zkk) Lfx(Yjj)]
+                    [Lfy_cube(Xii,Yjj,Zkk) Lfy(Xii)]
+                    [Lfz_cube(Xii,Yjj,Zkk) Lfz(Zkk)]
+                    assert(abs(max(Lfx_cube(Xii,Yjj,Zkk)-Lfx(Yjj)))<0.00001);
+                    assert(abs(max(Lfy_cube(Xii,Yjj,Zkk)-Lfy(Xii)))<0.00001);
+                    assert(abs(max(Lfz_cube(Xii,Yjj,Zkk)-Lfz(Zkk)))<0.00001);
+
+                    assert(youngs_X(Xii,Yjj,Zkk) == EX(Mats(Xii,Yjj,Zkk)));
+                    assert(poisson_X(Xii,Yjj,Zkk) == nuX(Mats(Xii,Yjj,Zkk)));
+                    assert(cte_X(Xii,Yjj,Zkk) == cteX(Mats(Xii,Yjj,Zkk)));
                 end
-                stressx(Xii,Yjj,Zkk,t)=(EX(Mats(Xii,Yjj,Zkk))/(1-nuX(Mats(Xii,Yjj,Zkk))))*((Lfx(Yjj)/(dx(Xii)*(cteX(Mats(Xii,Yjj,Zkk))*delT(Xii,Yjj,Zkk)+1)))-1);
-                stressy(Xii,Yjj,Zkk,t)=(EY(Mats(Xii,Yjj,Zkk))/(1-nuY(Mats(Xii,Yjj,Zkk))))*((Lfy(Xii)/(dy(Yjj)*(cteY(Mats(Xii,Yjj,Zkk))*delT(Xii,Yjj,Zkk)+1)))-1);
-                stressz(Xii,Yjj,Zkk,t)=(EZ(Mats(Xii,Yjj,Zkk))/(1-nuZ(Mats(Xii,Yjj,Zkk))))*((Lfz(Zkk)/(dz(Zkk)*(cteZ(Mats(Xii,Yjj,Zkk))*delT(Xii,Yjj,Zkk)+1)))-1);
+                stressx(Xii,Yjj,Zkk)=(EX(Mats(Xii,Yjj,Zkk))/(1-nuX(Mats(Xii,Yjj,Zkk))))*((Lfx(Yjj)/(dx(Xii)*(cteX(Mats(Xii,Yjj,Zkk))*delT(Xii,Yjj,Zkk)+1)))-1);
+                stressy(Xii,Yjj,Zkk)=(EY(Mats(Xii,Yjj,Zkk))/(1-nuY(Mats(Xii,Yjj,Zkk))))*((Lfy(Xii)/(dy(Yjj)*(cteY(Mats(Xii,Yjj,Zkk))*delT(Xii,Yjj,Zkk)+1)))-1);
+                stressz(Xii,Yjj,Zkk)=(EZ(Mats(Xii,Yjj,Zkk))/(1-nuZ(Mats(Xii,Yjj,Zkk))))*((Lfz(Zkk)/(dz(Zkk)*(cteZ(Mats(Xii,Yjj,Zkk))*delT(Xii,Yjj,Zkk)+1)))-1);
+
+                
+                % !! NaN generated from stressz !!
+                if 0
+                [Xii Yjj Zkk]    
+                assert(~isnan(stressx(Xii,Yjj,Zkk)))
+                assert(~isnan(stressy(Xii,Yjj,Zkk)))
+                assert(~isnan(stressz(Xii,Yjj,Zkk)))
+                end
+                
+                if 0
+                a = stressx(Xii,Yjj,Zkk);
+                b = stresscube_x(Xii,Yjj,Zkk);
+                [a b]
+                assert(max(abs(a-b))<0.001);
+
+                a = stressy(Xii,Yjj,Zkk);
+                b = stresscube_y(Xii,Yjj,Zkk);
+                [a b]
+                assert(max(abs(a-b))<0.001);
+
+                a = stressz(Xii,Yjj,Zkk);
+                b = stresscube_z(Xii,Yjj,Zkk);
+                [a b]
+                assert(max(abs(a-b))<0.001);
+
+                end
+
             end
         end
     end
 end
 
 clear Xi Yj Zk Xii Yjj Zkk
+
+the_max_error_x_is = max(max(max(abs(stressx - stresscube_x))))
+the_max_error_y_is = max(max(max(abs(stressy - stresscube_y))))
+the_max_error_z_is = max(max(max(abs(stressz - stresscube_z))))
 
 
 % Stress check, sum forces to be sure they go to zero
