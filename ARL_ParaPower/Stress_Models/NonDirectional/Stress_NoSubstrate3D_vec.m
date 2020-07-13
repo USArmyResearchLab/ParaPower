@@ -1,4 +1,4 @@
-function [stressx,stressy,stressz] = Stress_NoSubstrateVectorized(Results,time_t)
+function [stresscube_x,stresscube_y,stresscube_z] = Stress_NoSubstrate3D_vec(Results,time_t)
 % This function calculates the thermal stress based on CTE mismatch for each element in the model.
 % This is a quasi 3-D approach that sums the forces in one plane to get the
 % final length of all the elelments in that plane. Each plane is taken
@@ -9,11 +9,7 @@ function [stressx,stressy,stressz] = Stress_NoSubstrateVectorized(Results,time_t
 % x-y plane.
 % Load Temperature Results, Melt Fraction Results and Processing Temp
 
-<<<<<<< Updated upstream
-% 07-08-2020: Trinity added second argument (t), so that this stress model can be
-=======
 % 07-08-2020: TC added second argument (t), so that this stress model can be
->>>>>>> Stashed changes
 % expanded to the time dimension in Stress_NoSubstrateTrinity.m
 
 time = Results.Model.GlobalTime
@@ -51,11 +47,7 @@ Mats=Results.Model.Model;
 
 % save the data for debugging
 if 1
-<<<<<<< Updated upstream
-save('debug_mats.mat','Mats')
-=======
     save('debug_mats.mat','Mats')
->>>>>>> Stashed changes
 end
 
 % Trinity 07-08-20
@@ -130,7 +122,6 @@ d_Z = repmat(d_Z, [length(dx) length(dy) 1]);
 save('my_cubes.mat')
 
 cube_nx = (youngs_X ./ (onescube - poisson_X)) .* d_Y .* d_Z;
-%cube_d = ((youngs_X ./ (onescube - poisson_X)) .* d_Y .* d_Z) ./ (d_X .* cte_X .* delT + onescube);
 cube_dx = ((youngs_X./(onescube-poisson_X)).*d_Y.*d_Z)./(d_X.*(cte_X.*delT+onescube));
 
 % exclude non-Solid or melt materials...
@@ -163,17 +154,6 @@ for Yjj=1:NCy
                 sumd=sumd+0;
             else
                 if 1
-<<<<<<< Updated upstream
-                [Xi Yjj Zk];
-                assert(d_X(Xi,Yjj,Zk)==dx(Xi));
-                assert(d_Y(Xi,Yjj,Zk)==dy(Yjj));
-                assert(d_Z(Xi,Yjj,Zk)==dz(Zk));
-                assert(youngs_X(Xi,Yjj,Zk) == EX(Mats(Xi,Yjj,Zk)));
-                assert(poisson_X(Xi,Yjj,Zk) == nuX(Mats(Xi,Yjj,Zk)));
-                assert(cte_X(Xi,Yjj,Zk) == cteX(Mats(Xi,Yjj,Zk)));
-                assert(cube_nx(Xi,Yjj,Zk) == (EX(Mats(Xi,Yjj,Zk))/(1-nuX(Mats(Xi,Yjj,Zk))))*dy(Yjj)*dz(Zk));
-                assert(cube_dx(Xi,Yjj,Zk) == ((EX(Mats(Xi,Yjj,Zk))/(1-nuX(Mats(Xi,Yjj,Zk))))*dy(Yjj)*dz(Zk))/(dx(Xi)*(cteX(Mats(Xi,Yjj,Zk))*delT(Xi,Yjj,Zk)+1)));
-=======
                     [Xi Yjj Zk];
                     assert(d_X(Xi,Yjj,Zk)==dx(Xi));
                     assert(d_Y(Xi,Yjj,Zk)==dy(Yjj));
@@ -183,7 +163,6 @@ for Yjj=1:NCy
                     assert(cte_X(Xi,Yjj,Zk) == cteX(Mats(Xi,Yjj,Zk)));
                     assert(cube_nx(Xi,Yjj,Zk) == (EX(Mats(Xi,Yjj,Zk))/(1-nuX(Mats(Xi,Yjj,Zk))))*dy(Yjj)*dz(Zk));
                     assert(cube_dx(Xi,Yjj,Zk) == ((EX(Mats(Xi,Yjj,Zk))/(1-nuX(Mats(Xi,Yjj,Zk))))*dy(Yjj)*dz(Zk))/(dx(Xi)*(cteX(Mats(Xi,Yjj,Zk))*delT(Xi,Yjj,Zk)+1)));
->>>>>>> Stashed changes
                 end
                 
                 sumn=sumn+(EX(Mats(Xi,Yjj,Zk))/(1-nuX(Mats(Xi,Yjj,Zk))))*dy(Yjj)*dz(Zk);
@@ -195,8 +174,8 @@ for Yjj=1:NCy
 end
 
 max_difference_x = max(abs(Lfx-my_Lfx));
-
-clear Xi Yj Zk Xii Yjj Zkk
+% 
+% clear Xi Yj Zk Xii Yjj Zkk
 
 cube_ny = (youngs_X ./ (onescube - poisson_X)) .* d_X .* d_Z;
 cube_dy = ((youngs_X./(onescube-poisson_X)).*d_X.*d_Z)./(d_Y.*(cte_X.*delT+onescube));
@@ -271,7 +250,7 @@ for Zkk=1:NLz
     Lfz(Zkk)=sumn/sumd;
 end
 
-% max_difference_z = max(abs(Lfz-my_Lfz));
+max_difference_z = max(abs(Lfz-my_Lfz));
 
 clear Xi Yj Zk Xii Yjj Zkk
 
@@ -312,11 +291,7 @@ for Zkk=1:NLz
                     assert(abs(max(Lfx_cube(Xii,Yjj,Zkk)-Lfx(Yjj)))<0.00001);
                     assert(abs(max(Lfy_cube(Xii,Yjj,Zkk)-Lfy(Xii)))<0.00001);
                     assert(abs(max(Lfz_cube(Xii,Yjj,Zkk)-Lfz(Zkk)))<0.00001);
-<<<<<<< Updated upstream
-
-=======
                     
->>>>>>> Stashed changes
                     assert(youngs_X(Xii,Yjj,Zkk) == EX(Mats(Xii,Yjj,Zkk)));
                     assert(poisson_X(Xii,Yjj,Zkk) == nuX(Mats(Xii,Yjj,Zkk)));
                     assert(cte_X(Xii,Yjj,Zkk) == cteX(Mats(Xii,Yjj,Zkk)));
@@ -324,36 +299,6 @@ for Zkk=1:NLz
                 stressx(Xii,Yjj,Zkk)=(EX(Mats(Xii,Yjj,Zkk))/(1-nuX(Mats(Xii,Yjj,Zkk))))*((Lfx(Yjj)/(dx(Xii)*(cteX(Mats(Xii,Yjj,Zkk))*delT(Xii,Yjj,Zkk)+1)))-1);
                 stressy(Xii,Yjj,Zkk)=(EY(Mats(Xii,Yjj,Zkk))/(1-nuY(Mats(Xii,Yjj,Zkk))))*((Lfy(Xii)/(dy(Yjj)*(cteY(Mats(Xii,Yjj,Zkk))*delT(Xii,Yjj,Zkk)+1)))-1);
                 stressz(Xii,Yjj,Zkk)=(EZ(Mats(Xii,Yjj,Zkk))/(1-nuZ(Mats(Xii,Yjj,Zkk))))*((Lfz(Zkk)/(dz(Zkk)*(cteZ(Mats(Xii,Yjj,Zkk))*delT(Xii,Yjj,Zkk)+1)))-1);
-<<<<<<< Updated upstream
-
-                
-                % !! NaN generated from stressz !!
-                if 0
-                [Xii Yjj Zkk]    
-                assert(~isnan(stressx(Xii,Yjj,Zkk)))
-                assert(~isnan(stressy(Xii,Yjj,Zkk)))
-                assert(~isnan(stressz(Xii,Yjj,Zkk)))
-                end
-                
-                if 0
-                a = stressx(Xii,Yjj,Zkk);
-                b = stresscube_x(Xii,Yjj,Zkk);
-                [a b]
-                assert(max(abs(a-b))<0.001);
-
-                a = stressy(Xii,Yjj,Zkk);
-                b = stresscube_y(Xii,Yjj,Zkk);
-                [a b]
-                assert(max(abs(a-b))<0.001);
-
-                a = stressz(Xii,Yjj,Zkk);
-                b = stresscube_z(Xii,Yjj,Zkk);
-                [a b]
-                assert(max(abs(a-b))<0.001);
-
-                end
-
-=======
                 
                 
                 % !! NaN generated from stressz !!
@@ -382,7 +327,6 @@ for Zkk=1:NLz
                     
                 end
                 
->>>>>>> Stashed changes
             end
         end
     end
@@ -400,21 +344,12 @@ SumforceX=0;
 SumforceY=0;
 SumforceZ=0;
 
-<<<<<<< Updated upstream
-% Trinity 07-07-20
-[cubex, cubey, cubez] = meshgrid(dy, dx, dz);
-
-ForceX=stressx.*cubey.*cubez;
-ForceY=stressy.*cubex.*cubez;
-ForceZ=stressz.*cubey.*cubex;
-=======
 % TC 07-07-20
 [cubex, cubey, cubez] = meshgrid(dy, dx, dz);
 
 ForceX=stresscube_x.*cubey.*cubez;
 ForceY=stresscube_y.*cubex.*cubez;
 ForceZ=stresscube_z.*cubey.*cubex;
->>>>>>> Stashed changes
 
 % for Xii=1:NRx
 %     for Yjj=1:NCy

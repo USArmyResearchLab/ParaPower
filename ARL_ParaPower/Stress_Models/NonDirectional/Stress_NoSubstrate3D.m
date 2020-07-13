@@ -1,4 +1,4 @@
-function [stressx,stressy,stressz] = Stress_NoSubstrate1(Results,t)
+function [stressx,stressy,stressz] = Stress_NoSubstrate3D(Results,t)
 % This function calculates the thermal stress based on CTE mismatch for each element in the model.
 % This is a quasi 3-D approach that sums the forces in one plane to get the
 % final length of all the elelments in that plane. Each plane is taken
@@ -9,7 +9,7 @@ function [stressx,stressy,stressz] = Stress_NoSubstrate1(Results,t)
 % x-y plane.
 % Load Temperature Results, Melt Fraction Results and Processing Temp
 
-% 07-08-2020: Trinity added second argument (t), so that this stress model can be
+% 07-08-2020: TC added second argument (t), so that this stress model can be
 % expanded to the time dimension in Stress_NoSubstrateTrinity.m
 
 Temp=Results.getState('Thermal');
