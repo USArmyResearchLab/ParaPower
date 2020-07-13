@@ -140,13 +140,13 @@ for Zkk=1:NLz
     for Xii=1:NRx
         for Yjj=1:NCy
             if  ckMatl(Xii,Yjj,Zkk) == 0 || Melt(Xii,Yjj,Zkk) > 0
-                stressx(Xii,Yjj,Zkk,t)=NaN;
-                stressy(Xii,Yjj,Zkk,t)=NaN;
-                stressz(Xii,Yjj,Zkk,t)=NaN;
+                stressx(Xii,Yjj,Zkk)=NaN;
+                stressy(Xii,Yjj,Zkk)=NaN;
+                stressz(Xii,Yjj,Zkk)=NaN;
             else
-                stressx(Xii,Yjj,Zkk,t)=(EX(Mats(Xii,Yjj,Zkk))/(1-nuX(Mats(Xii,Yjj,Zkk))))*((Lfx(Yjj)/(dx(Xii)*(cteX(Mats(Xii,Yjj,Zkk))*delT(Xii,Yjj,Zkk)+1)))-1);
-                stressy(Xii,Yjj,Zkk,t)=(EY(Mats(Xii,Yjj,Zkk))/(1-nuY(Mats(Xii,Yjj,Zkk))))*((Lfy(Xii)/(dy(Yjj)*(cteY(Mats(Xii,Yjj,Zkk))*delT(Xii,Yjj,Zkk)+1)))-1);
-                stressz(Xii,Yjj,Zkk,t)=(EZ(Mats(Xii,Yjj,Zkk))/(1-nuZ(Mats(Xii,Yjj,Zkk))))*((Lfz(Zkk)/(dz(Zkk)*(cteZ(Mats(Xii,Yjj,Zkk))*delT(Xii,Yjj,Zkk)+1)))-1);
+                stressx(Xii,Yjj,Zkk)=(EX(Mats(Xii,Yjj,Zkk))/(1-nuX(Mats(Xii,Yjj,Zkk))))*((Lfx(Yjj)/(dx(Xii)*(cteX(Mats(Xii,Yjj,Zkk))*delT(Xii,Yjj,Zkk)+1)))-1);
+                stressy(Xii,Yjj,Zkk)=(EY(Mats(Xii,Yjj,Zkk))/(1-nuY(Mats(Xii,Yjj,Zkk))))*((Lfy(Xii)/(dy(Yjj)*(cteY(Mats(Xii,Yjj,Zkk))*delT(Xii,Yjj,Zkk)+1)))-1);
+                stressz(Xii,Yjj,Zkk)=(EZ(Mats(Xii,Yjj,Zkk))/(1-nuZ(Mats(Xii,Yjj,Zkk))))*((Lfz(Zkk)/(dz(Zkk)*(cteZ(Mats(Xii,Yjj,Zkk))*delT(Xii,Yjj,Zkk)+1)))-1);
             end
         end
     end
@@ -163,9 +163,9 @@ SumforceZ=0;
 for Xii=1:NRx
     for Yjj=1:NCy
         for Zkk=1:NLz
-            ForceX(Xii,Yjj,Zkk,t)=stressx(Xii,Yjj,Zkk,t)*dy(Yjj)*dz(Zkk);
-            ForceY(Xii,Yjj,Zkk,t)=stressy(Xii,Yjj,Zkk,t)*dx(Xii)*dz(Zkk);
-            ForceZ(Xii,Yjj,Zkk,t)=stressz(Xii,Yjj,Zkk,t)*dy(Yjj)*dx(Xii);
+            ForceX(Xii,Yjj,Zkk)=stressx(Xii,Yjj,Zkk)*dy(Yjj)*dz(Zkk);
+            ForceY(Xii,Yjj,Zkk)=stressy(Xii,Yjj,Zkk)*dx(Xii)*dz(Zkk);
+            ForceZ(Xii,Yjj,Zkk)=stressz(Xii,Yjj,Zkk)*dy(Yjj)*dx(Xii);
         end
     end
 end
