@@ -29,11 +29,27 @@ function debug_comp (fn1, fn2)
         
         max1 = max(abs(x),[],'all');
         max2 = max(abs(y),[],'all');
-        max12 = max(max1,max2);
         
         max_diff = max(abs(x - y),[],'all');
+        max12 = max(max1,max2);
+        percent = max_diff/max12;
         
         equ = max_diff/max12 < threshold;
+        
+        sizex = size(x);
+        nanx = nnz(isnan(x));
+        sizey = size(y);
+        nany = nnz(isnan(y));
+        elemx = numel(x);
+        elemy = numel(y);
+
+        whos x
+        whos y
+        disp(sprintf('Number of NaN, x = %d',nnz(isnan(x))))
+        disp(sprintf('Number of NaN, y = %d',nnz(isnan(y))))
+        disp(sprintf('Maximum difference = %.4f',max_diff))
+        disp(sprintf('Maximum data = %.4f',max12))
+        disp(sprintf('Error percentage = %f',percent))
         
         return
     end
