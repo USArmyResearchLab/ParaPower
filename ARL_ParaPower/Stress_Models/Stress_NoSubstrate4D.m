@@ -1,4 +1,4 @@
-function [stressx,stressy,stressz] = Stress_NoSubstrate4D(Results)
+function [stressx,stressy,stressz,stressvm] = Stress_NoSubstrate4D(Results)
 % This function calculates the thermal stress based on CTE mismatch for each element in the model.
 % This is a quasi 3-D approach that sums the forces in one plane to get the
 % final length of all the elelments in that plane. Each plane is taken
@@ -25,6 +25,7 @@ time = Results.Model.GlobalTime
 stressx = zeros(NRx,NCy,NLz,length(time));
 stressy = zeros(NRx,NCy,NLz,length(time));
 stressz = zeros(NRx,NCy,NLz,length(time));
+stressvm = zeros(NRx,NCy,NLz,length(time));
 
 % 07-08-2020: TC added second argument (t), so that this stress model can be
 % expanded to the time dimension in Stress_NoSubstrateTrinity.m
@@ -138,7 +139,6 @@ for timestep = 1:length(time)
     clear Xi Yj Zk Xii Yjj Zkk
     
     
-
     % Loop over all elements to claculate stress due to CTE mismatch for each
     % element
     for Zkk=1:NLz
@@ -157,9 +157,17 @@ for timestep = 1:length(time)
         end
     end
     
+    stressvm = (((stressx-stressz).^2 + (stressx-stressy).^2 + (stressy-stressz).^2)/2).^.5;
+    
+    if 1
+        save('debug_4D.mat','stressx','stressy','stressz','stressvm')
+    end
+    
+    
+    
     clear Xi Yj Zk Xii Yjj Zkk
     
-    % Stress check, sum forces to be sure they go to zero
+    %% Stress check, sum forces to be sure they go to zero
     SumforceX = 0;
     SumforceY = 0;
     SumforceZ = 0;
@@ -180,5 +188,4 @@ for timestep = 1:length(time)
     
     
     fprintf('Net Force X: %f, Y: %f, Z: %f\n',SumforceX, SumforceY, SumforceZ)
-    return
 end
