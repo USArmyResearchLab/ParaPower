@@ -928,7 +928,12 @@ function RunAnalysis_Callback(hObject, eventdata, handles)
 
            %not used StateN=round(length(GlobalTime)*TimeStepOutput,0);
            
-           Results(ThisCase)=Results(ThisCase).addState('Stress',Stress);
+           %Results(ThisCase)=Results(ThisCase).addState('Stress',Stress);
+           Results(ThisCase)=Results(ThisCase).addState('Stress_X',Stress.X);
+           Results(ThisCase)=Results(ThisCase).addState('Stress_Y',Stress.Y);
+           Results(ThisCase)=Results(ThisCase).addState('Stress_Z',Stress.Z);
+           Results(ThisCase)=Results(ThisCase).addState('Stress_VM',Stress.VM);
+           
            
        end
        if get(handles.transient,'value')==1
@@ -2641,27 +2646,30 @@ function MaxPlot_Callback(hObject, eventdata, handles, Results)
 % hObject    handle to MaxPlot (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-   ThisCase=get(handles.CaseSelect,'value');
+   ThisCase = get(handles.CaseSelect,'value');
    if ~exist('Results','var')
-       Results=getappdata(handles.figure1, 'Results');
+       Results = getappdata(handles.figure1, 'Results');
        if ~isempty(Results)
-           Results=Results(ThisCase);
+           Results = Results(ThisCase);
        end
    end
    if isempty(Results)
        AddStatusLine('No results available');
    else
-       MI=Results.Model;
+       MI = Results.Model;
        if isfield(MI,'FeatureMatrix')
            TestCaseModel = Results.Case;
-
-           DoutT(:,1)=MI.GlobalTime;
-           DoutM(:,1)=MI.GlobalTime;
-           DoutS(:,1)=MI.GlobalTime;
-           Ftext=[];
-           FeatureMat=[];
-           Fs=unique(MI.FeatureMatrix(~isnan(MI.FeatureMatrix)));
-           Fs=Fs(Fs~=0);
+           
+           % create column vector with time steps
+           DoutT(:,1) = MI.GlobalTime;
+           DoutM(:,1) = MI.GlobalTime;
+           DoutS(:,1) = MI.GlobalTime;
+           Ftext = [];
+           FeatureMat = [];
+           % get each material in model
+           % Fs (vector) contains the unique material numberes in Feature Matrix
+           Fs = unique(MI.FeatureMatrix(~isnan(MI.FeatureMatrix)));
+           Fs = Fs(Fs~=0);
            for Fi=1:length(Fs)
                ThisMat=TestCaseModel.MatLib.GetMatName(TestCaseModel.Features(Fi).Matl);
                if ThisMat.MaxPlot
@@ -2674,8 +2682,23 @@ function MaxPlot_Callback(hObject, eventdata, handles, Results)
                    if ~isempty(Results.getState('MeltFrac'))
                         DoutM(:,end+1)=max(reshape(Results.getState('meltfrac',Fmask),[],length(MI.GlobalTime)),[],1);
                    end
-                   if ~isempty(Results.getState('Stress'))
-                        DoutS(:,end+1)=max(reshape(Results.getState('stress',Fmask),[],length(MI.GlobalTime)),[],1);
+                   
+                   stress_name = 'Stress_X';
+                   if ~isempty(Results.getState(stress_name))
+                       % Trinity, 7-7-2020
+                       
+                       % obtain state "stress_x" with a mask
+                       stress_data = Results.getState(stress_name,Fmask);
+                       
+                       % reshape(): https://www.mathworks.com/help/matlab/ref/reshape.html
+                       % provide the #columns, automatically get #rows
+                       stress_data_reshaped = reshape(stress_data,[],length(MI.GlobalTime));
+                       
+                       % max(): https://www.mathworks.com/help/matlab/ref/max.html#d120e766511
+                       stress_data_reshaped_max = max(stress_data_reshaped,[],1);
+                       
+                       % append it to DoutS
+                       DoutS(:,end+1) = stress_data_reshaped_max;
                    end
                    FeatureMat{end+1}=TestCaseModel.Features(Fi).Matl;
                end
