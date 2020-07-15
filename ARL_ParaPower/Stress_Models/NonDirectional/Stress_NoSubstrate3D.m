@@ -154,6 +154,8 @@ end
 
 clear Xi Yj Zk Xii Yjj Zkk
 
+return
+
 % Stress check, sum forces to be sure they go to zero
 SumforceX=0;
 SumforceY=0;

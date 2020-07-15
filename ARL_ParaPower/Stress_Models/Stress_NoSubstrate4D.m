@@ -9,6 +9,12 @@ function [stressx,stressy,stressz,stressvm] = Stress_NoSubstrate4D(Results)
 % x-y plane.
 % Load Temperature Results, Melt Fraction Results and Processing Tem
 
+time_lapse = zeros(5,1);
+
+%% Stage I: Initialization
+
+tic 
+
 % Load dx, dy, dz values and number of Layers, Rows and Columns
 dx=Results.Model.X;
 dy=Results.Model.Y;
@@ -20,7 +26,7 @@ NLz=length(dz);
 NRx=length(dx);  %Morris switched these
 NCy=length(dy);  %to match the substrate based model
 
-time = Results.Model.GlobalTime
+time = Results.Model.GlobalTime;
 
 stressx = zeros(NRx,NCy,NLz,length(time));
 stressy = zeros(NRx,NCy,NLz,length(time));
@@ -53,6 +59,8 @@ for timestep = 1:length(time)
     % Load Material Numbers for every element in the model
     Mats=Results.Model.Model;
     
+    time_lapse(1) = toc;
+    
     % Loop over Cols, Rows and Lays to determine locations that have no
     % material, IBC's, or Fluid
     for Xi=1:NRx
@@ -69,6 +77,11 @@ for timestep = 1:length(time)
         end
     end
     clear Xi Yj Zk Xii Yjj Zkk
+    time_lapse(1) = toc;
+    
+    %% Stage II: x-direction
+    
+    tic
     
     % Loop over Cols, Rows and Lays to determine the final x, y and z lengths of
     % the elements, as a result of the CTE mismatch between the materials in all the layers
@@ -94,6 +107,12 @@ for timestep = 1:length(time)
     
     clear Xi Yj Zk Xii Yjj Zkk
     
+    time_lapse(2) = toc;
+    
+    %% Stage III: y-direction
+    
+    tic
+    
     % y-direction final length
     for Xii=1:NRx
         sumn=0;
@@ -115,6 +134,12 @@ for timestep = 1:length(time)
     end
     
     clear Xi Yj Zk Xii Yjj Zkk
+    
+    time_lapse(3) = toc;
+    
+    %% Stage IV: z-direction
+    
+    tic
     
     % z-direction final length
     for Zkk=1:NLz
@@ -138,6 +163,11 @@ for timestep = 1:length(time)
     
     clear Xi Yj Zk Xii Yjj Zkk
     
+    time_lapse(4) = toc;
+    
+    %% Stage V: Stress Calculation
+    
+    tic
     
     % Loop over all elements to claculate stress due to CTE mismatch for each
     % element
@@ -162,10 +192,15 @@ for timestep = 1:length(time)
     if 1
         save('debug_4D.mat','stressx','stressy','stressz','stressvm')
     end
-    
-    
-    
+   
     clear Xi Yj Zk Xii Yjj Zkk
+    
+    time_lapse(5) = toc;
+    
+    time_lapse_4D = time_lapse
+    save('compete.mat','time_lapse_4D')
+    
+    return
     
     %% Stress check, sum forces to be sure they go to zero
     SumforceX = 0;
