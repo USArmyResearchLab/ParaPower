@@ -928,11 +928,13 @@ function RunAnalysis_Callback(hObject, eventdata, handles)
 
            %not used StateN=round(length(GlobalTime)*TimeStepOutput,0);
            
-           %Results(ThisCase)=Results(ThisCase).addState('Stress',Stress);
-           Results(ThisCase)=Results(ThisCase).addState('Stress_X',Stress.X);
-           Results(ThisCase)=Results(ThisCase).addState('Stress_Y',Stress.Y);
-           Results(ThisCase)=Results(ThisCase).addState('Stress_Z',Stress.Z);
-           Results(ThisCase)=Results(ThisCase).addState('Stress_VM',Stress.VM);
+           if ~isempty(Stress) %MSB - 15Jul20
+               %Results(ThisCase)=Results(ThisCase).addState('Stress',Stress);
+               Results(ThisCase)=Results(ThisCase).addState('Stress_X',Stress.X);
+               Results(ThisCase)=Results(ThisCase).addState('Stress_Y',Stress.Y);
+               Results(ThisCase)=Results(ThisCase).addState('Stress_Z',Stress.Z);
+               Results(ThisCase)=Results(ThisCase).addState('Stress_VM',Stress.VM);
+           end
            
            
        end
@@ -2684,7 +2686,8 @@ function MaxPlot_Callback(hObject, eventdata, handles, Results)
                    end
                    
                    stress_name = 'Stress_X';
-                   if ~isempty(Results.getState(stress_name))
+                   if any(strcmp(Results.listStates,stress_name)) %MSB 15Jul20
+%                   if ~isempty(Results.getState(stress_name))
                        % Trinity, 7-7-2020
                        
                        % obtain state "stress_x" with a mask
