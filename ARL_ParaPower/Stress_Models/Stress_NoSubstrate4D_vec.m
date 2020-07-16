@@ -31,6 +31,7 @@ ProcT = Results.Model.Tproc;
 
 % Load Material Numbers for every element in the model
 Mats = Results.Model.Model;
+size_4D_vec = size(Mats);
 
 % Load material properties E, cte, nu
 E = Results.Model.MatLib.GetParam('E');
@@ -134,6 +135,8 @@ d_Z3(1,1,:) = dz;
 d_Z = repmat(d_Z3, [length(dx) length(dy) 1 n_time]);
 
 time_lapse(1) = toc;
+
+clear e  nu cte Temp lut mat_num zero_mask time d_Z3 youngs poisson cte_mat
 
 %% Stage II: x-direction final length
 % cube_nx = (youngs ./ (onescube - poisson)) .* d_Y .* d_Z;
@@ -296,8 +299,8 @@ stressvm = (((stressx-stressz).^2 + (stressx-stressy).^2 + (stressy-stressz).^2)
 
 time_lapse(5) = toc;
 
-time_lapse_4D_vec = time_lapse
-save('compete.mat','time_lapse_4D_vec','-append')
+time_lapse_4D_vec = time_lapse;
+save('compete.mat','time_lapse_4D_vec','size_4D_vec','-append')
 
 if 1
 save('debug_4D_vec.mat','stressx','stressy','stressz','stressvm')

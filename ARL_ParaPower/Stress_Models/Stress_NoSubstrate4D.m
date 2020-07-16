@@ -57,7 +57,7 @@ for timestep = 1:length(time)
     delT=Temp-ProcT;
     
     % Load Material Numbers for every element in the model
-    Mats=Results.Model.Model;
+    Mats = Results.Model.Model;
     
     time_lapse(1) = toc;
     
@@ -197,8 +197,10 @@ for timestep = 1:length(time)
     
     time_lapse(5) = toc;
     
-    time_lapse_4D = time_lapse
-    save('compete.mat','time_lapse_4D')
+    size_4D = size(Mats);
+    
+    time_lapse_4D = time_lapse;
+    save('compete.mat','size_4D','time_lapse_4D')
     
     return
     
