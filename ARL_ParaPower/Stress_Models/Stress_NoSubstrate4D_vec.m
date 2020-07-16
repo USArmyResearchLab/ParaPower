@@ -279,16 +279,16 @@ stressy = zeros(size(ckMatl_time));
 stressz = zeros(size(ckMatl_time));
 
 % factorize out common terms in all stress cubes
-% stress_num = youngs_time./(ones_4D - poisson_time)
-% stress_den = (cte_mat.*delT+ones_4D)
-% stressx = (stress_num).*((Lfx_mat./(d_X.*stress_den))-ones_4D);
-% stressy = (stress_num).*((Lfy_mat./(d_Y.*stress_den))-ones_4D);
-% stressz = (stress_num).*((Lfz_mat./(d_Z.*stress_den))-ones_4D);
+stress_num = youngs_time./(ones_4D - poisson_time);
+stress_den = (cte_time.*delT+ones_4D);
+stressx = (stress_num).*((Lfx_mat./(d_X.*stress_den))-ones_4D);
+stressy = (stress_num).*((Lfy_mat./(d_Y.*stress_den))-ones_4D);
+stressz = (stress_num).*((Lfz_mat./(d_Z.*stress_den))-ones_4D);
 
 % calculate stress cubes
-stressx = (youngs_time./(ones_4D-poisson_time)).*((Lfx_mat./(d_X.*(cte_mat.*delT+ones_4D)))-ones_4D);
-stressy = (youngs_time./(ones_4D-poisson_time)).*((Lfy_mat./(d_Y.*(cte_mat.*delT+ones_4D)))-ones_4D);
-stressz = (youngs_time./(ones_4D-poisson_time)).*((Lfz_mat./(d_Z.*(cte_mat.*delT+ones_4D)))-ones_4D);
+% stressx = (youngs_time./(ones_4D-poisson_time)).*((Lfx_mat./(d_X.*(cte_time.*delT+ones_4D)))-ones_4D);
+% stressy = (youngs_time./(ones_4D-poisson_time)).*((Lfy_mat./(d_Y.*(cte_time.*delT+ones_4D)))-ones_4D);
+% stressz = (youngs_time./(ones_4D-poisson_time)).*((Lfz_mat./(d_Z.*(cte_time.*delT+ones_4D)))-ones_4D);
 
 % if ckMat == 0 or Melt > 0, assign NaN
 stressx(mask_ckMatl_or_Melt) = NaN;

@@ -6,7 +6,7 @@
 % stop at place where memory not enough
 % see where can clear
 
-iterations = 7
+iterations = 10
 
 datasetname = 'complexmodel';
 
@@ -67,7 +67,7 @@ errorbar(vec_mean',vec_std')
 legend('Seq','Vec')
 xlabel('Stage #')
 ylabel('Time (s)')
-title(sprintf('Data from %d iterations',iterations))
+title(sprintf('Data from %d Iterations',iterations))
 axis([0 6 0 max(alldata_mean,[],'all')*1.5])
 return
 
