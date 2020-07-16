@@ -6,7 +6,7 @@
 % stop at place where memory not enough
 % see where can clear
 
-iterations = 7;
+iterations = 1;
 
 % time_model has 5 different time steps
 % subdiv_model.mat (subdiv_model) has 25 different x/y subdivision
@@ -19,13 +19,14 @@ total_models = length(time_model)
 % dimensions: # geometries, 2 stress models, # iterations, 5 stages
 alldata = zeros(total_models, 2, iterations, 5);
 
-% dimensions: # geometries, 2 stress models, # iterations, 3 dimensions
-matsize = zeros(total_models, 2, iterations, 3);
+% dimensions: # geometries, 2 stress models, # iterations, 4 dimensions
+matsize = zeros(total_models, 2, iterations, 4);
 
-seq_mean = zeros(length(time_model))
-vec_mean = zeros(length(time_model))
+seq_mean = zeros(length(time_model));
+vec_mean = zeros(length(time_model));
 
-for model = 1:length(time_model)
+%for model = 1:length(time_model)
+for model = 1:2
     currentmodel = time_model(model);
     
     for n = 1:iterations
@@ -54,18 +55,22 @@ for model = 1:length(time_model)
     end
     
     % obtain mean over the iterations, which is the 2nd dimension
-    alldata_mean = squeeze(mean(alldata,2));
+    
+    % mean over iterations
+    alldata_mean_over_iterations = mean(alldata,3);
+    
+    % mean over stages
+    alldata_mean_over_iterations_stage = mean(alldata_mean_over_iterations,4);
+    
+    % squeeze
+    alldata_mean = squeeze(alldata_mean_over_iterations_stage);
     
     % obtain std over the iterations, which is the 2nd dimension
     % https://www.mathworks.com/help/matlab/ref/std.html
 %     alldata_std = squeeze(std(alldata,0,2));
     
-    seq_mean = alldata_mean(1,:,:);
-    vec_mean = alldata_mean(2,:,:);
-    
-    % get mean of 5 stages
-    seq_mean(model) = mean(seq_mean,3);
-    vec_mean(model) = mean(seq_mean,3);
+    seq_mean = alldata_mean(:,1);
+    vec_mean = alldata_mean(:,2);
     
 %     seq_std = alldata_std(1,:);
 %     vec_std = alldata_std(2,:);
@@ -73,7 +78,7 @@ end
 
 
 
-alldata
+%alldata
 
 
 % show lines with errorbars
@@ -82,7 +87,7 @@ clf
 % bar([seq_mean' vec_mean'] r)
 hold on
 errorbar(seq_mean',seq_std')
-errorbar(vec_mean',vec_std')
+%errorbar(vec_mean',vec_std')
 legend('Seq','Vec')
 xlabel('Stage #')
 ylabel('Time (s)')
