@@ -55,6 +55,7 @@ for timestep = 1:length(time)
     % Calculate the difference between the operating temp and the processing
     % temp for thermal stress calc
     delT=Temp-ProcT;
+    size_4D = size(stressx);
     
     % Load Material Numbers for every element in the model
     Mats = Results.Model.Model;
@@ -196,8 +197,6 @@ for timestep = 1:length(time)
     clear Xi Yj Zk Xii Yjj Zkk
     
     time_lapse(5) = toc;
-    
-    size_4D = size(Mats);
     
     time_lapse_4D = time_lapse;
     save('compete.mat','size_4D','time_lapse_4D')

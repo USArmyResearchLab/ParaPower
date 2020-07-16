@@ -16,9 +16,14 @@ datasetname = 'time_model';
 load('time_model.mat',datasetname)
 total_models = length(time_model)
 
-% dimensions: 2 stress models, # iterations, 5 stages
+% dimensions: # geometries, 2 stress models, # iterations, 5 stages
 alldata = zeros(total_models, 2, iterations, 5);
+
+% dimensions: # geometries, 2 stress models, # iterations, 3 dimensions
 matsize = zeros(total_models, 2, iterations, 3);
+
+seq_mean = zeros(length(time_model))
+vec_mean = zeros(length(time_model))
 
 for model = 1:length(time_model)
     currentmodel = time_model(model);
@@ -47,20 +52,26 @@ for model = 1:length(time_model)
         %     xticklabels({'init','x','y','z','stress'})
         
     end
+    
+    % obtain mean over the iterations, which is the 2nd dimension
+    alldata_mean = squeeze(mean(alldata,2));
+    
+    % obtain std over the iterations, which is the 2nd dimension
+    % https://www.mathworks.com/help/matlab/ref/std.html
+%     alldata_std = squeeze(std(alldata,0,2));
+    
+    seq_mean = alldata_mean(1,:,:);
+    vec_mean = alldata_mean(2,:,:);
+    
+    % get mean of 5 stages
+    seq_mean(model) = mean(seq_mean,3);
+    vec_mean(model) = mean(seq_mean,3);
+    
+%     seq_std = alldata_std(1,:);
+%     vec_std = alldata_std(2,:);
 end
 
-% obtain mean over the iterations, which is the 2nd dimension
-alldata_mean = squeeze(mean(alldata,2));
 
-% obtain std over the iterations, which is the 2nd dimension
-% https://www.mathworks.com/help/matlab/ref/std.html
-alldata_std = squeeze(std(alldata,0,2));
-
-seq_mean = alldata_mean(1,:);
-vec_mean = alldata_mean(2,:);
-
-seq_std = alldata_std(1,:);
-vec_std = alldata_std(2,:);
 
 alldata
 

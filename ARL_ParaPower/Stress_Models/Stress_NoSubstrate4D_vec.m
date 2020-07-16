@@ -31,7 +31,6 @@ ProcT = Results.Model.Tproc;
 
 % Load Material Numbers for every element in the model
 Mats = Results.Model.Model;
-size_4D_vec = size(Mats);
 
 % Load material properties E, cte, nu
 E = Results.Model.MatLib.GetParam('E');
@@ -42,6 +41,7 @@ Temp = Results.getState('Thermal');
 Melt = Results.getState('MeltFrac');
 
 delT = Temp - ProcT;
+size_4D_vec = size(delT);
 
 % for iTimeStep = 1:length(time)
 %
