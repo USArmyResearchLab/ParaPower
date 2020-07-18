@@ -1,9 +1,10 @@
 
 
-function [stressx,stressy,stressz,stressvm] = Stress_NoSubstrate3D_time_Miner (Results)
+function [stressx,stressy,stressz,stressvm] = Stress_NoSubstrate_Miner_shell (Results)
 % change 3D to 4D by adding time
-% original stress model (Stress_NoSubstrate1) only calculates stress for one
+% original stress model (Stress_NoSubstrate_Miner) only calculates stress for one
 % time step
+% Stress_NoSubstrate_Miner
 
 dx=Results.Model.X;
 dy=Results.Model.Y;

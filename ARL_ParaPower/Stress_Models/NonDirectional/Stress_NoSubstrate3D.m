@@ -69,11 +69,11 @@ clear Xi Yj Zk Xii Yjj Zkk
 % Loop over Cols, Rows and Lays to determine the final x, y and z lengths of
 % the elements, as a result of the CTE mismatch between the materials in all the layers
 % x-direction final length
-for Yjj=1:NCy
+for Yjj=1:NRx
     sumn=0;
     sumd=0;
     for Zk=1:NLz
-        for Xi=1:NRx
+        for Xi=1:NCy
             % Skip locations that have no material, IBC's, Fluid and
             % non-zero Melt fractions
             if  ckMatl(Xi,Yjj,Zk) == 0 || Melt(Xi,Yjj,Zk) > 0
