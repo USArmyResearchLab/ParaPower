@@ -17,7 +17,7 @@ function Stress = Stress_NonDirectional(Results)
         return
     else
         
-        [StressX, StressY, StressZ, StressVM] = Stress_NoSubstrate3D_time_vm(Results);        
+        [StressX, StressY, StressZ, StressVM] = Stress_NoSubstrate3D_time_Miner(Results);        
         path(OldPath);
         Stress.X = StressX;
         Stress.Y = StressY;

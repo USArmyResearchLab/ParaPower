@@ -1,4 +1,6 @@
-function [stressx,stressy,stressz]=Stress_NoSubstrate_Miner(Results)
+% TC debugging 7/17/2020
+
+function [stressx,stressy,stressz]=Stress_NoSubstrate_Miner_time(Results, time)
 % This function calculates the thermal stress based on CTE mismatch for each element in the model.
 % This is a quasi 3-D approach that sums the forces in one plane to get the
 % final length of all the elelments in that plane. Each plane is taken
@@ -9,9 +11,9 @@ function [stressx,stressy,stressz]=Stress_NoSubstrate_Miner(Results)
 % x-y plane.
 % Load Temperature Results, Melt Fraction Results and Processing Temp
 Temp=Results.getState('Thermal');
-Temp=Temp(:,:,:,2);
+Temp=Temp(:,:,:,time);
 Melt=Results.getState('MeltFrac');
-Melt=Melt(:,:,:,2);
+Melt=Melt(:,:,:,time);
 ProcT=Results.Model.Tproc;
 % Load material properties E, cte, nu
 EX=Results.Model.MatLib.GetParam('E');
