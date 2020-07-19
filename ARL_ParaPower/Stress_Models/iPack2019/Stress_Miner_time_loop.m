@@ -12,10 +12,10 @@ n_dz = length(dz);
 n_time = length(time);
 
 % Miner's matrix order: 1st=y, 2nd=x, 3rd=z
-stressx = zeros(n_dy,n_dx,n_dz,n_time);
-stressy = zeros(n_dy,n_dx,n_dz,n_time);
-stressz = zeros(n_dy,n_dx,n_dz,n_time);
-stressvm = zeros(n_dy,n_dx,n_dz,n_time);
+stressx = zeros(n_dx,n_dy,n_dz,n_time);
+stressy = zeros(n_dx,n_dy,n_dz,n_time);
+stressz = zeros(n_dx,n_dy,n_dz,n_time);
+stressvm = zeros(n_dx,n_dy,n_dz,n_time);
 
 % XYZ
 for timestep = 1:n_time

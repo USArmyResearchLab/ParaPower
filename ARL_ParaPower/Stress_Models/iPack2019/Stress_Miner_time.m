@@ -62,17 +62,19 @@ onescube = ones(mat_size);
 
 % make dx, dy, and dz into 3D cubes
 
-d_X = repmat(dx, [length(dy) 1 length(dz)]);
-d_Y = repmat(dy', [1 length(dx) length(dz)]);
+d_X = repmat(dx', [1 length(dy) length(dz)]);
+d_Y = repmat(dy, [length(dx) 1 length(dz)]);
 d_Z = zeros(1,1,length(dz));
 d_Z(1,1,:) = dz;
-d_Z = repmat(d_Z, [length(dy) length(dx) 1]);
+d_Z = repmat(d_Z, [length(dx) length(dy) 1]);
 
 
 
 %%        save('my_cubes.mat')
 
 %-------------------
+
+LF_ALL_PCM = 0;
 
 do_init_vec;
 
@@ -155,7 +157,10 @@ return
             
             % see if material number is PPMatSolid, if yes --> true
             for j = 1:length(lut_mat_num)
-                lut_solid_mat(j) = isa(Results.Model.MatLib.GetMatNum(lut_mat_num(j)),'PPMatSolid');
+                MatObj = Results.Model.MatLib.GetMatNum(lut_mat_num(j));
+                lut_solid_mat(j) = strcmp(MatObj.Type,'Solid');
+                % very very wrong!!!
+                % lut_solid_mat(j) = isa(Results.Model.MatLib.GetMatNum(lut_mat_num(j)),'PPMatSolid');
             end
             
             % create look-up table (cell array) mapping material number to logical
@@ -164,23 +169,31 @@ return
     end
 
     function equ = cube_comp (a,b)
-        threshold = 0.0001;
+        
+        assert(nnz(isnan(a))==0);
+        assert(nnz(isnan(b))==0);
+        
+        threshold = 0.000000000001;
         
         diff = ((a-b).^2).^0.5;
-        diff_max = max(diff,[],'all')
+        diff_max = max(diff,[],'all');
         equ = max(diff_max) < threshold;
     end
 
     function ckMatl = do_Matl
         % Loop over Cols, Rows and Lays to determine locations that have no
         % material, IBC's, or Fluid
-        for i=1:n_dy
-            for j=1:n_dx
+        for i=1:n_dx
+            for j=1:n_dy
                 for k=1:n_dz
                     if Mats(i,j,k) == 0
                         ckMatl(i,j,k)=false;
                     else
-                        ckMatl(i,j,k)=isa(Results.Model.MatLib.GetMatNum(Mats(i,j,k)),'PPMatSolid');
+                        MatObj = Results.Model.MatLib.GetMatNum(Mats(i,j,k));
+                        MatObjType = MatObj.Type;
+                        ckMatl(i,j,k)=strcmp(MatObjType,'Solid');
+                        % very very wrong!!!
+                        % ckMatl(i,j,k)=isa(Results.Model.MatLib.GetMatNum(Mats(i,j,k)),'PPMatSolid');
                     end
                 end
             end
@@ -198,11 +211,12 @@ return
         
         % sum the planes of the 1st and 3rd dimensions
         % https://www.mathworks.com/help/matlab/ref/sum.html
-        sumnx = sum(cube_nx,[1 3]);
-        sumdx = sum(cube_dx,[1 3]);
+        sumnx = sum(cube_nx,[2 3]);
+        sumdx = sum(cube_dx,[2 3]);
         
-        Lfx_vec = sumnx ./ sumdx;
-        
+        Lfx_vec = sumnx' ./ sumdx';
+        mask = (sumdx' == 0);
+        Lfx_vec(mask) = LF_ALL_PCM;
     end
 
     function Lfy_vec = do_y_vec
@@ -214,11 +228,13 @@ return
         
         % sum the planes of the 1st and 3rd dimensions
         % https://www.mathworks.com/help/matlab/ref/sum.html
-        sumny = sum(cube_ny,[2 3]);
-        sumdy = sum(cube_dy,[2 3]);
+        sumny = sum(cube_ny,[1 3]);
+        sumdy = sum(cube_dy,[1 3]);
         
         % sumny and sumdy are column vectors because of sum(_,[2 3])
-        Lfy_vec = sumny' ./ sumdy';
+        Lfy_vec = sumny ./ sumdy;
+        mask = (sumdy' == 0);
+        Lfy_vec(mask) = LF_ALL_PCM;
     end
 
     function Lfz_vec = do_z_vec
@@ -232,8 +248,10 @@ return
         % https://www.mathworks.com/help/matlab/ref/sum.html
         sumnz = squeeze(sum(cube_nz,[1 2]));
         sumdz = squeeze(sum(cube_dz,[1 2]));
-        
+       
         Lfz_vec = sumnz' ./ sumdz';
+        mask = (sumdz' == 0);
+        Lfz_vec(mask) = LF_ALL_PCM;
     end
 
     function Lfx = do_x
@@ -241,46 +259,54 @@ return
         %Loop over Cols, Rows and Lays to determine the final x, y and z lengths of
         % the elements, as a result of the CTE mismatch between the materials in all the layers
         % x-direction final length
-        for jj=1:n_dx
+        for ii=1:n_dx
             sumn=0;
             sumd=0;
             for k=1:n_dz
-                for i=1:n_dy
-                    % Skip locations that have no material, IBC's, Fluid and
-                    % non-zero Melt fractions
-                    if  ckMatl(i,jj,k) == 0 || Melt(i,jj,k) > 0
-                        sumn=sumn+0;
-                        sumd=sumd+0;
-                    else
-                        sumn=sumn+(EX(Mats(i,jj,k))/(1-nuX(Mats(i,jj,k))))*dy(i)*dz(k);
-                        sumd=sumd+((EX(Mats(i,jj,k))/(1-nuX(Mats(i,jj,k))))*dy(i)*dz(k))/(dx(jj)*(cteX(Mats(i,jj,k))*delT(i,jj,k)+1));
-                    end
-                end
-            end
-            Lfx(jj)=sumn/sumd;
-        end
-    end
-
-    function Lfy = do_y
-        %%
-        % y-direction final length
-        for ii=1:n_dy
-            sumn=0;
-            sumd=0;
-            for k=1:n_dz
-                for j=1:n_dx
+                for j=1:n_dy
                     % Skip locations that have no material, IBC's, Fluid and
                     % non-zero Melt fractions
                     if  ckMatl(ii,j,k) == 0 || Melt(ii,j,k) > 0
                         sumn=sumn+0;
                         sumd=sumd+0;
                     else
-                        sumn=sumn+(EY(Mats(ii,j,k))/(1-nuY(Mats(ii,j,k))))*dx(j)*dz(k);
-                        sumd=sumd+((EY(Mats(ii,j,k))/(1-nuY(Mats(ii,j,k))))*dx(j)*dz(k))/(dy(ii)*(cteY(Mats(ii,j,k))*delT(ii,j,k)+1));
+                        sumn=sumn+(EX(Mats(ii,j,k))/(1-nuX(Mats(ii,j,k))))*dy(j)*dz(k);
+                        sumd=sumd+((EX(Mats(ii,j,k))/(1-nuX(Mats(ii,j,k))))*dy(j)*dz(k))/(dx(ii)*(cteX(Mats(ii,j,k))*delT(ii,j,k)+1));
                     end
                 end
             end
-            Lfy(ii)=sumn/sumd;
+            if sumd == 0
+                Lfx(ii)=LF_ALL_PCM;
+            else
+                Lfx(ii)=sumn/sumd;
+            end
+        end
+    end
+
+    function Lfy = do_y
+        %%
+        % y-direction final length
+        for jj=1:n_dy
+            sumn=0;
+            sumd=0;
+            for k=1:n_dz
+                for i=1:n_dx
+                    % Skip locations that have no material, IBC's, Fluid and
+                    % non-zero Melt fractions
+                    if  ckMatl(i,jj,k) == 0 || Melt(i,jj,k) > 0
+                        sumn=sumn+0;
+                        sumd=sumd+0;
+                    else
+                        sumn=sumn+(EY(Mats(i,jj,k))/(1-nuY(Mats(i,jj,k))))*dx(i)*dz(k);
+                        sumd=sumd+((EY(Mats(i,jj,k))/(1-nuY(Mats(i,jj,k))))*dx(i)*dz(k))/(dy(jj)*(cteY(Mats(i,jj,k))*delT(i,jj,k)+1));
+                    end
+                end
+            end
+            if sumd == 0
+                Lfy(jj)=LF_ALL_PCM;
+            else
+                Lfy(jj)=sumn/sumd;
+            end
         end
     end
 
@@ -290,20 +316,24 @@ return
         for kk=1:n_dz
             sumn=0;
             sumd=0;
-            for i=1:n_dy
-                for j=1:n_dx
+            for i=1:n_dx
+                for j=1:n_dy
                     % Skip locations that have no material, IBC's, Fluid and
                     % non-zero Melt fractions
                     if  ckMatl(i,j,kk) == 0 || Melt(i,j,kk) > 0
                         sumn=sumn+0;
                         sumd=sumd+0;
                     else
-                        sumn=sumn+(EZ(Mats(i,j,kk))/(1-nuZ(Mats(i,j,kk))))*dx(j)*dy(i);
-                        sumd=sumd+((EZ(Mats(i,j,kk))/(1-nuZ(Mats(i,j,kk))))*dx(j)*dy(i))/(dz(kk)*(cteZ(Mats(i,j,kk))*delT(i,j,kk)+1));
+                        sumn=sumn+(EZ(Mats(i,j,kk))/(1-nuZ(Mats(i,j,kk))))*dx(i)*dy(j);
+                        sumd=sumd+((EZ(Mats(i,j,kk))/(1-nuZ(Mats(i,j,kk))))*dx(i)*dy(j))/(dz(kk)*(cteZ(Mats(i,j,kk))*delT(i,j,kk)+1));
                     end
                 end
             end
-            Lfz(kk)=sumn/sumd;
+            if sumd == 0
+                Lfz(kk)=LF_ALL_PCM;
+            else
+                Lfz(kk)=sumn/sumd;
+            end
         end
     end
 
@@ -312,15 +342,15 @@ return
         % Loop over all elements to claculate stress due to CTE mismatch for each
         % element
         for kk=1:n_dz
-            for ii=1:n_dy
-                for jj=1:n_dx
+            for ii=1:n_dx
+                for jj=1:n_dy
                     if  ckMatl(ii,jj,kk) == 0 || Melt(ii,jj,kk) > 0
                         stressx(ii,jj,kk)=NaN;
                         stressy(ii,jj,kk)=NaN;
                         stressz(ii,jj,kk)=NaN;
                     else
-                        stressx(ii,jj,kk)=(EX(Mats(ii,jj,kk))/(1-nuX(Mats(ii,jj,kk))))*((Lfx(jj)/(dx(jj)*(cteX(Mats(ii,jj,kk))*delT(ii,jj,kk)+1)))-1);
-                        stressy(ii,jj,kk)=(EY(Mats(ii,jj,kk))/(1-nuY(Mats(ii,jj,kk))))*((Lfy(ii)/(dy(ii)*(cteY(Mats(ii,jj,kk))*delT(ii,jj,kk)+1)))-1);
+                        stressx(ii,jj,kk)=(EX(Mats(ii,jj,kk))/(1-nuX(Mats(ii,jj,kk))))*((Lfx(ii)/(dx(ii)*(cteX(Mats(ii,jj,kk))*delT(ii,jj,kk)+1)))-1);
+                        stressy(ii,jj,kk)=(EY(Mats(ii,jj,kk))/(1-nuY(Mats(ii,jj,kk))))*((Lfy(jj)/(dy(jj)*(cteY(Mats(ii,jj,kk))*delT(ii,jj,kk)+1)))-1);
                         stressz(ii,jj,kk)=(EZ(Mats(ii,jj,kk))/(1-nuZ(Mats(ii,jj,kk))))*((Lfz(kk)/(dz(kk)*(cteZ(Mats(ii,jj,kk))*delT(ii,jj,kk)+1)))-1);
                     end
                 end
@@ -334,14 +364,14 @@ return
         SumforceX=0;
         SumforceY=0;
         SumforceZ=0;
-        for ii=1:n_dy
-            for jj=1:n_dx
+        for ii=1:n_dx
+            for jj=1:n_dy
                 for kk=1:n_dz
-                    ForceX(ii,jj,kk)=stressx(ii,jj,kk)*dy(ii)*dz(kk);
+                    ForceX(ii,jj,kk)=stressx(ii,jj,kk)*dy(jj)*dz(kk);
                     SumforceX=SumforceX+ForceX(ii,jj,kk);
-                    ForceY(ii,jj,kk)=stressy(ii,jj,kk)*dx(jj)*dz(kk);
+                    ForceY(ii,jj,kk)=stressy(ii,jj,kk)*dx(ii)*dz(kk);
                     SumforceY=SumforceY+ForceY(ii,jj,kk);
-                    ForceZ(ii,jj,kk)=stressz(ii,jj,kk)*dy(ii)*dx(jj);
+                    ForceZ(ii,jj,kk)=stressz(ii,jj,kk)*dx(ii)*dy(jj);
                     SumforceZ=SumforceZ+ForceZ(ii,jj,kk);
                 end
             end
