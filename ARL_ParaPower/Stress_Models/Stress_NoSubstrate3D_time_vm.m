@@ -15,7 +15,7 @@ NLz=length(dz);
 NRx=length(dx);  %Morris switched these
 NCy=length(dy);  %to match the substrate based model
 
-time = Results.Model.GlobalTime
+time = Results.Model.GlobalTime;
 
 stressx = zeros(NRx,NCy,NLz,length(time));
 stressy = zeros(NRx,NCy,NLz,length(time));

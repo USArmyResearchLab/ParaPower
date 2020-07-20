@@ -15,8 +15,12 @@ function [stressx, stressy, stressz, stressvm] = Stress_NoSubstrate4D_vec (Resul
 % 07-08-2020: TC added second argument (t), so that this stress model can be
 % expanded to the time dimension in Stress_NoSubstrateTrinity.m
 
-time = Results.Model.GlobalTime
-n_time = length(time)
+time_lapse = zeros(5,1);
+
+%% Stage I: Initialization
+tic
+time = Results.Model.GlobalTime;
+n_time = length(time);
 
 % Load dx, dy, dz values and number of Layers, Rows and Columns
 dx = Results.Model.X;
@@ -37,6 +41,7 @@ Temp = Results.getState('Thermal');
 Melt = Results.getState('MeltFrac');
 
 delT = Temp - ProcT;
+size_4D_vec = size(delT);
 
 % for iTimeStep = 1:length(time)
 %
@@ -86,7 +91,7 @@ for i = 1:length(lut_mat_num)
 end
 
 % 4D ckMatl
-ckMatl_time = repmat(ckMatl, [1 1 1 n_time])
+ckMatl_time = repmat(ckMatl, [1 1 1 n_time]);
 
 %{
 mat_no = Mats(Xi,Yjj,Zk);
@@ -112,11 +117,11 @@ for iTimeStep = 1:length(lut_mat_num)
     cte_mat(mask) = cte(mat_no);
 end
 
-youngs_time = repmat(youngs, [1 1 1 n_time])
-poisson_time = repmat(poisson, [1 1 1 n_time])
-cte_time = repmat(cte_mat, [1 1 1 n_time])
+youngs_time = repmat(youngs, [1 1 1 n_time]);
+poisson_time = repmat(poisson, [1 1 1 n_time]);
+cte_time = repmat(cte_mat, [1 1 1 n_time]);
 
-ones_4D = ones(size(ckMatl_time))
+ones_4D = ones(size(ckMatl_time));
 
 
 % make dx, dy, and dz into 3D cubes
@@ -129,8 +134,11 @@ d_Z3(1,1,:) = dz;
 
 d_Z = repmat(d_Z3, [length(dx) length(dy) 1 n_time]);
 
+time_lapse(1) = toc;
 
-%% x-direction final length
+clear e  nu cte Temp lut mat_num zero_mask time d_Z3 youngs poisson cte_mat
+
+%% Stage II: x-direction final length
 % cube_nx = (youngs ./ (onescube - poisson)) .* d_Y .* d_Z;
 % cube_dx = ((youngs./(onescube-poisson)).*d_Y.*d_Z)./(d_X.*(cte.*delT+onescube));
 % 
@@ -148,8 +156,16 @@ d_Z = repmat(d_Z3, [length(dx) length(dy) 1 n_time]);
 % 
 % my_Lfx = sumnx ./ sumdx;
 
-matrix_nx = (youngs_time ./ (ones_4D - poisson_time)) .* d_Y .* d_Z;
-matrix_dx = ((youngs_time ./ (ones_4D - poisson_time)) .* d_Y .* d_Z)./(d_X.*(cte_time.*delT+ones_4D));
+% factorize out common terms in all x, y, and z direction final length
+% matrices
+tic
+common_num = youngs_time ./ (ones_4D - poisson_time);
+common_den = cte_time .* delT + ones_4D;
+matrix_nx = common_num .* d_Y .* d_Z;
+matrix_dx = (matrix_nx)./(d_X.*common_den);
+
+% matrix_nx = (youngs_time ./ (ones_4D - poisson_time)) .* d_Y .* d_Z;
+% matrix_dx = ((youngs_time ./ (ones_4D - poisson_time)) .* d_Y .* d_Z)./(d_X.*(cte_time.*delT+ones_4D));
 
 % exclude non-Solid or melt materials...
 mask_ckMatl_or_Melt = (ckMatl == 0) | (Melt > 0);
@@ -165,7 +181,9 @@ sumdx = sum(matrix_dx,[1 3]);
 
 my_Lfx = sumnx ./ sumdx;
 
-%% y-direction final length
+time_lapse(2) = toc;
+
+%% Stage III y-direction final length
 % cube_ny = (youngs ./ (onescube - poisson)) .* d_X .* d_Z;
 % cube_dy = ((youngs./(onescube-poisson)).*d_X.*d_Z)./(d_Y.*(cte.*delT+onescube));
 % 
@@ -180,8 +198,15 @@ my_Lfx = sumnx ./ sumdx;
 % my_Lfy = sumny ./ sumdy;
 % my_Lfy = my_Lfy';
 
-matrix_ny = (youngs_time ./ (ones_4D - poisson_time)) .* d_X .* d_Z;
-matrix_dy = ((youngs_time./(ones_4D-poisson_time)).*d_X.*d_Z)./(d_Y.*(cte_time.*delT+ones_4D));
+% common_num = youngs_time ./ (ones_4D - poisson_time)
+% common_den = cte_time.*delT + ones_4D
+tic
+
+matrix_ny = common_num .* d_X .* d_Z;
+matrix_dy = (matrix_ny)./(d_Y.*common_den);
+
+% matrix_ny = (youngs_time ./ (ones_4D - poisson_time)) .* d_X .* d_Z;
+% matrix_dy = ((youngs_time./(ones_4D-poisson_time)).*d_X.*d_Z)./(d_Y.*(cte_time.*delT+ones_4D));
 
 matrix_ny(mask_ckMatl_or_Melt) = 0;
 matrix_dy(mask_ckMatl_or_Melt) = 0;
@@ -193,10 +218,19 @@ sumdy = sum(matrix_dy,[2 3]);
 
 my_Lfy = sumny ./ sumdy;
 
-%% z-direction final length
+time_lapse(3) = toc;
 
-matrix_nz = (youngs_time ./ (ones_4D - poisson_time)) .* d_X .* d_Y;
-matrix_dz = ((youngs_time ./(ones_4D - poisson_time)).*d_X.*d_Y)./(d_Z.*(cte_time.*delT+ones_4D));
+%% Stage IV: z-direction final length
+tic
+% common_num = youngs_time ./ (ones_4D - poisson_time)
+% common_den = cte_time.*delT + ones_4D
+% matrix_ny = common_num .* d_X .* d_Z;
+% matrix_dy = (matrix_ny)./(d_Y.*common_den);
+matrix_nz = (common_num) .* d_X .* d_Y;
+matrix_dz = (matrix_nz)./(d_Z.*common_den);
+
+% matrix_nz = (youngs_time ./ (ones_4D - poisson_time)) .* d_X .* d_Y;
+% matrix_dz = ((youngs_time ./(ones_4D - poisson_time)).*d_X.*d_Y)./(d_Z.*(cte_time.*delT+ones_4D));
 
 matrix_nz(mask_ckMatl_or_Melt) = 0;
 matrix_dz(mask_ckMatl_or_Melt) = 0;
@@ -208,7 +242,10 @@ sumdz = sum(matrix_dz,[1 2]);
 
 my_Lfz = sumnz ./ sumdz;
 
-%% calculate stress
+time_lapse(4) = toc;
+
+
+%% Stage V: Calculate stress
 % pre-calculated cubes to be removed out of loops
 % Lfx_cube = repmat(my_Lfx, [length(dx) 1 length(dz)]);
 % Lfy_cube = repmat(my_Lfy', [1 length(dy) length(dz)]);
@@ -229,10 +266,9 @@ my_Lfz = sumnz ./ sumdz;
 % stresscube_y(mask_ckMatl_or_Melt) = NaN;
 % stresscube_z(mask_ckMatl_or_Melt) = NaN;
 
-%% To vec
-
 % pre-calculated cubes to be removed out of loops
 % 
+tic
 Lfx_mat = repmat(my_Lfx, [length(dx) 1 length(dz) 1]);
 Lfy_mat = repmat(my_Lfy, [1 length(dy) length(dz) 1]);
 Lfz_mat = repmat(my_Lfz, [length(dx) length(dy) 1 1]);
@@ -242,10 +278,17 @@ stressx = zeros(size(ckMatl_time));
 stressy = zeros(size(ckMatl_time));
 stressz = zeros(size(ckMatl_time));
 
+% factorize out common terms in all stress cubes
+stress_num = youngs_time./(ones_4D - poisson_time);
+stress_den = (cte_time.*delT+ones_4D);
+stressx = (stress_num).*((Lfx_mat./(d_X.*stress_den))-ones_4D);
+stressy = (stress_num).*((Lfy_mat./(d_Y.*stress_den))-ones_4D);
+stressz = (stress_num).*((Lfz_mat./(d_Z.*stress_den))-ones_4D);
+
 % calculate stress cubes
-stressx = (youngs_time./(ones_4D-poisson_time)).*((Lfx_mat./(d_X.*(cte_mat.*delT+ones_4D)))-ones_4D);
-stressy = (youngs_time./(ones_4D-poisson_time)).*((Lfy_mat./(d_Y.*(cte_mat.*delT+ones_4D)))-ones_4D);
-stressz = (youngs_time./(ones_4D-poisson_time)).*((Lfz_mat./(d_Z.*(cte_mat.*delT+ones_4D)))-ones_4D);
+% stressx = (youngs_time./(ones_4D-poisson_time)).*((Lfx_mat./(d_X.*(cte_time.*delT+ones_4D)))-ones_4D);
+% stressy = (youngs_time./(ones_4D-poisson_time)).*((Lfy_mat./(d_Y.*(cte_time.*delT+ones_4D)))-ones_4D);
+% stressz = (youngs_time./(ones_4D-poisson_time)).*((Lfz_mat./(d_Z.*(cte_time.*delT+ones_4D)))-ones_4D);
 
 % if ckMat == 0 or Melt > 0, assign NaN
 stressx(mask_ckMatl_or_Melt) = NaN;
@@ -254,9 +297,17 @@ stressz(mask_ckMatl_or_Melt) = NaN;
 
 stressvm = (((stressx-stressz).^2 + (stressx-stressy).^2 + (stressy-stressz).^2)/2).^.5;
 
+time_lapse(5) = toc;
+
+time_lapse_4D_vec = time_lapse;
+save('compete.mat','time_lapse_4D_vec','size_4D_vec','-append')
+
 if 1
 save('debug_4D_vec.mat','stressx','stressy','stressz','stressvm')
 end
+
+
+% bar(time_lapse)
 
 return
 

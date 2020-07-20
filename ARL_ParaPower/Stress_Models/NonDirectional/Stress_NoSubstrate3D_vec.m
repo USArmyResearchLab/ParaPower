@@ -111,6 +111,7 @@ for i = 1:length(lut_mat_num)
     cte_X(mask) = cteX(mat_no);
 end
 
+
 % make dx, dy, and dz into 3D cubes
 
 d_X = repmat(dx', [1 length(dy) length(dz)]);

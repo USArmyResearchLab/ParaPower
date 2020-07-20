@@ -30,6 +30,7 @@ function debug_comp (fn1, fn2)
         max1 = max(abs(x),[],'all');
         max2 = max(abs(y),[],'all');
         
+        %max_diff = max(sqrt(x.^2 - y.^2)),[],'all');
         max_diff = max(abs(x - y),[],'all');
         max12 = max(max1,max2);
         percent = max_diff/max12;
@@ -49,7 +50,7 @@ function debug_comp (fn1, fn2)
         disp(sprintf('Number of NaN, y = %d',nnz(isnan(y))))
         disp(sprintf('Maximum difference = %.4f',max_diff))
         disp(sprintf('Maximum data = %.4f',max12))
-        disp(sprintf('Error percentage = %f',percent))
+        disp(sprintf('Error percentage = %e',percent))
         
         return
     end

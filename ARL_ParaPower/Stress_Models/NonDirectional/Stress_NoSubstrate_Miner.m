@@ -1,4 +1,4 @@
-function [stressx,stressy,stressz]=Stress_NoSubstrate1(Results)
+function [stressx,stressy,stressz]=Stress_NoSubstrate_Miner(Results)
 % This function calculates the thermal stress based on CTE mismatch for each element in the model.
 % This is a quasi 3-D approach that sums the forces in one plane to get the
 % final length of all the elelments in that plane. Each plane is taken
