@@ -1660,7 +1660,13 @@ end
     
 MI = Results.Model;
 Tprnt = Results.getState('thermal');
-Stress = Results.getState('Stress');
+if any(strcmp('Stress_VM',Results.listStates))
+    Stress = Results.getState('Stress_VM');
+elseif any(strcmp('Stress',Results.listStates))
+    Stress = Results.getState('Stress');
+else
+    Stress=[];
+end
 MeltFrac = Results.getState('MeltFrac');
 GlobalTime=MI.GlobalTime;
 
