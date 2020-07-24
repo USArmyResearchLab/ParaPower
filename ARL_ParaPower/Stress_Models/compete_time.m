@@ -11,10 +11,10 @@ iterations = 1;
 % time_model has 5 different time steps
 % subdiv_model.mat (subdiv_model) has 25 different x/y subdivision
 % combinations
-datasetname = 'time_model';
+datasetname = 'ipack_time';
 
-load('time_model.mat',datasetname)
-total_models = length(time_model)
+load('ipack_time.mat',datasetname)
+total_models = length(ipack_time)
 
 % dimensions: # geometries, 2 stress models, # iterations, 5 stages
 alldata = zeros(total_models, 2, iterations, 5);
@@ -22,26 +22,26 @@ alldata = zeros(total_models, 2, iterations, 5);
 % dimensions: # geometries, 2 stress models, # iterations, 4 dimensions
 matsize = zeros(total_models, 2, iterations, 4);
 
-seq_mean = zeros(length(time_model));
-vec_mean = zeros(length(time_model));
+seq_mean = zeros(length(ipack_time));
+vec_mean = zeros(length(ipack_time));
 
 %for model = 1:length(time_model)
 for model = 1:2
-    currentmodel = time_model(model);
+    currentmodel = ipack_time(model);
     
     for n = 1:iterations
-        [x y z v] = Stress_NoSubstrate4D(currentmodel);
-        [a b c d] = Stress_NoSubstrate4D_vec(currentmodel);
-        load('compete.mat','time_lapse_4D','time_lapse_4D_vec','size_4D','size_4D_vec');
+        [x y z v] = Stress_Miner_time_loop(currentmodel,@Stress_Miner_time);
+        [a b c d] = Stress_Miner_time_loop(currentmodel,@Stress_Miner_vec);
+        load('compete.mat','time_lapse_Miner','time_lapse_Miner_vec');
         
         % time_lapse_4D is 5x1
         % time_lapse_4D_vec is 5x1
         
-        alldata(model,1,n,:) = time_lapse_4D;
-        alldata(model,2,n,:) = time_lapse_4D_vec;
-        
-        matsize(model,1,n,:) = size_4D;
-        matsize(model,2,n,:) = size_4D_vec;
+        alldata(1,n,:) = time_lapse_Miner;
+        alldata(2,n,:) = time_lapse_Miner_vec;
+        %
+        %         matsize(model,1,n,:) = size_4D;
+        %         matsize(model,2,n,:) = size_4D_vec;
         
         %     subplot(1,iterations,n)
         %     bar([seq{n} vec{n}])

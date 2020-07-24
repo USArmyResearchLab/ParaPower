@@ -1,7 +1,6 @@
 % added time
-% added stressvm
 
-function [stressx,stressy,stressz] = Stress_Miner_time (Results, time)
+function [stressx,stressy,stressz] = Stress_Miner_time (Results, time, VECTORIZED)
 % This function calculates the thermal stress based on CTE mismatch for each element in the model.
 % This is a quasi 3-D approach that sums the forces in one plane to get the
 % final length of all the elements in that plane. Each plane is taken
@@ -11,7 +10,16 @@ function [stressx,stressy,stressz] = Stress_Miner_time (Results, time)
 % direction; x-Direction: y-z plane; y-direction: x-z plane; z-Direction:
 % x-y plane.
 
+
+% VECTORIZED = 1;
+
+
+% for when entire layer is all PCM (or for situations when stress cannot be
+% calculated)
+LF_ALL_PCM = NaN;
+
 %% Load Temperature Results, Melt Fraction Results and Processing Temp
+
 Temp4D = Results.getState('Thermal');
 Temp = Temp4D(:,:,:,time);
 
@@ -21,15 +29,15 @@ Melt = Melt4D(:,:,:,time);
 ProcT = Results.Model.Tproc;
 
 % Load material properties E, cte, nu
-EX=Results.Model.MatLib.GetParam('E');
-EY=Results.Model.MatLib.GetParam('E');
-EZ=Results.Model.MatLib.GetParam('E');
-nuX=Results.Model.MatLib.GetParam('nu');
-nuY=Results.Model.MatLib.GetParam('nu');
-nuZ=Results.Model.MatLib.GetParam('nu');
-cteX=Results.Model.MatLib.GetParam('cte');
-cteY=Results.Model.MatLib.GetParam('cte');
-cteZ=Results.Model.MatLib.GetParam('cte');
+EX = Results.Model.MatLib.GetParam('E');
+EY = Results.Model.MatLib.GetParam('E');
+EZ = Results.Model.MatLib.GetParam('E');
+nuX = Results.Model.MatLib.GetParam('nu');
+nuY = Results.Model.MatLib.GetParam('nu');
+nuZ = Results.Model.MatLib.GetParam('nu');
+cteX = Results.Model.MatLib.GetParam('cte');
+cteY = Results.Model.MatLib.GetParam('cte');
+cteZ = Results.Model.MatLib.GetParam('cte');
 
 % Calculate the difference between the operating temp and the processing
 % temp for thermal stress calc
@@ -46,67 +54,65 @@ n_dy = length(dy);
 n_dz = length(dz);
 
 % Load Material Numbers for every element in the model
-Mats=Results.Model.Model;
+Mats = Results.Model.Model;
 
 %-------------------
 
+if VECTORIZED == 1
+    
+    % Vectorization
+    % initialize Young's Modulus cube
+    mat_size = size(Mats);
+    youngs_X = zeros(mat_size);
+    poisson_X = zeros(mat_size);
+    cte_X = zeros(mat_size);
+    onescube = ones(mat_size);
+    
+    % make dx, dy, and dz into 3D cubes
+    d_X = repmat(dx', [1 length(dy) length(dz)]);
+    d_Y = repmat(dy, [length(dx) 1 length(dz)]);
+    d_Z = zeros(1,1,length(dz));
+    d_Z(1,1,:) = dz;
+    d_Z = repmat(d_Z, [length(dx) length(dy) 1]);
+    
+    do_init_vec;
+    
+    ckMatl = do_Matl_vec;
+    
+    % exclude non-Solid or melt materials...
+    mask_ckMatl_or_Melt = (ckMatl == 0) | (Melt > 0);
+    
+    Lfx_vec = do_x_vec;
+    
+    Lfy_vec = do_y_vec;
+    
+    Lfz_vec = do_z_vec;
+    
+    [stressx,stressy,stressz] = do_stress_vec;
+    
+else
+    
+    ckMatl = do_Matl;
+    
+    Lfx = do_x;
+    
+    Lfy = do_y;
+    
+    Lfz = do_z;
+    
+    [stressx,stressy,stressz] = do_stress;
+    
+    do_check;
+    
+end
 
-
-% initialize Young's Modulus cube
-mat_size = size(Mats);
-youngs_X = zeros(mat_size);
-poisson_X = zeros(mat_size);
-cte_X = zeros(mat_size);
-onescube = ones(mat_size);
-
-
-% make dx, dy, and dz into 3D cubes
-
-d_X = repmat(dx', [1 length(dy) length(dz)]);
-d_Y = repmat(dy, [length(dx) 1 length(dz)]);
-d_Z = zeros(1,1,length(dz));
-d_Z(1,1,:) = dz;
-d_Z = repmat(d_Z, [length(dx) length(dy) 1]);
-
-
-
-%%        save('my_cubes.mat')
-
-%-------------------
-
-LF_ALL_PCM = 0;
-
-do_init_vec;
-
-ckMatl = do_Matl;
-
-ckMatl_vec = do_Matl_vec;
-assert(cube_comp(ckMatl,ckMatl_vec))
-
-% exclude non-Solid or melt materials...
-mask_ckMatl_or_Melt = (ckMatl == 0) | (Melt > 0);
-
-Lfx = do_x;
-Lfx_vec = do_x_vec;
-assert(cube_comp(Lfx,Lfx_vec))
-
-Lfy = do_y;
-Lfy_vec = do_y_vec;
-assert(cube_comp(Lfy,Lfy_vec))
-
-Lfz = do_z;
-Lfz_vec = do_z_vec;
-assert(cube_comp(Lfz,Lfz_vec))
-
-do_all;
-
-do_check;
 
 return
 
-% calculate youngs_X, poisson_X, and cte_X
+%% Vectorization version
 
     function do_init_vec
+        % calculate youngs_X, poisson_X, and cte_X
         % get the different material numbers in Mats
         mat_num = unique(Mats);
         
@@ -125,12 +131,10 @@ return
         return
     end
 
-
-
     function ckMatl = do_Matl_vec
         
         lut = do_lut;
-         
+        
         % initialize ckMat
         mat_size = size(Mats);
         ckMatl = logical(zeros(mat_size));
@@ -144,6 +148,8 @@ return
         
         return
         
+        % lut = look-up table matching material number to PPSolidMat
+        % logical
         function lut = do_lut
             % get the different material numbers in Mats
             mat_num = unique(Mats);
@@ -158,45 +164,15 @@ return
             % see if material number is PPMatSolid, if yes --> true
             for j = 1:length(lut_mat_num)
                 MatObj = Results.Model.MatLib.GetMatNum(lut_mat_num(j));
-                lut_solid_mat(j) = strcmp(MatObj.Type,'Solid');
-                % very very wrong!!!
-                % lut_solid_mat(j) = isa(Results.Model.MatLib.GetMatNum(lut_mat_num(j)),'PPMatSolid');
+                % TC 07-21-2020 : doesn't work because searching for all objects that
+                % are derived from PPMatSolid (this includes PCM). PCMs are
+                % treated like PPMatSolid when they haven't melted yet.
+                %lut_solid_mat(j) = strcmp(MatObj.Type,'Solid');
+                lut_solid_mat(j) = isa(Results.Model.MatLib.GetMatNum(lut_mat_num(j)),'PPMatSolid');
             end
             
             % create look-up table (cell array) mapping material number to logical
             lut = {lut_mat_num, lut_solid_mat};
-        end
-    end
-
-    function equ = cube_comp (a,b)
-        
-        assert(nnz(isnan(a))==0);
-        assert(nnz(isnan(b))==0);
-        
-        threshold = 0.000000000001;
-        
-        diff = ((a-b).^2).^0.5;
-        diff_max = max(diff,[],'all');
-        equ = max(diff_max) < threshold;
-    end
-
-    function ckMatl = do_Matl
-        % Loop over Cols, Rows and Lays to determine locations that have no
-        % material, IBC's, or Fluid
-        for i=1:n_dx
-            for j=1:n_dy
-                for k=1:n_dz
-                    if Mats(i,j,k) == 0
-                        ckMatl(i,j,k)=false;
-                    else
-                        MatObj = Results.Model.MatLib.GetMatNum(Mats(i,j,k));
-                        MatObjType = MatObj.Type;
-                        ckMatl(i,j,k)=strcmp(MatObjType,'Solid');
-                        % very very wrong!!!
-                        % ckMatl(i,j,k)=isa(Results.Model.MatLib.GetMatNum(Mats(i,j,k)),'PPMatSolid');
-                    end
-                end
-            end
         end
     end
 
@@ -209,7 +185,7 @@ return
         cube_nx(mask_ckMatl_or_Melt) = 0;
         cube_dx(mask_ckMatl_or_Melt) = 0;
         
-        % sum the planes of the 1st and 3rd dimensions
+        % sum the planes of the 2nd and 3rd dimensions
         % https://www.mathworks.com/help/matlab/ref/sum.html
         sumnx = sum(cube_nx,[2 3]);
         sumdx = sum(cube_dx,[2 3]);
@@ -248,11 +224,81 @@ return
         % https://www.mathworks.com/help/matlab/ref/sum.html
         sumnz = squeeze(sum(cube_nz,[1 2]));
         sumdz = squeeze(sum(cube_dz,[1 2]));
-       
+        
         Lfz_vec = sumnz' ./ sumdz';
         mask = (sumdz' == 0);
         Lfz_vec(mask) = LF_ALL_PCM;
     end
+
+    function [stresscube_x,stresscube_y,stresscube_z] = do_stress_vec
+        % pre-calculated cubes to be removed out of loops
+        Lfx_cube = repmat(Lfx_vec', [1 length(dy) length(dz)]);
+        Lfy_cube = repmat(Lfy_vec, [length(dx) 1 length(dz)]);
+        Lfz_vec_mod(1,1,:) = Lfz_vec;
+        Lfz_cube = repmat(Lfz_vec_mod, [length(dx) length(dy) 1]);
+        
+        % make stress cubes
+        stresscube_x = zeros(mat_size);
+        stresscube_y = zeros(mat_size);
+        stresscube_z = zeros(mat_size);
+        
+        stresscube_x = (youngs_X./(onescube-poisson_X)).*((Lfx_cube./(d_X.*(cte_X.*delT+onescube)))-onescube);
+        stresscube_y = (youngs_X./(onescube-poisson_X)).*((Lfy_cube./(d_Y.*(cte_X.*delT+onescube)))-onescube);
+        stresscube_z = (youngs_X./(onescube-poisson_X)).*((Lfz_cube./(d_Z.*(cte_X.*delT+onescube)))-onescube);
+        
+        stresscube_x(mask_ckMatl_or_Melt) = 0;
+        stresscube_y(mask_ckMatl_or_Melt) = 0;
+        stresscube_z(mask_ckMatl_or_Melt) = 0;
+    end
+
+    function equ = cube_comp (a,b)
+        % verification
+        assert(nnz(isnan(a))==0);
+        assert(nnz(isnan(b))==0);
+        
+        % doesn't work below 0.0005
+        threshold = 0.0008;
+        
+        diff = ((a-b).^2).^0.5;
+        diff_max = max(diff,[],'all');
+        equ = diff_max < threshold;
+        return
+        
+        if 0
+            % does not work because of positive and negative values
+            threshold = 0.01;
+            diff = abs(a-b);
+            diff_max = max(diff,[],'all');
+            a_max = max(abs(a),[],'all');
+            b_max = max(abs(b),[],'all');
+            ab_max = max(a_max,b_max);
+            diff_max_percent = diff_max / ab_max;
+            
+            equ = diff_max_percent < threshold;
+        end
+    end
+
+%% Sequential version
+
+    function ckMatl = do_Matl
+        % Loop over Cols, Rows and Lays to determine locations that have no
+        % material, IBC's, or Fluid
+        for i=1:n_dx
+            for j=1:n_dy
+                for k=1:n_dz
+                    if Mats(i,j,k) == 0
+                        ckMatl(i,j,k)=false;
+                    else
+                        MatObj = Results.Model.MatLib.GetMatNum(Mats(i,j,k));
+                        MatObjType = MatObj.Type;
+                        ckMatl(i,j,k)=strcmp(MatObjType,'Solid');
+                        % ckMatl(i,j,k)=isa(Results.Model.MatLib.GetMatNum(Mats(i,j,k)),'PPMatSolid');
+                    end
+                end
+            end
+        end
+    end
+
 
     function Lfx = do_x
         %%
@@ -276,7 +322,8 @@ return
                 end
             end
             if sumd == 0
-                Lfx(ii)=LF_ALL_PCM;
+                Lfx(ii) = LF_ALL_PCM;
+                warning('No layers in x-layer %d support stress calculations',ii)
             else
                 Lfx(ii)=sumn/sumd;
             end
@@ -303,7 +350,8 @@ return
                 end
             end
             if sumd == 0
-                Lfy(jj)=LF_ALL_PCM;
+                Lfy(jj) = LF_ALL_PCM;
+                warning('No layers in y-layer %d support stress calculations',jj)
             else
                 Lfy(jj)=sumn/sumd;
             end
@@ -330,14 +378,19 @@ return
                 end
             end
             if sumd == 0
-                Lfz(kk)=LF_ALL_PCM;
+                Lfz(kk) = LF_ALL_PCM;
+                warning('No layers in z-layer %d support stress calculations',kk)
             else
                 Lfz(kk)=sumn/sumd;
             end
         end
     end
 
-    function do_all
+    function [stressx,stressy,stressz] = do_stress
+        
+        %         func1 = @(A,B,C,D,E,F) (A/(1-B))*((C/(D*(E*F+1)))-1);
+        %         func2 = @(A,B,C,D,E,F) A*((C/(D*(E*F+1)))-1)/(1-B);
+        
         %%
         % Loop over all elements to claculate stress due to CTE mismatch for each
         % element
@@ -345,11 +398,11 @@ return
             for ii=1:n_dx
                 for jj=1:n_dy
                     if  ckMatl(ii,jj,kk) == 0 || Melt(ii,jj,kk) > 0
-                        stressx(ii,jj,kk)=NaN;
-                        stressy(ii,jj,kk)=NaN;
-                        stressz(ii,jj,kk)=NaN;
+                        stressx(ii,jj,kk)=0;
+                        stressy(ii,jj,kk)=0;
+                        stressz(ii,jj,kk)=0;
                     else
-                        stressx(ii,jj,kk)=(EX(Mats(ii,jj,kk))/(1-nuX(Mats(ii,jj,kk))))*((Lfx(ii)/(dx(ii)*(cteX(Mats(ii,jj,kk))*delT(ii,jj,kk)+1)))-1);
+                        stressx(ii,jj,kk)=(EX(Mats(ii,jj,kk))/(1-nuX(Mats(ii,jj,kk))))*((Lfx(ii)/(dx(ii)*(cteX(Mats(ii,jj,kk))*delT(ii,jj,kk)+1)))-1);                     
                         stressy(ii,jj,kk)=(EY(Mats(ii,jj,kk))/(1-nuY(Mats(ii,jj,kk))))*((Lfy(jj)/(dy(jj)*(cteY(Mats(ii,jj,kk))*delT(ii,jj,kk)+1)))-1);
                         stressz(ii,jj,kk)=(EZ(Mats(ii,jj,kk))/(1-nuZ(Mats(ii,jj,kk))))*((Lfz(kk)/(dz(kk)*(cteZ(Mats(ii,jj,kk))*delT(ii,jj,kk)+1)))-1);
                     end

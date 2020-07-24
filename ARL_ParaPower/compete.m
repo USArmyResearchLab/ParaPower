@@ -6,29 +6,29 @@
 % stop at place where memory not enough
 % see where can clear
 
-iterations = 10
+iterations = 1
 
-datasetname = 'complexmodel';
+datasetname = 'ipack';
 
 % dimensions: 2 stress models, # iterations, 5 stages
 alldata = zeros(2, iterations, 5);
 matsize = zeros(2, iterations, 3);
 
-load('complex.mat',datasetname)
+load('ipack.mat',datasetname)
 
 for n = 1:iterations
-    [x y z v] = Stress_NoSubstrate4D(complexmodel);
-    [a b c d] = Stress_NoSubstrate4D_vec(complexmodel);
-    load('compete.mat','time_lapse_4D','time_lapse_4D_vec','size_4D','size_4D_vec');
+    [x y z v] = Stress_Miner_time_loop(ipack,@Stress_Miner_time);
+    [a b c d] = Stress_Miner_time_loop(ipack,@Stress_Miner_vec);
+    load('compete.mat','time_lapse_Miner','time_lapse_Miner_vec');
     
     % time_lapse_4D is 5x1
     % time_lapse_4D_vec is 5x1
     
-    alldata(1,n,:) = time_lapse_4D;
-    alldata(2,n,:) = time_lapse_4D_vec;
+    alldata(1,n,:) = time_lapse_Miner;
+    alldata(2,n,:) = time_lapse_Miner_vec;
     
-    matsize(1,n,:) = size_4D;
-    matsize(2,n,:) = size_4D_vec;
+%     matsize(1,n,:) = size_4D;
+%     matsize(2,n,:) = size_4D_vec;
     
 %     subplot(1,iterations,n)
 %     bar([seq{n} vec{n}])
@@ -64,7 +64,7 @@ clf
 hold on
 errorbar(seq_mean',seq_std')
 errorbar(vec_mean',vec_std')
-legend('Seq','Vec')
+legend('Sequential','Vectorized')
 xlabel('Stage #')
 ylabel('Time (s)')
 title(sprintf('Data from %d Iterations',iterations))

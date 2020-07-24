@@ -1,5 +1,5 @@
 % call Miner 3D to construct 4D and VM
-function [stressx,stressy,stressz,stressvm] = Stress_Miner_time_loop (Results)
+function [stressx,stressy,stressz,stressvm] = Stress_Miner_time_4D (Results,VECTORIZED)
 
 time = Results.Model.GlobalTime;
 dx = Results.Model.X;
@@ -17,10 +17,11 @@ stressy = zeros(n_dx,n_dy,n_dz,n_time);
 stressz = zeros(n_dx,n_dy,n_dz,n_time);
 stressvm = zeros(n_dx,n_dy,n_dz,n_time);
 
-% XYZ
+% calculate x, y, and z stress for each timestep
 for timestep = 1:n_time
-    [stressx3D, stressy3D, stressz3D] = Stress_Miner_time(Results,timestep);
     
+    [stressx3D, stressy3D, stressz3D] = Stress_Miner_time(Results,timestep,VECTORIZED);
+   
     stressx(:,:,:,timestep) = stressx3D;
     stressy(:,:,:,timestep) = stressy3D;
     stressz(:,:,:,timestep) = stressz3D;
