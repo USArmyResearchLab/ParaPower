@@ -1,6 +1,6 @@
-if 0
+if 1
     
-load('ipack.mat','ipack_11_11_7','ipack_10cases','ipack_10y')
+%load('ipack.mat','ipack_11_11_7','ipack_10cases','ipack_10y')
 
 %n_case = length(ipack_10cases);
 n_case = length(ipack_10y);
@@ -19,7 +19,10 @@ for imodel = 1:n_case
     
 %    ppr = ipack_10cases(imodel);
     ppr = ipack_10y(imodel);
-    datasize = size(ppr.Model.Model,2);
+    datasize_x = size(ppr.Model.Model,1);
+    datasize_y = size(ppr.Model.Model,2);
+    datasize_z = size(ppr.Model.Model,3);
+    datasize = datasize_x*datasize_y*datasize_z;
     
     tic
     [x0 y0 z0 v0] = Stress_Miner_time_loop(ppr,0);
@@ -39,10 +42,10 @@ end
 
 result_time
 
-save('compete_10y.mat','result_size','result_time')
+save('compete_10ysize.mat','result_size','result_time')
 end
 
-load('compete_10y.mat','result_size','result_time')
+load('compete_10ysize.mat','result_size','result_time')
 
 clf
 hold on

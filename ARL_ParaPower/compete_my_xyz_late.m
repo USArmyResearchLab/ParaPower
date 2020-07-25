@@ -1,4 +1,4 @@
-if 1
+if 0
     
 load('ipack_125xyz.mat','ipack_125xyz')
 
@@ -47,9 +47,9 @@ load('compete_125xyz_late.mat','result_size','result_time','cubesize')
 
 clf
 hold on
-plot(result_size(:,1),result_time(:,1),'-+')
-plot(result_size(:,1),result_time(:,2),'-o')
-legend('Sequential','Vectorized','Location','Northwest')
+plot(result_size(:,1),result_time(:,1),'+')
+plot(result_size(:,1),result_time(:,2),'o')
+legend('Sequential','Vectorized','Location','Northwest','FontSize',12)
 xlabel('Total Number of Elements')
 ylabel('Solution Time (s)')
 title(sprintf('Simultaneous Scaling in X, Y, and Z'))
