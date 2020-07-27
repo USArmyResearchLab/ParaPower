@@ -17,7 +17,7 @@ function Stress = Stress_iPack2019_Miner (Results)
         return
     else
         
-        [StressX, StressY, StressZ, StressVM] = Stress_Miner_time_loop(Results);        
+        [StressX, StressY, StressZ, StressVM] = Stress_Miner_time_loop(Results,1);        
         
         path(OldPath);
         Stress.X = StressX;

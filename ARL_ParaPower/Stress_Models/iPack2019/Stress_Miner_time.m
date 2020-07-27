@@ -1,4 +1,5 @@
-% added time
+% Calculates 3D stress, 4th dimension (time) added in
+% Stress_Miner_time_loop.m
 
 function [stressx,stressy,stressz] = Stress_Miner_time (Results, time, VECTORIZED)
 % This function calculates the thermal stress based on CTE mismatch for each element in the model.
@@ -11,7 +12,9 @@ function [stressx,stressy,stressz] = Stress_Miner_time (Results, time, VECTORIZE
 % x-y plane.
 
 
-% VECTORIZED = 1;
+% If VECTORIZED = 1, then the vectorized functions will be called.
+% Otherwise, original Miner functions.
+
 
 
 % for when entire layer is all PCM (or for situations when stress cannot be

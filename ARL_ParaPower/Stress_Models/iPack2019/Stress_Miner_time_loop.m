@@ -1,5 +1,5 @@
 % call Miner 3D to construct 4D and VM
-function [stressx,stressy,stressz,stressvm] = Stress_Miner_time_4D (Results,VECTORIZED)
+function [stressx,stressy,stressz,stressvm] = Stress_Miner_time_loop (Results,VECTORIZED)
 
 time = Results.Model.GlobalTime;
 dx = Results.Model.X;
