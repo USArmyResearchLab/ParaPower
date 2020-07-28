@@ -18,7 +18,7 @@ function Stress = Stress_NonDirectional(Results)
     else
         
         % second parameter: 1 = vectorized
-        [StressX, StressY, StressZ, StressVM] = Stress_NoSubstrate3D_time(Results,1);  
+        [StressX, StressY, StressZ, StressVM] = Stress_NoSubstrate3D_time(Results);  
         
         path(OldPath);
         Stress.X = StressX;

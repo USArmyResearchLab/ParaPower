@@ -6,12 +6,13 @@
 
 %% Input and Output: 
 % * Results is PPResults object, time is the timestep at which the stresses
-% are being calculated at, and VECTORIZED indicates whether to run vectorized (VECTORIZED = 1) or original sequential
+% are being calculated at
+% optional VECTORIZED parameter can be added to indicate whether to run vectorized (VECTORIZED = 1) or original sequential
 % code
 % * stressx, stressy, and stressz are 3D arrays which represent stress X,
 % stress Y, and stress Z at the input timestep. 
 
-function [stressx,stressy,stressz] = Stress_NoSubstrate3D (Results, time, VECTORIZED)
+function [stressx,stressy,stressz] = Stress_NoSubstrate3D (Results, time)
 % This function calculates the thermal stress based on CTE mismatch for each element in the model.
 % This is a quasi 3-D approach that sums the forces in one plane to get the
 % final length of all the elements in that plane. Each plane is taken
@@ -72,7 +73,7 @@ Mats = Results.Model.Model;
 
 %-------------------
 
-if VECTORIZED == 1
+% if VECTORIZED == 1
     
     % initialize Young's Modulus, Poisson's Ratio, and CTE cubes
     mat_size = size(Mats);
@@ -106,23 +107,23 @@ if VECTORIZED == 1
     
     [stressx,stressy,stressz] = do_stress_vec;
     
-else
+% else
     
     % original Miner code (not vectorized)
     
-    ckMatl = do_Matl;
+%     ckMatl = do_Matl;
+%     
+%     Lfx = do_x;
+%     
+%     Lfy = do_y;
+%     
+%     Lfz = do_z;
+%     
+%     [stressx,stressy,stressz] = do_stress;
+%     
+%     do_check;
     
-    Lfx = do_x;
-    
-    Lfy = do_y;
-    
-    Lfz = do_z;
-    
-    [stressx,stressy,stressz] = do_stress;
-    
-    do_check;
-    
-end
+% end
 
 return
 

@@ -5,12 +5,11 @@
 % arrays X, Y, and Z, which are then used to calculate the 4D VM stress. 
 
 %% Input and Output
-% * Results is PPResults object and VECTORIZED indicates whether to run vectorized (VECTORIZED = 1) or original sequential
-% code
+% * Results is PPResults object
 % * stressx, stressy, stressz, and stressvm are 4D arrays which represent stress X,
 % stress Y, stress Z, and Von Mises stress at all the timesteps defined in the GlobalTime vector in the input PPResults object. 
 
-function [stressx,stressy,stressz,stressvm] = Stress_NoSubstrate3D_time (Results,VECTORIZED)
+function [stressx,stressy,stressz,stressvm] = Stress_NoSubstrate3D_time (Results)
 
 time = Results.Model.GlobalTime;
 dx = Results.Model.X;
@@ -31,7 +30,7 @@ stressvm = zeros(n_dx,n_dy,n_dz,n_time);
 % calculate x, y, and z stress for each timestep
 for timestep = 1:n_time
     
-    [stressx3D, stressy3D, stressz3D] = Stress_NoSubstrate3D(Results,timestep,VECTORIZED);
+    [stressx3D, stressy3D, stressz3D] = Stress_NoSubstrate3D(Results,timestep);
    
     stressx(:,:,:,timestep) = stressx3D;
     stressy(:,:,:,timestep) = stressy3D;

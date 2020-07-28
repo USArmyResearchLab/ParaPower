@@ -68,10 +68,19 @@ table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px soli
 
 
   </style></head><body><div class="content"><h1>Comparison of GUI-calculated temperature against iPACK17</h1><!--introduction--><p>Comparison of temperatures in lower left device of planar geometry as described in the 2017 iPACK paper "Power Packaging Thermal and Stress Model for Quick Parametric Analyses"</p><!--/introduction--><h2>Contents</h2><div><ul><li><a href="#1">Workflow for extracting temperature data from NonDirectional</a></li><li><a href="#2">Original Planar Geometry (iPACK17 fig. 7)</a></li><li><a href="#3">Input Geometry (recreated in ParaPowerGUI_V2)</a></li><li><a href="#4">iPACK17 temperature (fig. 10)</a></li></ul></div><h2 id="1">Workflow for extracting temperature data from NonDirectional</h2><div><ol><li>Construct planar geometry as described in iPACK19 (ipackmodel.ppresults)</li><li>Run solver for temperature and melt fraction values</li><li>Save PPResults object in GUI</li><li>ParaPowerGUI(&#8216;GetResults&#8217;).R</li><li>PPResultsObj.getState('Thermal')</li></ol></div><h2 id="2">Original Planar Geometry (iPACK17 fig. 7)</h2><p><img vspace="5" hspace="5" src="device.PNG" alt=""> </p><h2 id="3">Input Geometry (recreated in ParaPowerGUI_V2)</h2><p><img vspace="5" hspace="5" src="model_config_cropped.PNG" alt=""> </p><pre class="codeinput"><span class="comment">% Nondirectional temperature in lower left device</span>
-temp_nondirec = [71.49 72.17 70.16; 73.57 74.31 72.17; 72.93 73.57 71.48];
+
+mypath = genpath(<span class="string">'C:\003_ParaPower\ParaPower\ARL_ParaPower\Stress_Models'</span>);
+addpath(mypath)
+load(<span class="string">'ipackobj.mat'</span>)
+all_temps = ipack.getState(<span class="string">'Thermal'</span>);
+temp_nondirec_orig = zeros(3);
+temp_nondirec_orig = all_temps(2:4,2:4,end,end);
+temp_nondirec_rot = rot90(temp_nondirec_orig);
+
 
 <span class="comment">% iPACK17 temperature in lower left device</span>
 temp_paper = [74.9 75.8 73.2; 77.6 78.7 75.8; 76.7 77.6 74.9];
+<span class="comment">% temp_nondirec = [71.49 72.17 70.16; 73.57 74.31 72.17; 72.93 73.57 71.48];</span>
 </pre><h2 id="4">iPACK17 temperature (fig. 10)</h2><p><img vspace="5" hspace="5" src="iPACK17_fig10_overlay.PNG" alt=""> </p><pre class="codeinput">clf
 
 <span class="comment">% calculate percent error</span>
@@ -89,7 +98,7 @@ key2.Label.String = <span class="string">'Temperature (C)'</span>;
 <span class="keyword">for</span> k = 1:9
     col = mod(k-1,3) + 1;
     row = floor((k-1)/3) + 1;
-    text(col,row,sprintf(<span class="string">'%.0f'</span>,temp_nondirec(k)),<span class="string">'HorizontalAlignment'</span>,<span class="string">'center'</span>,<span class="string">'FontSize'</span>,18);
+    text(row,col,sprintf(<span class="string">'%.0f'</span>,temp_nondirec(k)),<span class="string">'HorizontalAlignment'</span>,<span class="string">'center'</span>,<span class="string">'FontSize'</span>,18);
 <span class="keyword">end</span>
 
 figure
@@ -99,6 +108,7 @@ axis <span class="string">square</span>
 title(<span class="string">'Percent Error, iPACK17 vs. NonDirectional'</span>)
 key = colorbar;
 key.Label.String = <span class="string">'Percent Error'</span>;
+caxis([0 10])
 </pre><img vspace="5" hspace="5" src="Stress_temp_comparison_01.png" alt=""> <img vspace="5" hspace="5" src="Stress_temp_comparison_02.png" alt=""> <p class="footer"><br><a href="https://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2020a</a><br></p></div><!--
 ##### SOURCE BEGIN #####
 %% Comparison of GUI-calculated temperature against iPACK17
@@ -123,10 +133,19 @@ key.Label.String = <span class="string">'Percent Error'</span>;
 %
 
 % Nondirectional temperature in lower left device
-temp_nondirec = [71.49 72.17 70.16; 73.57 74.31 72.17; 72.93 73.57 71.48];
+
+mypath = genpath('C:\003_ParaPower\ParaPower\ARL_ParaPower\Stress_Models');
+addpath(mypath)
+load('ipackobj.mat')
+all_temps = ipack.getState('Thermal');
+temp_nondirec_orig = zeros(3);
+temp_nondirec_orig = all_temps(2:4,2:4,end,end);
+temp_nondirec_rot = rot90(temp_nondirec_orig);
+
 
 % iPACK17 temperature in lower left device
 temp_paper = [74.9 75.8 73.2; 77.6 78.7 75.8; 76.7 77.6 74.9];
+% temp_nondirec = [71.49 72.17 70.16; 73.57 74.31 72.17; 72.93 73.57 71.48];
 
 %% iPACK17 temperature (fig. 10)
 %
@@ -150,7 +169,7 @@ key2.Label.String = 'Temperature (C)';
 for k = 1:9
     col = mod(k-1,3) + 1;
     row = floor((k-1)/3) + 1;
-    text(col,row,sprintf('%.0f',temp_nondirec(k)),'HorizontalAlignment','center','FontSize',18);
+    text(row,col,sprintf('%.0f',temp_nondirec(k)),'HorizontalAlignment','center','FontSize',18);
 end
 
 figure
@@ -160,7 +179,7 @@ axis square
 title('Percent Error, iPACK17 vs. NonDirectional')
 key = colorbar;
 key.Label.String = 'Percent Error';
-
+caxis([0 10])
 
 ##### SOURCE END #####
 --></body></html>

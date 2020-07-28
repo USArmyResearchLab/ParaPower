@@ -20,10 +20,19 @@
 %
 
 % Nondirectional temperature in lower left device
-temp_nondirec = [71.49 72.17 70.16; 73.57 74.31 72.17; 72.93 73.57 71.48];
+
+mypath = genpath('C:\003_ParaPower\ParaPower\ARL_ParaPower\Stress_Models');
+addpath(mypath)
+load('ipackobj.mat')
+all_temps = ipack.getState('Thermal');
+temp_nondirec_orig = zeros(3);
+temp_nondirec_orig = all_temps(2:4,2:4,end,end);
+temp_nondirec_rot = rot90(temp_nondirec_orig);
+
 
 % iPACK17 temperature in lower left device
 temp_paper = [74.9 75.8 73.2; 77.6 78.7 75.8; 76.7 77.6 74.9];
+% temp_nondirec = [71.49 72.17 70.16; 73.57 74.31 72.17; 72.93 73.57 71.48];
 
 %% iPACK17 temperature (fig. 10)
 %
@@ -47,7 +56,7 @@ key2.Label.String = 'Temperature (C)';
 for k = 1:9
     col = mod(k-1,3) + 1;
     row = floor((k-1)/3) + 1;
-    text(col,row,sprintf('%.0f',temp_nondirec(k)),'HorizontalAlignment','center','FontSize',18);
+    text(row,col,sprintf('%.0f',temp_nondirec(k)),'HorizontalAlignment','center','FontSize',18);
 end
 
 figure
@@ -57,4 +66,4 @@ axis square
 title('Percent Error, iPACK17 vs. NonDirectional')
 key = colorbar;
 key.Label.String = 'Percent Error';
-
+caxis([0 10])
