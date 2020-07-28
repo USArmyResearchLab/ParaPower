@@ -16,7 +16,7 @@
 
 %% Input Geometry (recreated in ParaPowerGUI_V2)
 %
-% <<model_config_cropped.PNG>>
+% <<geometry_cropped.PNG>>
 %
 
 % Nondirectional temperature in lower left device
@@ -28,7 +28,6 @@ all_temps = ipack.getState('Thermal');
 temp_nondirec_orig = zeros(3);
 temp_nondirec_orig = all_temps(2:4,2:4,end,end);
 temp_nondirec_rot = rot90(temp_nondirec_orig);
-
 
 % iPACK17 temperature in lower left device
 temp_paper = [74.9 75.8 73.2; 77.6 78.7 75.8; 76.7 77.6 74.9];
@@ -42,11 +41,11 @@ temp_paper = [74.9 75.8 73.2; 77.6 78.7 75.8; 76.7 77.6 74.9];
 clf
 
 % calculate percent error
-diff = temp_paper - temp_nondirec;
+diff = temp_paper - temp_nondirec_rot;
 error = diff ./ temp_paper;
 error_percent = error * 100;
 
-imagesc(temp_nondirec)
+imagesc(temp_nondirec_rot)
 axis off
 axis square
 title('NonDirectional')
@@ -56,7 +55,7 @@ key2.Label.String = 'Temperature (C)';
 for k = 1:9
     col = mod(k-1,3) + 1;
     row = floor((k-1)/3) + 1;
-    text(row,col,sprintf('%.0f',temp_nondirec(k)),'HorizontalAlignment','center','FontSize',18);
+    text(row,col,sprintf('%.0f',temp_nondirec_rot(k)),'HorizontalAlignment','center','FontSize',18);
 end
 
 figure

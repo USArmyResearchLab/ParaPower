@@ -67,11 +67,11 @@ table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px soli
 
 
 
-  </style></head><body><div class="content"><h1>Validation of NonDirectional against iPACK19</h1><!--introduction--><p>Comparison of Von Mises stress in lower left device of planar geometry as described in the 2019 iPACK paper "Evaluation of Low Order Stress Models for Use in Co-Design Analysis of Electronics Packaging."</p><!--/introduction--><h2>Contents</h2><div><ul><li><a href="#1">Workflow for extracting VM stress data from NonDirectional</a></li><li><a href="#2">Original Planar Geometry (iPACK19 fig. 1)</a></li><li><a href="#3">Input Geometry (recreated in ParaPowerGUI_V2)</a></li><li><a href="#4">iPACK19 stress (fig. 11-3)</a></li></ul></div><h2 id="1">Workflow for extracting VM stress data from NonDirectional</h2><div><ol><li>Construct planar geometry as described in iPACK19 (ipackmodel.ppresults)</li><li>Run solver for temperature and melt fraction values</li><li>Save PPResults object in GUI</li><li>ParaPowerGUI(&#8216;GetResults&#8217;).R;</li><li>Use PPResults object as input for NonDirectional to get exact Von Mises stress values</li></ol></div><h2 id="2">Original Planar Geometry (iPACK19 fig. 1)</h2><p><img vspace="5" hspace="5" src="device.PNG" alt=""> </p><h2 id="3">Input Geometry (recreated in ParaPowerGUI_V2)</h2><p><img vspace="5" hspace="5" src="model_config_cropped.PNG" alt=""> </p><pre class="codeinput"><span class="comment">% Nondirectional stress in lower left device, calculated by Stress_NoSubstrate3D_time.m</span>
+  </style></head><body><div class="content"><h1>Validation of NonDirectional against iPACK19</h1><!--introduction--><p>Comparison of Von Mises stress in lower left device of planar geometry as described in the 2019 iPACK paper "Evaluation of Low Order Stress Models for Use in Co-Design Analysis of Electronics Packaging."</p><!--/introduction--><h2>Contents</h2><div><ul><li><a href="#1">Workflow for extracting VM stress data from NonDirectional</a></li><li><a href="#2">Original Planar Geometry (iPACK19 fig. 1)</a></li><li><a href="#3">Input Geometry (recreated in ParaPowerGUI_V2)</a></li><li><a href="#4">iPACK19 stress (fig. 11-3)</a></li></ul></div><h2 id="1">Workflow for extracting VM stress data from NonDirectional</h2><div><ol><li>Construct planar geometry as described in iPACK19 (ipackmodel.ppresults)</li><li>Run solver for temperature and melt fraction values</li><li>Save PPResults object in GUI</li><li>ParaPowerGUI(&#8216;GetResults&#8217;).R;</li><li>Use PPResults object as input for NonDirectional to get exact Von Mises stress values</li></ol></div><h2 id="2">Original Planar Geometry (iPACK19 fig. 1)</h2><p><img vspace="5" hspace="5" src="device.PNG" alt=""> </p><h2 id="3">Input Geometry (recreated in ParaPowerGUI_V2)</h2><p><img vspace="5" hspace="5" src="geometry_cropped.PNG" alt=""> </p><pre class="codeinput"><span class="comment">% Nondirectional stress in lower left device, calculated by Stress_NoSubstrate3D_time.m</span>
 mypath = genpath(<span class="string">'C:\003_ParaPower\ParaPower\ARL_ParaPower\Stress_Models'</span>);
 addpath(mypath)
 load(<span class="string">'ipackobj.mat'</span>)
-[x y z vm]  = Stress_NoSubstrate3D_time(ipack,1);
+[x y z vm]  = Stress_NoSubstrate3D_time(ipack);
 vm_nondirec_orig = zeros(3);
 vm_nondirec_orig = vm(2:4,2:4,end,end);
 
@@ -131,14 +131,14 @@ axis <span class="string">square</span>
 
 %% Input Geometry (recreated in ParaPowerGUI_V2)
 %
-% <<model_config_cropped.PNG>>
+% <<geometry_cropped.PNG>>
 %
 
 % Nondirectional stress in lower left device, calculated by Stress_NoSubstrate3D_time.m
 mypath = genpath('C:\003_ParaPower\ParaPower\ARL_ParaPower\Stress_Models');
 addpath(mypath)
 load('ipackobj.mat')
-[x y z vm]  = Stress_NoSubstrate3D_time(ipack,1);
+[x y z vm]  = Stress_NoSubstrate3D_time(ipack);
 vm_nondirec_orig = zeros(3);
 vm_nondirec_orig = vm(2:4,2:4,end,end);
 

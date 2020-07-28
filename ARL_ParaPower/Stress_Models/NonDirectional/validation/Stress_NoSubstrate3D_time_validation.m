@@ -17,14 +17,14 @@
 
 %% Input Geometry (recreated in ParaPowerGUI_V2)
 %
-% <<model_config_cropped.PNG>>
+% <<geometry_cropped.PNG>>
 %
 
 % Nondirectional stress in lower left device, calculated by Stress_NoSubstrate3D_time.m
 mypath = genpath('C:\003_ParaPower\ParaPower\ARL_ParaPower\Stress_Models');
 addpath(mypath)
 load('ipackobj.mat')
-[x y z vm]  = Stress_NoSubstrate3D_time(ipack,1);
+[x y z vm]  = Stress_NoSubstrate3D_time(ipack);
 vm_nondirec_orig = zeros(3);
 vm_nondirec_orig = vm(2:4,2:4,end,end);
 
