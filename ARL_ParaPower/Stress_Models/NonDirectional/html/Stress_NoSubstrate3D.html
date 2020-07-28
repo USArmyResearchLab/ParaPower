@@ -6,7 +6,7 @@
    <!--
 This HTML was auto-generated from MATLAB code.
 To make changes, update the MATLAB code and republish this document.
-      --><title>Stress_NoSubstrate3D</title><meta name="generator" content="MATLAB 9.8"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2020-07-28"><meta name="DC.source" content="Stress_NoSubstrate3D.m"><style type="text/css">
+      --><title>Stress_NoSubstrate3D (calculation of 3D stresses X, Y, and Z)</title><meta name="generator" content="MATLAB 9.8"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2020-07-28"><meta name="DC.source" content="Stress_NoSubstrate3D.m"><style type="text/css">
 html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,sub,sup,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
 
 html { min-height:100%; margin-bottom:1px; }
@@ -67,11 +67,7 @@ table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px soli
 
 
 
-  </style></head><body><div class="content"><h2>Contents</h2><div><ul><li><a href="#1">Stress_NoSubstrate3D (calculation of 3D stresses X, Y, and Z)</a></li><li><a href="#2">Input and Output:</a></li><li><a href="#4">TC modifications:</a></li><li><a href="#5">Load Temperature Results, Melt Fraction Results and Processing Temp</a></li><li><a href="#6">Vectorized subfunctions</a></li><li><a href="#10">Original Sequential Subfunctions</a></li><li><a href="#12">Debugging and verification</a></li></ul></div><h2 id="1">Stress_NoSubstrate3D (calculation of 3D stresses X, Y, and Z)</h2><pre class="codeinput"><span class="comment">% Stress_NoSubstrate3D calculates stresses X, Y, and Z at one timestep. The 4th dimension (time) is expanded in</span>
-<span class="comment">% Stress_NoSubstrate3D_time, which is also where Von Mises stress is</span>
-<span class="comment">% calculated. Original code written by Dr. Miner exists as</span>
-<span class="comment">% Stress_NoSubstrate_orig.</span>
-</pre><h2 id="2">Input and Output:</h2><div><ul><li>Results is PPResults object, time is the timestep at which the stresses are being calculated at, and VECTORIZED indicates whether to run vectorized (VECTORIZED = 1) or original sequential code</li><li>stressx, stressy, and stressz are 3D arrays which represent stress X, stress Y, and stress Z at the input timestep.</li></ul></div><pre class="codeinput"><span class="keyword">function</span> [stressx,stressy,stressz] = Stress_NoSubstrate3D (Results, time, VECTORIZED)
+  </style></head><body><div class="content"><h1>Stress_NoSubstrate3D (calculation of 3D stresses X, Y, and Z)</h1><!--introduction--><p>Stress_NoSubstrate3D calculates stresses X, Y, and Z at one timestep. The 4th dimension (time) is expanded in Stress_NoSubstrate3D_time, which is also where Von Mises stress is calculated. Original code written by Dr. Miner exists as Stress_NoSubstrate_orig.</p><!--/introduction--><h2>Contents</h2><div><ul><li><a href="#1">Input and Output:</a></li><li><a href="#3">TC modifications:</a></li><li><a href="#4">Load Temperature Results, Melt Fraction Results and Processing Temp</a></li><li><a href="#5">Vectorized subfunctions</a></li><li><a href="#9">Original Sequential Subfunctions</a></li><li><a href="#11">Debugging and verification</a></li></ul></div><h2 id="1">Input and Output:</h2><div><ul><li>Results is PPResults object, time is the timestep at which the stresses are being calculated at, and VECTORIZED indicates whether to run vectorized (VECTORIZED = 1) or original sequential code</li><li>stressx, stressy, and stressz are 3D arrays which represent stress X, stress Y, and stress Z at the input timestep.</li></ul></div><pre class="codeinput"><span class="keyword">function</span> [stressx,stressy,stressz] = Stress_NoSubstrate3D (Results, time, VECTORIZED)
 </pre><pre class="codeinput"><span class="comment">% This function calculates the thermal stress based on CTE mismatch for each element in the model.</span>
 <span class="comment">% This is a quasi 3-D approach that sums the forces in one plane to get the</span>
 <span class="comment">% final length of all the elements in that plane. Each plane is taken</span>
@@ -80,7 +76,7 @@ table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px soli
 <span class="comment">% following planes are used in calculating the final length in each</span>
 <span class="comment">% direction; x-Direction: y-z plane; y-direction: x-z plane; z-Direction:</span>
 <span class="comment">% x-y plane.</span>
-</pre><h2 id="4">TC modifications:</h2><div><ul><li>Vectorized the original sequential code</li><li>Changed indices from (y,x,z) to (x,y,z) to match with GUI.</li><li>Divided code into five main subfunctions: initialization, x-direction length, y-direction length, z-direction length, and final stress calculations</li><li>Created mask LF_ALL_PCM for situations in which stress cannot be calculated</li></ul></div><h2 id="5">Load Temperature Results, Melt Fraction Results and Processing Temp</h2><p>Set LF_ALL_PCM for the mask value used when stress cannot be calculated e.g. when entire layer is PCM, division by zero</p><pre class="codeinput">LF_ALL_PCM = NaN;
+</pre><h2 id="3">TC modifications:</h2><div><ul><li>Vectorized the original sequential code</li><li>Changed indices from (y,x,z) to (x,y,z) to match with GUI.</li><li>Divided code into five main subfunctions: initialization, x-direction length, y-direction length, z-direction length, and final stress calculations</li><li>Created mask LF_ALL_PCM for situations in which stress cannot be calculated</li></ul></div><h2 id="4">Load Temperature Results, Melt Fraction Results and Processing Temp</h2><p>Set LF_ALL_PCM for the mask value used when stress cannot be calculated e.g. when entire layer is PCM, division by zero</p><pre class="codeinput">LF_ALL_PCM = NaN;
 
 Temp4D = Results.getState(<span class="string">'Thermal'</span>);
 Temp = Temp4D(:,:,:,time);
@@ -173,7 +169,7 @@ Mats = Results.Model.Model;
 <span class="keyword">end</span>
 
 <span class="keyword">return</span>
-</pre><h2 id="6">Vectorized subfunctions</h2><pre class="codeinput">    <span class="keyword">function</span> do_init_vec
+</pre><h2 id="5">Vectorized subfunctions</h2><pre class="codeinput">    <span class="keyword">function</span> do_init_vec
         <span class="comment">% calculate youngs_X, poisson_X, and cte_X</span>
         <span class="comment">% get the different material numbers in Mats</span>
         mat_num = unique(Mats);
@@ -315,7 +311,7 @@ Mats = Results.Model.Model;
         stresscube_y(mask_ckMatl_or_Melt) = 0;
         stresscube_z(mask_ckMatl_or_Melt) = 0;
 </pre><pre class="codeinput">    <span class="keyword">end</span>
-</pre><h2 id="10">Original Sequential Subfunctions</h2><p>Dr. Miner's code, encapsulated by TC into functions. Indices were changed from (y,x,z) to (x,y,z). Original code can be found at Stress_NoSubstrate_orig.</p><pre class="codeinput">    <span class="keyword">function</span> ckMatl = do_Matl
+</pre><h2 id="9">Original Sequential Subfunctions</h2><p>Dr. Miner's code, encapsulated by TC into functions. Indices were changed from (y,x,z) to (x,y,z). Original code can be found at Stress_NoSubstrate_orig.</p><pre class="codeinput">    <span class="keyword">function</span> ckMatl = do_Matl
         <span class="comment">% Loop over Cols, Rows and Lays to determine locations that have no</span>
         <span class="comment">% material, IBC's, or Fluid</span>
         <span class="keyword">for</span> i=1:n_dx
@@ -461,7 +457,7 @@ Mats = Results.Model.Model;
         <span class="keyword">end</span>
     <span class="keyword">end</span>
 </pre><pre class="codeinput"><span class="keyword">end</span>
-</pre><h2 id="12">Debugging and verification</h2><pre class="codeinput">    <span class="keyword">function</span> equ = cube_comp (a,b)
+</pre><h2 id="11">Debugging and verification</h2><pre class="codeinput">    <span class="keyword">function</span> equ = cube_comp (a,b)
         <span class="comment">% verification for comparison of vectorized/sequential cubes</span>
         assert(nnz(isnan(a))==0);
         assert(nnz(isnan(b))==0);
@@ -490,7 +486,6 @@ Mats = Results.Model.Model;
 </pre><p class="footer"><br><a href="https://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2020a</a><br></p></div><!--
 ##### SOURCE BEGIN #####
 %% Stress_NoSubstrate3D (calculation of 3D stresses X, Y, and Z)
-
 % Stress_NoSubstrate3D calculates stresses X, Y, and Z at one timestep. The 4th dimension (time) is expanded in
 % Stress_NoSubstrate3D_time, which is also where Von Mises stress is
 % calculated. Original code written by Dr. Miner exists as

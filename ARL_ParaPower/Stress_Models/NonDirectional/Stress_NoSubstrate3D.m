@@ -1,5 +1,4 @@
 %% Stress_NoSubstrate3D (calculation of 3D stresses X, Y, and Z)
-
 % Stress_NoSubstrate3D calculates stresses X, Y, and Z at one timestep. The 4th dimension (time) is expanded in
 % Stress_NoSubstrate3D_time, which is also where Von Mises stress is
 % calculated. Original code written by Dr. Miner exists as

@@ -1,5 +1,4 @@
 %% Stress_NoSubstrate3D_time (calculation of 4D stresses X, Y, Z, and VM)
-
 % Stress_NoSubstrate3D_time calculates stresses X, Y, Z, and VM (Von Mises)
 % for all timesteps defined in the input PPResults object.
 % Stress_NoSubstrate3D is called in a time loop to construct 4D stress

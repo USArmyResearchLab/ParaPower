@@ -6,7 +6,7 @@
    <!--
 This HTML was auto-generated from MATLAB code.
 To make changes, update the MATLAB code and republish this document.
-      --><title>Stress_NoSubstrate3D_time</title><meta name="generator" content="MATLAB 9.8"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2020-07-28"><meta name="DC.source" content="Stress_NoSubstrate3D_time.m"><style type="text/css">
+      --><title>Stress_NoSubstrate3D_time (calculation of 4D stresses X, Y, Z, and VM)</title><meta name="generator" content="MATLAB 9.8"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2020-07-28"><meta name="DC.source" content="Stress_NoSubstrate3D_time.m"><style type="text/css">
 html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,sub,sup,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
 
 html { min-height:100%; margin-bottom:1px; }
@@ -67,11 +67,7 @@ table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px soli
 
 
 
-  </style></head><body><div class="content"><h2>Contents</h2><div><ul><li><a href="#1">Stress_NoSubstrate3D_time (calculation of 4D stresses X, Y, Z, and VM)</a></li><li><a href="#2">Input and Output</a></li></ul></div><h2 id="1">Stress_NoSubstrate3D_time (calculation of 4D stresses X, Y, Z, and VM)</h2><pre class="codeinput"><span class="comment">% Stress_NoSubstrate3D_time calculates stresses X, Y, Z, and VM (Von Mises)</span>
-<span class="comment">% for all timesteps defined in the input PPResults object.</span>
-<span class="comment">% Stress_NoSubstrate3D is called in a time loop to construct 4D stress</span>
-<span class="comment">% arrays X, Y, and Z, which are then used to calculate the 4D VM stress.</span>
-</pre><h2 id="2">Input and Output</h2><div><ul><li>Results is PPResults object and VECTORIZED indicates whether to run vectorized (VECTORIZED = 1) or original sequential code</li><li>stressx, stressy, stressz, and stressvm are 4D arrays which represent stress X, stress Y, stress Z, and Von Mises stress at all the timesteps defined in the GlobalTime vector in the input PPResults object.</li></ul></div><pre class="codeinput"><span class="keyword">function</span> [stressx,stressy,stressz,stressvm] = Stress_NoSubstrate3D_time (Results,VECTORIZED)
+  </style></head><body><div class="content"><h1>Stress_NoSubstrate3D_time (calculation of 4D stresses X, Y, Z, and VM)</h1><!--introduction--><p>Stress_NoSubstrate3D_time calculates stresses X, Y, Z, and VM (Von Mises) for all timesteps defined in the input PPResults object. Stress_NoSubstrate3D is called in a time loop to construct 4D stress arrays X, Y, and Z, which are then used to calculate the 4D VM stress.</p><!--/introduction--><h2>Contents</h2><div><ul><li><a href="#1">Input and Output</a></li></ul></div><h2 id="1">Input and Output</h2><div><ul><li>Results is PPResults object and VECTORIZED indicates whether to run vectorized (VECTORIZED = 1) or original sequential code</li><li>stressx, stressy, stressz, and stressvm are 4D arrays which represent stress X, stress Y, stress Z, and Von Mises stress at all the timesteps defined in the GlobalTime vector in the input PPResults object.</li></ul></div><pre class="codeinput"><span class="keyword">function</span> [stressx,stressy,stressz,stressvm] = Stress_NoSubstrate3D_time (Results,VECTORIZED)
 
 time = Results.Model.GlobalTime;
 dx = Results.Model.X;
@@ -107,7 +103,6 @@ stressvm = (((stressx-stressz).^2 + (stressx-stressy).^2 + (stressy-stressz).^2)
 </pre><p class="footer"><br><a href="https://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2020a</a><br></p></div><!--
 ##### SOURCE BEGIN #####
 %% Stress_NoSubstrate3D_time (calculation of 4D stresses X, Y, Z, and VM)
-
 % Stress_NoSubstrate3D_time calculates stresses X, Y, Z, and VM (Von Mises)
 % for all timesteps defined in the input PPResults object.
 % Stress_NoSubstrate3D is called in a time loop to construct 4D stress
