@@ -1,7 +1,7 @@
 %Shell to call the Miner non-directional model
 function Stress = Stress_NonDirectional(Results)
 
-    MFPath=[strrep(mfilename('fullpath'),mfilename,'') 'NonDirectional'];
+    MFPath=[strrep(mfilename('fullpath'),mfilename,'') 'iPack2019'];
     OldPath=addpath(MFPath);
     
     ErrText=[];
@@ -17,12 +17,15 @@ function Stress = Stress_NonDirectional(Results)
         return
     else
         
-        [StressX, StressY, StressZ, StressVM] = Stress_NoSubstrate3D_time_Miner(Results);        
+        % second parameter: 1 = vectorized
+        [StressX, StressY, StressZ, StressVM] = Stress_NoSubstrate3D_time(Results,1);  
+        
         path(OldPath);
         Stress.X = StressX;
         Stress.Y = StressY;
         Stress.Z = StressZ;
         Stress.VM = StressVM
+        
     end
 
 end
