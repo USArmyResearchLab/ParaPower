@@ -51,18 +51,18 @@ Features.dz=0; Features.dy=0; Features.dz=0;
 Desc='iPACK Model';  %Description of the test case
 
 ExternalConditions.h_Xminus = 0;
-ExternalConditions.h_Xplus = 0;
+ExternalConditions.h_Xplus  = 0;
 ExternalConditions.h_Yminus = 0;
-ExternalConditions.h_Yplus = 0;
+ExternalConditions.h_Yplus  = 0;
 ExternalConditions.h_Zminus = 20000;
-ExternalConditions.h_Zplus = 0;
+ExternalConditions.h_Zplus  = 0;
 
-ExternalConditions.Ta_Xminus=20;
-ExternalConditions.Ta_Xplus =20;
-ExternalConditions.Ta_Yminus=20;
-ExternalConditions.Ta_Yplus =20;
-ExternalConditions.Ta_Zminus=20;
-ExternalConditions.Ta_Zplus =20;
+ExternalConditions.Ta_Xminus = 20;
+ExternalConditions.Ta_Xplus  = 20;
+ExternalConditions.Ta_Yminus = 20;
+ExternalConditions.Ta_Yplus  = 20;
+ExternalConditions.Ta_Zminus = 20;
+ExternalConditions.Ta_Zplus  = 20;
 
 ExternalConditions.Tproc=217; %Processing temperature, used for stress analysis
 
@@ -79,8 +79,6 @@ PottingMaterial  = 0;  %Material that surrounds features in each layer as define
 %no checking to ensure that features do not overlap.  The behavior for
 %overlapping features is not defined.
 
-PottingMaterial  = 0;
-
 
 % Aluminum heat spreader, two layers of 5 mm thickness
 
@@ -88,8 +86,8 @@ Features(1).Desc = 'Substrate';
 Features(end).x    = [0     30];
 Features(end).y    = [0     30];
 Features(end).z    = [0  10];
-Features(end).dx   = 1;
-Features(end).dy   = 1;
+Features(end).dx   = 2;
+Features(end).dy   = 2;
 Features(end).dz   = 2;
 Features(end).Matl = 'Al';
 Features(end).Q    = 0;  %Total watts per features dissipated.
@@ -246,21 +244,14 @@ Features(end).dz   = 1;
 Features(end).Matl = 'SiC';
 Features(end).Q    = 80;  %Total watts per features dissipated.
 
-Features(end+1)  = Features(end);
-Features(end).z    = [1 1] * max(Features(end-1).z);
-Features(end).dz   = 1;
-Features(end).Q    = 10;
-Features(end).Matl = 'NoMat';
+TestCaseModel.Desc = Desc;
+TestCaseModel.TCM = PPTCM;
+TestCaseModel.TCM.Features = Features;
+TestCaseModel.TCM.Params = Params;
+TestCaseModel.TCM.PottingMaterial = PottingMaterial;
+TestCaseModel.TCM.ExternalConditions = ExternalConditions;
+TestCaseModel.TCM.MatLib = MatLib;
 
 
-TestCaseModel.Desc=Desc;
-TestCaseModel.TCM=PPTCM;
-TestCaseModel.TCM.Features=Features;
-TestCaseModel.TCM.Params=Params;
-TestCaseModel.TCM.PottingMaterial=PottingMaterial;
-TestCaseModel.TCM.ExternalConditions=ExternalConditions;
-TestCaseModel.TCM.MatLib=MatLib;
-
-
-MFILE=mfilename('fullpath');
-StressModel='NonDirectional';  %"Stress_" is assumed
+MFILE = mfilename('fullpath');
+StressModel = 'NonDirectional';  %"Stress_" is assumed

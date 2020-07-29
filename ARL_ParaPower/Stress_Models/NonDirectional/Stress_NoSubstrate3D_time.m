@@ -11,7 +11,15 @@
 
 function [stressx,stressy,stressz,stressvm] = Stress_NoSubstrate3D_time (Results)
 
-time = Results.Model.GlobalTime;
+% TC 07-29-20 
+% Problem: length of GlobalTime does not equal time dimension of
+% thermal matrix
+% Solution: use 4th dimension of thermal state as time iterator (since stress
+% calculations depend on thermal state)
+% time = Results.Model.GlobalTime;
+thermal_matrix = Results.getState('Thermal');
+n_time = size(thermal_matrix,4);
+
 dx = Results.Model.X;
 dy = Results.Model.Y;
 dz = Results.Model.Z;
@@ -19,13 +27,13 @@ dz = Results.Model.Z;
 n_dx = length(dx);
 n_dy = length(dy);
 n_dz = length(dz);
-n_time = length(time);
 
 % initialize 4D stress matrices (x,y,z,time)
 stressx = zeros(n_dx,n_dy,n_dz,n_time);
 stressy = zeros(n_dx,n_dy,n_dz,n_time);
 stressz = zeros(n_dx,n_dy,n_dz,n_time);
 stressvm = zeros(n_dx,n_dy,n_dz,n_time);
+
 
 % calculate x, y, and z stress for each timestep
 for timestep = 1:n_time

@@ -36,6 +36,9 @@ function [stressx,stressy,stressz] = Stress_NoSubstrate3D (Results, time)
 LF_ALL_PCM = NaN;
 
 Temp4D = Results.getState('Thermal');
+% problem found in s021_SimpleNonD
+% thermal model is 1000, but globaltime is 1001
+assert(time<=size(Temp4D,4));
 Temp = Temp4D(:,:,:,time);
 
 Melt4D = Results.getState('MeltFrac');

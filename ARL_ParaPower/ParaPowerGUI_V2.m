@@ -2691,7 +2691,7 @@ function MaxPlot_Callback(hObject, eventdata, handles, Results)
                         DoutM(:,end+1)=max(reshape(Results.getState('meltfrac',Fmask),[],length(MI.GlobalTime)),[],1);
                    end
                    
-                   stress_name = 'Stress_X';
+                   stress_name = 'Stress_VM';
                    if any(strcmp(Results.listStates,stress_name)) %MSB 15Jul20
 %                   if ~isempty(Results.getState(stress_name))
                        % Trinity, 7-7-2020
