@@ -1,7 +1,7 @@
 %Shell to call the Miner non-directional model
 function Stress = Stress_NonDirectional(Results)
 
-    MFPath=[strrep(mfilename('fullpath'),mfilename,'') 'iPack2019'];
+    MFPath=[strrep(mfilename('fullpath'),mfilename,'') 'NonDirectional'];
     OldPath=addpath(MFPath);
     
     ErrText=[];

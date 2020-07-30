@@ -1,32 +1,37 @@
-%% Test cases for stress modeling -- TC 07282020
-%This M files executes the set of validation test cases for ParaPower
+%% Test Cases for Stress Modeling
+%This M file executes the set of validation test cases for ParaPower,
+%producing up to three graphs: the model geometry; temperature, melt
+%fraction, and stress states, and a comparison of execution time and
+%available degrees of freedom with the canonical case stored in the 
+%Validation/CasesHold directory. 
+
 %The test cases to run exist as shortcuts/links in the Validation/Cases
 %directory.  The actual file should exist in the Validation/CasesHold
 %directory.  
 
 %The first time a case is run, a file is generated with the name
-%CASENAME_Results.ppmodel.  This file holds both the model definition as a
-%the results of the analysis at the time.
+%CASENAME_Results.ppmodel.  This file holds both the model definition as
+%well as the results of the analysis at the time.
 
 %The file can be loaded into the GUI using the "load profile" GUI button.
-%The model will be loaded, but no the results.  
+%The model will be loaded, but not the results.  
 
 % clear variables
 clearvars -EXCEPT TestCaseWildCard
 
-%% initialization
-% set path -- WHERE DO WE START? ARL_ParaPower/Validation
-fprintf('Make sure the program run in the ARL_ParaPower/Validation folder\n')
+%% Initialization
+% set path -- Start in ARL_ParaPower/Validation
+fprintf('Make sure the program run from the ARL_ParaPower/Validation folder\n')
 addpath('..');  %include above directory which contains the parapower code, i.e., ARL_ParaPower
 CaseDir='Cases';  %Update this to include the directory that will hold the case files.
-StressPath='../Stress_Models';
+StressPath = '../Stress_Models';
 
 % did the user specify the wildcard?
 if exist('TestCaseWildCard')
     disp(['Only running cases meeting the following wildcard (TestCaseWildCard): ' TestCaseWildCard])
 else
     disp('TestCaseWildCard variable doesn''t exist, running all testcases.')
-    TestCaseWildCard='s*.m';
+    TestCaseWildCard = 's*.m';
 end
 
 % construct the pathname according to the wildcard
@@ -40,7 +45,7 @@ testcasefiles = dir([TestCasesFspec '*']);
 
 % adjust filenames for Windows file system
 if ispc
-    testcasefiles=[testcasefiles dir([TestCasesFspec '.lnk'])];
+    testcasefiles = [testcasefiles dir([TestCasesFspec '.lnk'])];
 end
 
 fprintf('\n')
@@ -59,39 +64,39 @@ load('DefaultMaterials.mat','MatLib')
 OrigMatLib=MatLib;
 clear MatLib
 
-%% iterate through all filenames
+% iterate through all filenames
 Compare=[];
 for Icase=1:length(testcasefiles)
     
     clearvars -EXCEPT TestCaseWildCard Icase testcasefiles StressPath StressModel Compare
-    CaseName=char(testcasefiles(Icase).name);
+    CaseName = char(testcasefiles(Icase).name);
     if ispc && strcmpi(CaseName(end-3:end),'.lnk')
-      [path,name,ext]=fileparts(getTargetFromLink([testcasefiles(Icase).folder '\' CaseName]));
-      CaseName=[name ext];
+      [path,name,ext] = fileparts(getTargetFromLink([testcasefiles(Icase).folder '\' CaseName]));
+      CaseName = [name ext];
       testcasefiles(Icase).folder=path;
     end
-    CaseName=CaseName(1:end-2);
+    CaseName = CaseName(1:end-2);
     clear path
     
     %% 1. Eval the skeleton file (creates the material database, geometry and analysis parameters)
     if isempty(str2num(CaseName(1))) 
 		clear StressModel
         fprintf('Executing test case %s...\n',CaseName)
-        VarsOrig=who;
+        VarsOrig = who;
         addpath(testcasefiles(Icase).folder);
         eval(CaseName)
         rmpath(testcasefiles(Icase).folder)
-        CaseExists=true;
+        CaseExists = true;
     else
         fprintf('Can''t execute ''%s''. Name cannot start with a number.\n',CaseName)
-        CaseExists=false;
+        CaseExists = false;
     end
     
     if CaseExists
         % Erase all newly created variables in the test case M file
         VarsNew = who;
         VarsOrig = [VarsOrig; 'VarsOrig'; 'TestCaseModel'; 'VarsNew'; 'Vi'; 'MFILE'; 'StressModel'];
-        for Vi=1:length(VarsNew)
+        for Vi = 1:length(VarsNew)
             if isempty(cell2mat(regexp(VarsOrig,['^' VarsNew{Vi} '$'])))
     %            fprintf('Clearing %s\n',VarsNew{Vi});
                 clear (VarsNew{Vi})
@@ -103,10 +108,10 @@ for Icase=1:length(testcasefiles)
     
         %Material Properties
         if isfield(TestCaseModel.TCM,'MatLib') || isprop(TestCaseModel.TCM,'MatLib')
-            MatLib=TestCaseModel.TCM.MatLib;
+            MatLib = TestCaseModel.TCM.MatLib;
         else
             disp('Adding default materials from the material database to the model')
-            TestCaseModel.TCM.MatLib=OrigMatLib;
+            TestCaseModel.TCM.MatLib = OrigMatLib;
             %return
         end        
         %save([MFILE '.ppmodel'], '-mat', 'TestCaseModel');
@@ -125,39 +130,41 @@ for Icase=1:length(testcasefiles)
 
         %% 3. Run Thermal Analysis
         tic;        % timing  ^^^^^^^^^^^^^^^^^^^^^^^
-        GlobalTimeOrig=MI.GlobalTime;
-        MI.GlobalTime=GlobalTimeOrig(1);  %Setup initialization
-        S1=scPPT('MI',MI); %Initialize object
+        GlobalTimeOrig = MI.GlobalTime;
+        MI.GlobalTime = GlobalTimeOrig(1);  %Setup initialization
+        S1 = scPPT('MI',MI); %Initialize object
         setup(S1,[]);
         %
         % Compute states at times in ComputeTime (S1 must be called with 1 arg in 2017b)
         %
-        [Tprnt, T_in, MeltFrac,MeltFrac_in]=S1(GlobalTimeOrig(1:end));  
-        NewResults.Tprnt   =cat(4, T_in        , Tprnt  );
-        NewResults.MeltFrac=cat(4, MeltFrac_in , MeltFrac);
+        [Tprnt, T_in, MeltFrac,MeltFrac_in] = S1(GlobalTimeOrig(1:end));  
+        % concatenate along 4th dimension (time)
+        NewResults.Tprnt   = cat(4, T_in        , Tprnt  );
+        NewResults.MeltFrac= cat(4, MeltFrac_in , MeltFrac);
         MI.GlobalTime = GlobalTimeOrig; %Reassemble MI's global time to match initialization and computed states.
-        Fi=1; %Could be used to mask for features; (Tprnt would be Tprnt(Mask)
-        NewResults.DoutT(:,1+Fi)=max(reshape(NewResults.Tprnt,[],length(MI.GlobalTime)),[],1);
-        NewResults.DoutM(:,1+Fi)=max(reshape(NewResults.Tprnt,[],length(MI.GlobalTime)),[],1);
-        NewResults.DoutT(:,1)=MI.GlobalTime;
-        NewResults.DoutM(:,1)=MI.GlobalTime;
+        Fi = 1; %Could be used to mask for features; (Tprnt would be Tprnt(Mask)
+        NewResults.DoutT(:,1+Fi) = max(reshape(NewResults.Tprnt,[],length(MI.GlobalTime)),[],1);
+        NewResults.DoutM(:,1+Fi) = max(reshape(NewResults.Tprnt,[],length(MI.GlobalTime)),[],1);
+        NewResults.DoutT(:,1) = MI.GlobalTime;
+        NewResults.DoutM(:,1) = MI.GlobalTime;
         
         %% 4. Store the results in PPResult object
-        ResultsObj=PPResults(now, MI, TestCaseModel.TCM,'Thermal','MeltFrac');
-        ResultsObj=ResultsObj.setState('Thermal',Tprnt);
-        ResultsObj=ResultsObj.setState('MeltFrac',MeltFrac);
+        ResultsObj = PPResults(now, MI, TestCaseModel.TCM,'Thermal','MeltFrac');
+        ResultsObj = ResultsObj.setState('Thermal',Tprnt);
+        ResultsObj = ResultsObj.setState('MeltFrac',MeltFrac);
         
-        OldPath=path;
+        OldPath = path;
         addpath(StressPath);
         %
         %
         %% 5. Run Stress Analysis
-        eval(['Stress=Stress_' StressModel '(ResultsObj);']);
-        ExecTime=toc; % timing  vvvvvvvvvvvvvvvvvvvvvvvvvvv
+        eval(['Stress = Stress_' StressModel '(ResultsObj);']);
+        ExecTime = toc; % timing  vvvvvvvvvvvvvvvvvvvvvvvvvvv
         
         path(OldPath);
         %% 6. Store the results in PPResult object
-        NewResults.Stress = Stress.VM; disp('Taking only the stress VM part')
+        NewResults.Stress = Stress.VM; 
+        disp('Taking only the stress VM part')
         
         %% 7. Store various analysis meta-data
         %    a. Date/Time of analysis
@@ -179,12 +186,12 @@ for Icase=1:length(testcasefiles)
             % check to see if benchmark exists
             if exist(ResultsFile,'file')
                 % load benchmark results as .mat file
-                OldResults=load(ResultsFile,'-mat');
+                OldResults = load(ResultsFile,'-mat');
                 if ~isfield(OldResults,'NewResults')
                     disp([ResultsFile ' uses older version of stored results file.  ''Results'' variable is now named ''NewResults''.'])
-                    OldResults=OldResults.('Results');
+                    OldResults = OldResults.('Results');
                 else
-                    OldResults=OldResults.('NewResults');
+                    OldResults = OldResults.('NewResults');
                 end
                 % populate Compare struct with time comparison
                 Compare{Icase}.Desc = TestCaseModel.Desc;
