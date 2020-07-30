@@ -1,7 +1,7 @@
 %% Test Cases for Stress Modeling
 %This M file executes the set of validation test cases for ParaPower,
-%producing up to three graphs: the model geometry; temperature, melt
-%fraction, and stress states, and a comparison of execution time and
+%producing up to three figures: the model geometry; temperature, melt
+%fraction, and stress states; and a comparison of execution time and
 %available degrees of freedom with the canonical case stored in the 
 %Validation/CasesHold directory. 
 
@@ -20,10 +20,13 @@
 clearvars -EXCEPT TestCaseWildCard
 
 %% Initialization
-% set path -- Start in ARL_ParaPower/Validation
+
+% Must start in ARL_ParaPower/Validation
 fprintf('Make sure the program run from the ARL_ParaPower/Validation folder\n')
+
+% Set path
 addpath('..');  %include above directory which contains the parapower code, i.e., ARL_ParaPower
-CaseDir='Cases';  %Update this to include the directory that will hold the case files.
+CaseDir = 'Cases';  %Update this to include the directory that will hold the case files.
 StressPath = '../Stress_Models';
 
 % did the user specify the wildcard?
@@ -33,27 +36,10 @@ else
     disp('TestCaseWildCard variable doesn''t exist, running all testcases.')
     TestCaseWildCard = 's*.m';
 end
-
-% construct the pathname according to the wildcard
-TestCasesFspec = [CaseDir '/' TestCaseWildCard ];
-
-% replace '**' with '*'
-TestCasesFspec = strrep(TestCasesFspec,'**','*');
-
-% get all of the filenames
-testcasefiles = dir([TestCasesFspec '*']);
-
-% adjust filenames for Windows file system
-if ispc
-    testcasefiles = [testcasefiles dir([TestCasesFspec '.lnk'])];
-end
-
 fprintf('\n')
 
-% start graphics
-figure(1);clf
-figure(2);clf
-drawnow
+% get all filenames in the folder matching the wildcard
+testcasefiles = get_all_filenames(CaseDir,TestCaseWildCard);
 
 %
 % read the data
@@ -61,11 +47,17 @@ drawnow
 load('DefaultMaterials.mat','MatLib')
 
 % rename the data
-OrigMatLib=MatLib;
+OrigMatLib = MatLib;
 clear MatLib
 
 % iterate through all filenames
-Compare=[];
+Compare = [];
+
+% start graphics
+figure(1);clf
+figure(2);clf
+drawnow
+
 for Icase=1:length(testcasefiles)
     
     clearvars -EXCEPT TestCaseWildCard Icase testcasefiles StressPath StressModel Compare
@@ -73,7 +65,7 @@ for Icase=1:length(testcasefiles)
     if ispc && strcmpi(CaseName(end-3:end),'.lnk')
       [path,name,ext] = fileparts(getTargetFromLink([testcasefiles(Icase).folder '\' CaseName]));
       CaseName = [name ext];
-      testcasefiles(Icase).folder=path;
+      testcasefiles(Icase).folder = path;
     end
     CaseName = CaseName(1:end-2);
     clear path
@@ -121,9 +113,7 @@ for Icase=1:length(testcasefiles)
         if length(testcasefiles)==Icase
             figure(1);clf; figure(2);clf; figure(1)
             
-            %
-            %
-            %
+            % Fig. 1 (Geometry)
             Visualize ('Model Input', MI, 'modelgeom','ShowQ')
         end
         fprintf('Analysis executing...')
@@ -137,10 +127,12 @@ for Icase=1:length(testcasefiles)
         %
         % Compute states at times in ComputeTime (S1 must be called with 1 arg in 2017b)
         %
-        [Tprnt, T_in, MeltFrac,MeltFrac_in] = S1(GlobalTimeOrig(1:end));  
+        [Tprnt_partial, T_in, MeltFrac_partial,MeltFrac_in] = S1(GlobalTimeOrig(1:end));  
         % concatenate along 4th dimension (time)
-        NewResults.Tprnt   = cat(4, T_in        , Tprnt  );
-        NewResults.MeltFrac= cat(4, MeltFrac_in , MeltFrac);
+        Tprnt    = cat(4, T_in        , Tprnt_partial  );
+        MeltFrac = cat(4, MeltFrac_in , MeltFrac_partial);
+        NewResults.Tprnt = Tprnt;      
+        NewResults.MeltFrac = MeltFrac;
         MI.GlobalTime = GlobalTimeOrig; %Reassemble MI's global time to match initialization and computed states.
         Fi = 1; %Could be used to mask for features; (Tprnt would be Tprnt(Mask)
         NewResults.DoutT(:,1+Fi) = max(reshape(NewResults.Tprnt,[],length(MI.GlobalTime)),[],1);
@@ -204,27 +196,27 @@ for Icase=1:length(testcasefiles)
                     if size(NewResults.Tprnt) == size(OldResults.Tprnt)
                         for Idof=1:length(DoFList)
                             if isfield(NewResults,DoFList{Idof})
-                                Compare{Icase}.DOFdesc{Idof}=DoFList{Idof};
-                                Compare{Icase}.DOFdelt{Idof}=OldResults.(DoFList{Idof}) - NewResults.(DoFList{Idof});
+                                Compare{Icase}.DOFdesc{Idof} = DoFList{Idof};
+                                Compare{Icase}.DOFdelt{Idof} = OldResults.(DoFList{Idof}) - NewResults.(DoFList{Idof});
                             end
                         end
-                        DoFList={'DoutT' 'DoutM' 'Stress'};
-                        for Idof=1:length(DoFList)
+                        DoFList = {'DoutT' 'DoutM' 'Stress'};
+                        for Idof = 1:length(DoFList)
                             if isfield(NewResults,DoFList{Idof})
-                                Compare{Icase}.DOFdesc{end+1}=DoFList{Idof};
-                                Compare{Icase}.DOFdelt{end+1}=OldResults.(DoFList{Idof}) - NewResults.(DoFList{Idof});
+                                Compare{Icase}.DOFdesc{end+1} = DoFList{Idof};
+                                Compare{Icase}.DOFdelt{end+1} = OldResults.(DoFList{Idof}) - NewResults.(DoFList{Idof});
                             end
                         end
                     else
-                        Compare{Icase}.DOFdesc={'N/A'};
-                        Compare{Icase}.DOFdelt=[];
+                        Compare{Icase}.DOFdesc = {'N/A'};
+                        Compare{Icase}.DOFdelt = [];
                         disp(['Saved case does not match current case for ' TestCaseModel.Desc ]);
                     end
                 catch ME
-                    Compare{Icase}=[];
-                    Compare{Icase}.Desc='';
-                    Compare{Icase}.DOFdelt={[]};
-                    Compare{Icase}.DOFdesc={''};
+                    Compare{Icase} = [];
+                    Compare{Icase}.Desc = '';
+                    Compare{Icase}.DOFdelt = {[]};
+                    Compare{Icase}.DOFdesc = {''};
                     disp('Previous data comparison impossible')
                 end
             else
@@ -241,8 +233,8 @@ for Icase=1:length(testcasefiles)
                                            
        if length(testcasefiles)==Icase
            figure(2);clf; pause(.001)
-           StateN=length(MI.GlobalTime);
-           subplot(1,2,1);
+           StateN = length(MI.GlobalTime);
+           subplot(1,3,1);
            
            %
            % plot temperature state at last time step
@@ -251,7 +243,7 @@ for Icase=1:length(testcasefiles)
            ,'state', NewResults.Tprnt(:,:,:,StateN) ...
            ,'scaletitle', 'Temperature' ...
            )       
-           subplot(1,2,2);
+           subplot(1,3,2);
            %
            % plot melt frac at last time step
            %
@@ -260,9 +252,12 @@ for Icase=1:length(testcasefiles)
            ,'scaletitle', 'Melt Fraction' ...
            )       
        
-           % TC 07-92-20: temporary, right now this is masking the melt frac plot
-           Visualize(sprintf('t=%1.2f ms, State: %i of %i',MI.GlobalTime(end), size(NewResults.Stress,4),length(NewResults.Stress(1,1,1,:))),MI ...
-           ,'state', NewResults.Stress(:,:,:,end) ...
+           subplot(1,3,3);
+           %
+           % plot stress at last time step
+           %
+           Visualize(sprintf('t=%1.2f ms, State: %i of %i',MI.GlobalTime(end), StateN,length(NewResults.Stress(1,1,1,:))),MI ...
+           ,'state', NewResults.Stress(:,:,:,StateN) ...
            ,'scaletitle', 'Stress' ...
            )
        end
@@ -274,21 +269,21 @@ end  % end of iterator
 
 %% data
 % start preparing to plot fig. 10 (comparison)
-DOFDesc={};
-CaseDesc={};
+DOFDesc = {};
+CaseDesc = {};
 
 %% 10. Repeat that above steps for each testcase found.
-for I=1:length(Compare)
+for I = 1:length(Compare)
     if ~isempty(Compare{I}.Desc)
-        CaseDesc{I}=Compare{I}.Desc;
-        for J=1:length(Compare{I}.DOFdelt)
+        CaseDesc{I} = Compare{I}.Desc;
+        for J = 1:length(Compare{I}.DOFdelt)
             if size(Compare{I}.DOFdelt{J}(:))==2
-                PlotCompare(I,J)=sum((Compare{I}.DOFdelt{J}(:)).^2);
+                PlotCompare(I,J) = sum((Compare{I}.DOFdelt{J}(:)).^2);
             else
-                PlotCompare(I,J)=sum((Compare{I}.DOFdelt{J}(:,2)).^2);
+                PlotCompare(I,J) = sum((Compare{I}.DOFdelt{J}(:,2)).^2);
             end
-            DOFDesc{J}=Compare{I}.DOFdesc{J};
-            DeltaTime(I)=Compare{I}.DeltaTime;
+            DOFDesc{J} = Compare{I}.DOFdesc{J};
+            DeltaTime(I) = Compare{I}.DeltaTime;
         end
     end
 end
@@ -298,11 +293,11 @@ end
 if ~isempty(DOFDesc)
     figure(10);
     clf
-    NumCols=2;  % dimension of subplot
-    NumRows=ceil((1+length(DOFDesc))/NumCols); % dimension of subplot
+    NumCols = 2;  % dimension of subplot
+    NumRows = ceil((1+length(DOFDesc))/NumCols); % dimension of subplot
 
     % subplot from #2 to the last
-    for I=1:length(DOFDesc)
+    for I = 1:length(DOFDesc)
         subplot(NumRows,NumCols,I+1)
         barh(PlotCompare(:,I));
         set(gca,'yticklabel',strrep(CaseDesc,'_',' '))
@@ -320,5 +315,28 @@ if ~isempty(DOFDesc)
         xlabel('time (s)')
     end  
 else
-    disp('No comparison possible.')
+    disp('No comparison possible, third figure not generated.')
+end
+
+
+function testcasefiles = get_all_filenames (CaseDir,TestCaseWildCard)
+%% Retrieve skeleton test case filenames to be evaluated
+
+% CaseDir == 'Cases'
+% TestCasesFspec == 'Cases/s*.m'
+
+% construct the pathname according to the wildcard
+TestCasesFspec = [CaseDir '/' TestCaseWildCard ];
+
+% replace '**' with '*', for situations with multiple wild cards
+TestCasesFspec = strrep(TestCasesFspec,'**','*');
+
+% get all of the filenames
+testcasefiles = dir([TestCasesFspec '*']);
+
+% adjust filenames for Windows file system vs. Linux
+if ispc
+    testcasefiles = [testcasefiles dir([TestCasesFspec '.lnk'])];
+end
+
 end
