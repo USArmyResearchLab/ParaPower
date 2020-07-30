@@ -2675,8 +2675,9 @@ function MaxPlot_Callback(hObject, eventdata, handles, Results)
            Ftext = [];
            FeatureMat = [];
            % get each material in model
-           % Fs (vector) contains the unique material numberes in Feature Matrix
+           % Fs (vector) contains the unique feature numbers in Feature Matrix
            Fs = unique(MI.FeatureMatrix(~isnan(MI.FeatureMatrix)));
+           % remove 0s
            Fs = Fs(Fs~=0);
            for Fi=1:length(Fs)
                ThisMat=TestCaseModel.MatLib.GetMatName(TestCaseModel.Features(Fi).Matl);
@@ -2696,7 +2697,7 @@ function MaxPlot_Callback(hObject, eventdata, handles, Results)
 %                   if ~isempty(Results.getState(stress_name))
                        % Trinity, 7-7-2020
                        
-                       % obtain state "stress_x" with a mask
+                       % obtain state "stress_vm" with a mask
                        stress_data = Results.getState(stress_name,Fmask);
                        
                        % reshape(): https://www.mathworks.com/help/matlab/ref/reshape.html

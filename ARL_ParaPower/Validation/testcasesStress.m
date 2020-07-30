@@ -158,6 +158,7 @@ for Icase=1:length(testcasefiles)
         path(OldPath);
         %% 6. Store the results in PPResult object
         NewResults.Stress = Stress.VM; disp('Taking only the stress VM part')
+        
         %% 7. Store various analysis meta-data
         %    a. Date/Time of analysis
         NewResults.DateTime = datetime;
@@ -251,6 +252,12 @@ for Icase=1:length(testcasefiles)
            ,'state', NewResults.MeltFrac(:,:,:,StateN) ...
            ,'scaletitle', 'Melt Fraction' ...
            )       
+       
+           % TC 07-92-20: temporary, right now this is masking the melt frac plot
+           Visualize(sprintf('t=%1.2f ms, State: %i of %i',MI.GlobalTime(end), size(NewResults.Stress,4),length(NewResults.Stress(1,1,1,:))),MI ...
+           ,'state', NewResults.Stress(:,:,:,end) ...
+           ,'scaletitle', 'Stress' ...
+           )
        end
        %figure(3);clf; pause(.001)
        %Visualize(sprintf('t=%1.2f ms, State: %i of %i',StateN*MI.DeltaT*1000, StateN,length(Tprnt(1,1,1,:))),[0 0 0 ],{MI.X MI.Y MI.Z}, MI.Model, MeltFrac(:,:,:,StateN),'Melt Fraction')                                
