@@ -111,9 +111,9 @@ Mats = Results.Model.Model;
     [stressx,stressy,stressz] = do_stress_vec;
     
 % else
-    
-    % original Miner code (not vectorized)
-    
+%     
+%     %original Miner code (not vectorized)
+%     
 %     ckMatl = do_Matl;
 %     
 %     Lfx = do_x;
@@ -125,7 +125,7 @@ Mats = Results.Model.Model;
 %     [stressx,stressy,stressz] = do_stress;
 %     
 %     do_check;
-    
+%     
 % end
 
 return

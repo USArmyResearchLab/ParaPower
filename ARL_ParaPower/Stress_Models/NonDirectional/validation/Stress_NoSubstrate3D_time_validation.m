@@ -50,9 +50,10 @@ for k = 1:9
     text(row,col,sprintf('%.0f',vm_nondirec_rot(k)),'HorizontalAlignment','center','FontSize',18);
 end
 axis off
-title('NonDirectional')
+%title('NonDirectional')
 key2 = colorbar;
-key2.Label.String = 'Von Mises Stress (mPa)';
+key2.Label.String = 'Von Mises Stress (MPa)';
+key2.FontSize = 16
 axis square
 
 % calculate percent error
@@ -65,6 +66,6 @@ imagesc(error_percent)
 axis off
 key = colorbar;
 key.Label.String = 'Percent Error';
-caxis([0 10])
+caxis([0 5])
 title('Percent Error, iPACK19 vs. NonDirectional')
 axis square
