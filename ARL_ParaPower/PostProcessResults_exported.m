@@ -32,10 +32,12 @@ classdef PostProcessResults_exported < matlab.apps.AppBase
     
     methods (Access = private)
         
+        % findobj locates all objs in app.PPPP that have tag "varLB"
         function results = getvarbox(app, VarName)
             LBh=findobj(app.PPPP, 'tag', 'VarLB');
             LB=[];
             for I=1:length(LBh)
+                % retrieve info from UserData (info related to obj)
                 U=LBh(I).UserData;
                 if strcmpi(U{2},VarName)
                     LB=LBh(I);
@@ -45,27 +47,44 @@ classdef PostProcessResults_exported < matlab.apps.AppBase
             if ~isempty(LB)
                 LBL=findobj(app.PPPP,'tag','VarLBL','userdata',LBi);
             end
+            % end with results to plot
             results=[LB LBL];
         end
         
         function results = PopulateResults(app)
-             lResults=app.Results;
+            % save PPResults (obj) in lResults 
+            lResults=app.Results;
              figure(app.PPPP)
+             % number of variables = first column
+             % PPResults.Model.Descriptor
              NumVars=length(app.Results(1).Model.Descriptor(:,1));
+             % iterate through each variable
              for Vi=1:NumVars
-                VarName{Vi}=lResults(1).Model.Descriptor{Vi,1};
-                VarVals{Vi}={};
-                for Ri=1:length(lResults)
-                    DataValue=lResults(Ri).Model.Descriptor{Vi,2};
-                    if ~ischar(DataValue)
-                        DataValue=num2str(DataValue);
-                    end
-                    SC=strcmp(VarVals{Vi},DataValue);
-                    if isempty(SC) | SC==0
-                        VarVals{Vi}{end+1}=DataValue;
-                    end
-                end
+                 % variable name = 1st column PPResults.Model.Descriptor
+                 % (str)
+                 VarName{Vi}=lResults(1).Model.Descriptor{Vi,1};
+                 VarVals{Vi}={};
+                 % iterate through each model configuration
+                 for Ri=1:length(lResults)
+                     % variable value = 2nd column PPResults.Model.Descriptor
+                     % (scalar that is input by user, e.g. one value from vector)
+                     DataValue=lResults(Ri).Model.Descriptor{Vi,2};
+                     if ~ischar(DataValue)
+                         DataValue=num2str(DataValue);
+                     end
+                     SC=strcmp(VarVals{Vi},DataValue);
+                     if isempty(SC) | SC==0
+                         VarVals{Vi}{end+1}=DataValue;
+                     end
+                 end
              end
+             % TC 08-03-2020
+             VarName{end+1} = 'Time';
+             VarVals{end+1}=lResults(1).Model.GlobalTime;
+         
+             % add something here to append time to VarName and VarVals?
+        
+        % GUI formatting
              P=app.ListBoxTemplate.Position;
              Pl=app.ListBoxLabel.Position;
              app.ListBoxTemplate.Visible=false;
@@ -79,6 +98,9 @@ classdef PostProcessResults_exported < matlab.apps.AppBase
              delete(findobj(app.PPPP,'tag','VarLBL'));
              for I=1:NumVars
                  TagNum=num2str(I);
+                 % VarLB = list box
+                 % VarLBL = list box label
+                 % create each list box, add title
                  UI=uilistbox(app.PPPP,'items',VarVals{I},'tag',['VarLB'],'user',{I VarName{I}},'position',[Xpos Ypos-(Pl(2)-P(2)) P(3) P(4)],'MultiSelect',true);
                  UIt=uieditfield(app.PPPP,'value',VarName{I},'tag',['VarLBL'],'user',I,'position',[Xpos Ypos P(3) Pl(4)],'enable',true);
                  RestoreUIt=@(A,B)set(UIt,'value',VarName{I});
@@ -111,6 +133,7 @@ classdef PostProcessResults_exported < matlab.apps.AppBase
     end
     
 
+    % Callbacks that handle component events
     methods (Access = private)
 
         % Code that executes after component creation
@@ -157,13 +180,16 @@ classdef PostProcessResults_exported < matlab.apps.AppBase
 
         % Value changed function: IndependentVariableDropDown
         function IndependentVariableDropDownValueChanged(app, event)
+            %Value is the text of the independent variable.  should be able to have it match other.
             value = app.IndependentVariableDropDown.Value;
-            %Gray out the box that's selected here.
-            %Value is the text of the independent variable.  shoudl be able to have it match other.
-            VarBlock=app.getvarbox(value);
             set(findobj(app.PPPP,'tag','VarLB'),'enable',true);
             set(findobj(app.PPPP,'tag','VarLBL'),'enable',true);
-            set(VarBlock,'enable',false)
+            % if time selected as independent, all list boxes enabled
+            % otherwise, gray out the selected box
+            if ~strcmpi(value,'Time')
+                VarBlock=app.getvarbox(value);
+                set(VarBlock,'enable',false)
+            end
         end
 
         % Button pushed function: FileLoadButton
@@ -203,16 +229,30 @@ classdef PostProcessResults_exported < matlab.apps.AppBase
         % Button pushed function: PlotButton
         function PlotButtonPushed(app, event)
             lResults=app.Results;
-            LabelH=findobj(app.PPPP,'tag','VarLBL');
             VarBxH=findobj(app.PPPP,'tag','VarLB');
-            IndepVar=get(findobj(VarBxH,'enable',false),'userdata');
-            IndepAxisC=get(findobj(VarBxH,'enable',false),'Items');
-            XLabel=IndepVar{2};
-            VarBxH=findobj(VarBxH,'enable',true);
-            for I=1:length(IndepAxisC)
-                IndepAxis{I}=str2double(IndepAxisC{I});
+            Independent = app.IndependentVariableDropDown.Value;
+            if strcmpi(Independent,'Time')
+                IndepAxis = lResults(1).Model.GlobalTime;
+                XLabel = Independent;
+                IndepVar = {[1] 'Time'}
+            else
+                % get ind. var. name and value by looking for obj that is
+                % disabled
+                IndepVar=get(findobj(VarBxH,'enable',false),'userdata');
+                % IndepAxis is matrix with doubles
+                % IndepAxisC is cell with strings
+                IndepAxisC=get(findobj(VarBxH,'enable',false),'Items');
+                for I=1:length(IndepAxisC)
+                    IndepAxis{I}=str2double(IndepAxisC{I});
+                end
+                IndepAxis=cell2mat(IndepAxis);
+                XLabel=IndepVar{2};
             end
-            IndepAxis=cell2mat(IndepAxis);
+            % LabelH seems pointless
+            LabelH=findobj(app.PPPP,'tag','VarLBL');
+            
+            VarBxH=findobj(VarBxH,'enable',true);
+            
             NumCurves=1;
             %Curves = {Var1_Val1 Var2_Val1 Var2_Val1
             %          Var1_Val1 Var2_Val1 Var2_Val2
@@ -250,6 +290,8 @@ classdef PostProcessResults_exported < matlab.apps.AppBase
                     for Ii=1:length(IndepAxisC)
                         if isnan(Curves{Ci})
                             D=[Descriptor([IndepVar{1}],2)];
+                            % to use indep axis instead of indepaxisc, turn
+                            % into string
                             C=[IndepAxisC(Ii)]';
                         else
                             D=[Descriptor([VarPosit IndepVar{1}],2)];
@@ -257,21 +299,32 @@ classdef PostProcessResults_exported < matlab.apps.AppBase
                         end
                         %[C'; D']
                         if all(strcmp(D,C))
+                        %if 1
                             %Extract max temp over all features for all time
-                            switch DepVariableName
-                                case lower(app.AvailStates{1}) %Max Temp
-                                    YLabel='Max Temp (all features, all time)';
-                                    FullState=lResults(I).getState('Thermal');
-                                    DepAxis(Ii,Ci)=max(FullState(:));
-                                case lower(app.AvailStates{2}) % Max Melt Frac
-                                    YLabel='Min Melt Frac (all features, all time)';
-                                    FullState=lResults(I).getState('MeltFrac');
-                                    DepAxis(Ii,Ci)=min(FullState(:));
-                                otherwise
-                                    YLabel='Unknown Dependent Variable';
-                                    DepAxis(Ii,Ci)=NaN;
+                            % add something here for time
+                            
+                            if strcmpi(Independent,'Time')
+                                full_thermal = lResults(I).getState('Thermal')
+                                reshaped_thermal = reshape(full_thermal,[],length(IndepAxis))
+                                max_reshaped_thermal = max(reshaped_thermal,[],1);
+                                DepAxis(Ii,Ci)= max_reshaped_thermal;
+                            else
+                                switch DepVariableName
+                                    case lower(app.AvailStates{1}) %Max Temp
+                                        %if
+                                        YLabel='Max Temp (all features, all time)';
+                                        FullState=lResults(I).getState('Thermal');
+                                        DepAxis(Ii,Ci)=max(FullState(:));
+                                    case lower(app.AvailStates{2}) % Max Melt Frac
+                                        YLabel='Min Melt Frac (all features, all time)';
+                                        FullState=lResults(I).getState('MeltFrac');
+                                        DepAxis(Ii,Ci)=min(FullState(:));
+                                    otherwise
+                                        YLabel='Unknown Dependent Variable';
+                                        DepAxis(Ii,Ci)=NaN;
+                                end
                             end
-                                    
+                            
                         end
                     end
                 end
@@ -308,14 +361,14 @@ classdef PostProcessResults_exported < matlab.apps.AppBase
         end
     end
 
-    % App initialization and construction
+    % Component initialization
     methods (Access = private)
 
         % Create UIFigure and components
         function createComponents(app)
 
-            % Create PPPP
-            app.PPPP = uifigure;
+            % Create PPPP and hide until all components are created
+            app.PPPP = uifigure('Visible', 'off');
             app.PPPP.Position = [100 100 640 480];
             app.PPPP.Name = 'ParaPower Parametric Post Processor';
             app.PPPP.Resize = 'off';
@@ -393,15 +446,19 @@ classdef PostProcessResults_exported < matlab.apps.AppBase
             app.ClosePlotWindowsButton.ButtonPushedFcn = createCallbackFcn(app, @ClosePlotWindowsButtonPushed, true);
             app.ClosePlotWindowsButton.Position = [487 73 122 22];
             app.ClosePlotWindowsButton.Text = 'Close Plot Windows';
+
+            % Show the figure after all components are created
+            app.PPPP.Visible = 'on';
         end
     end
 
+    % App creation and deletion
     methods (Access = public)
 
         % Construct app
         function app = PostProcessResults_exported
 
-            % Create and configure components
+            % Create UIFigure and components
             createComponents(app)
 
             % Register the app with App Designer
