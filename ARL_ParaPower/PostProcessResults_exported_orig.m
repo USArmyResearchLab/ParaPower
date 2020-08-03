@@ -51,7 +51,14 @@ classdef PostProcessResults_exported < matlab.apps.AppBase
         function results = PopulateResults(app)
              lResults=app.Results;
              figure(app.PPPP)
-             NumVars=length(app.Results(1).Model.Descriptor(:,1));
+             if isempty(app.Results(1).Model.Descriptor)
+                 app.AddStatusLine('Results file contains only a single model.')
+                 NumVars=0;
+                 VarName='';
+                 VarVals={};
+             else
+                 NumVars=length(app.Results(1).Model.Descriptor(:,1));
+             end
              for Vi=1:NumVars
                 VarName{Vi}=lResults(1).Model.Descriptor{Vi,1};
                 VarVals{Vi}={};
@@ -90,12 +97,15 @@ classdef PostProcessResults_exported < matlab.apps.AppBase
                     Xpos=Pl(1);
                  end
              end
-             app.IndependentVariableDropDown.Items=VarName;
-             app.DependentVariableDropDown.Items=app.AvailStates;
-             IndependentVariableDropDownValueChanged(app)
-             app.IndependentVariableDropDown.Enable=true;
-             app.DependentVariableDropDown.Enable=true;
-
+             if isempty(VarName)
+                 app.IndependentVariableDropDown.Enable=false;
+             else
+                 app.IndependentVariableDropDown.Items=VarName;
+                 app.DependentVariableDropDown.Items=app.AvailStates;
+                 IndependentVariableDropDownValueChanged(app)
+                 app.IndependentVariableDropDown.Enable=true;
+                 app.DependentVariableDropDown.Enable=true;
+             end
         end
         
         function results = AddStatusLine(app,StatusText, Flag)
@@ -111,6 +121,7 @@ classdef PostProcessResults_exported < matlab.apps.AppBase
     end
     
 
+    % Callbacks that handle component events
     methods (Access = private)
 
         % Code that executes after component creation
@@ -207,7 +218,12 @@ classdef PostProcessResults_exported < matlab.apps.AppBase
             VarBxH=findobj(app.PPPP,'tag','VarLB');
             IndepVar=get(findobj(VarBxH,'enable',false),'userdata');
             IndepAxisC=get(findobj(VarBxH,'enable',false),'Items');
-            XLabel=IndepVar{2};
+            if isempty(IndepVar)
+                app.AddStatusLine('Nothing to plot.')
+                return
+            else
+                XLabel=IndepVar{2};
+            end
             VarBxH=findobj(VarBxH,'enable',true);
             for I=1:length(IndepAxisC)
                 IndepAxis{I}=str2double(IndepAxisC{I});
@@ -308,14 +324,14 @@ classdef PostProcessResults_exported < matlab.apps.AppBase
         end
     end
 
-    % App initialization and construction
+    % Component initialization
     methods (Access = private)
 
         % Create UIFigure and components
         function createComponents(app)
 
-            % Create PPPP
-            app.PPPP = uifigure;
+            % Create PPPP and hide until all components are created
+            app.PPPP = uifigure('Visible', 'off');
             app.PPPP.Position = [100 100 640 480];
             app.PPPP.Name = 'ParaPower Parametric Post Processor';
             app.PPPP.Resize = 'off';
@@ -393,15 +409,19 @@ classdef PostProcessResults_exported < matlab.apps.AppBase
             app.ClosePlotWindowsButton.ButtonPushedFcn = createCallbackFcn(app, @ClosePlotWindowsButtonPushed, true);
             app.ClosePlotWindowsButton.Position = [487 73 122 22];
             app.ClosePlotWindowsButton.Text = 'Close Plot Windows';
+
+            % Show the figure after all components are created
+            app.PPPP.Visible = 'on';
         end
     end
 
+    % App creation and deletion
     methods (Access = public)
 
         % Construct app
         function app = PostProcessResults_exported
 
-            % Create and configure components
+            % Create UIFigure and components
             createComponents(app)
 
             % Register the app with App Designer
