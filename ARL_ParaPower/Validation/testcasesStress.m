@@ -2,7 +2,7 @@
 % This M file executes a specified set of validation test cases for
 % ParaPower, producing two figures: 1) the model geometry and 2)
 % temperature, melt fraction, and stress states. A third figure comparing
-% execurtion time and available degrees of freedom will also be generated
+% execution time and available degrees of freedom will also be generated
 % if there is a canonical case stored in the Validation/CasesHold
 % directory. 
 
@@ -16,7 +16,7 @@
 % well as the results of the analysis at the time, and is used as the
 % canonical model for comparison. 
 
-% The file can be loaded into ParaPower_GUIV2 using the "load profile" GUI
+% The file can be loaded into ParaPowerGUI_V2 using the "load profile" GUI
 % button. The model/geometry will be loaded, but not the results. 
 
 %% Initialization
