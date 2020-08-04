@@ -231,10 +231,11 @@ classdef PostProcessResults_exported < matlab.apps.AppBase
             lResults=app.Results;
             VarBxH=findobj(app.PPPP,'tag','VarLB');
             Independent = app.IndependentVariableDropDown.Value;
+            time_flag = 0
             if strcmpi(Independent,'Time')
                 IndepAxis = lResults(1).Model.GlobalTime;
-                XLabel = Independent;
-                IndepVar = {[1] 'Time'}
+                XLabel = 'Time (seconds)';
+                time_flag = 1
             else
                 % get ind. var. name and value by looking for obj that is
                 % disabled
@@ -248,21 +249,18 @@ classdef PostProcessResults_exported < matlab.apps.AppBase
                 IndepAxis=cell2mat(IndepAxis);
                 XLabel=IndepVar{2};
             end
-            % LabelH seems pointless
-            LabelH=findobj(app.PPPP,'tag','VarLBL');
             
             VarBxH=findobj(VarBxH,'enable',true);
             
             NumCurves=1;
-            %Curves = {Var1_Val1 Var2_Val1 Var3_Val1 ... VarN_Vali
-            %          Var1_Val1 Var2_Val1 Var3_Val2 ... VarN_Vali
-            %          Var1_Val1 Var2_Val2 Var3_Val1 ... VarN_Vali
-            %          Var1_Val1 Var2_Val2 Var3_Val2 ... VarN_Vali }
-            %Each row of Curves corresponds to a curve being plotted, each
-            %column defines the values for each variable that define that curve.
-            %One column per dependent variable
-            %
-            %CurveName = Names of curves corresponding to rows above (only includes vars that have multiple values)
+            % Curves = {Var1_Val1 Var2_Val1 Var3_Val1
+            %          Var1_Val1 Var2_Val1 Var3_Val2
+            %          Var1_Val1 Var2_Val2 Var3_Val1
+            %          Var1_Val1 Var2_Val2 Var3_Val2 }
+            % CurveName = Names of curves corresponding to rows above (only includes vars that have multiple values)
+            % Curves contains the dependent variable permutations that need
+            % to be plotted (each row is one curve, each column is a
+            % descriptor)
             Curves={};
             CurveName={};
             VarPosit=[];
@@ -283,41 +281,62 @@ classdef PostProcessResults_exported < matlab.apps.AppBase
                     CurveName(end-NumCurves+1:end,end)={[VarName '=' VarVals{NumVal}]};
                 end
             end
+            
             DepAxis=[];
             if isempty(Curves)
                 Curves={nan};
             end
             DepVariableName=lower(app.DependentVariableDropDown.Value);
+            % loop through all results, all cases
             for I=1:length(lResults)
                 Descriptor=lResults(I).Model.Descriptor;
                 for Ci=1:length(Curves(:,1))
-                    for Ii=1:length(IndepAxisC)
-                        if isnan(Curves{Ci})
-                            D=[Descriptor([IndepVar{1}],2)];
-                            % to use indep axis instead of indepaxisc, turn
-                            % into string
-                            C=[IndepAxisC(Ii)]';
-                        else
-                            D=[Descriptor([VarPosit IndepVar{1}],2)];
-                            C=[Curves(Ci,:) IndepAxisC(Ii)]';
-                        end
-                        %[C'; D']
+                    if time_flag
+                        D = [Descriptor([VarPosit ],2)];
+                        C = [Curves(Ci,:)]';
                         if all(strcmp(D,C))
-                        %if 1
-                            %Extract max temp over all features for all time
-                            % add something here for time
-                            
-                            if strcmpi(Independent,'Time')
-                                full_thermal = lResults(I).getState('Thermal')
-                                reshaped_thermal = reshape(full_thermal,[],length(IndepAxis))
-                                max_reshaped_thermal = max(reshaped_thermal,[],1);
-                                DepAxis(Ii,Ci)= max_reshaped_thermal;
+                            switch DepVariableName
+                                case lower(app.AvailStates{1})
+                                    YLabel='Max Temp (all features)';
+                                    full_thermal = lResults(I).getState('Thermal')
+                                    reshaped_thermal = reshape(full_thermal,[],length(IndepAxis))
+                                    max_reshaped_thermal = max(reshaped_thermal,[],1);
+                                    DepAxis(:,Ci)= max_reshaped_thermal;
+                                case lower(app.AvailStates{2})
+                                    YLabel='Min Temp (all features)';
+                                    full_melt = lResults(I).getState('MeltFrac')
+                                    reshaped_thermal = reshape(full_thermal,[],length(IndepAxis))
+                                    min_reshaped_melt = min(reshaped_melt,[],1);
+                                    DepAxis(:,Ci)= min_reshaped_melt;
+                                otherwise
+                                    YLabel='Unknown Dependent Variable';
+                                    DepAxis(Ii,Ci)=NaN;
+                            end
+                        end
+                    else
+                        for Ii=1:length(IndepAxisC)
+                            if isnan(Curves{Ci})
+                                D=[Descriptor([IndepVar{1}],2)];
+                                C=[IndepAxisC(Ii)]';
                             else
+                                % contains descriptor of each case
+                                D=[Descriptor([VarPosit IndepVar{1}],2)];
+                                % descriptor of interest
+                                % curves holds the predetermined curves of
+                                % interest
+                                C=[Curves(Ci,:) IndepAxisC(Ii)]';
+                            end
+                            % if C and D match, then it is a case of interest
+                            if all(strcmp(D,C))
+                                %Extract max temp over all features for all time
+                                
                                 switch DepVariableName
                                     case lower(app.AvailStates{1}) %Max Temp
-                                        %if
                                         YLabel='Max Temp (all features, all time)';
                                         FullState=lResults(I).getState('Thermal');
+                                        % DepAxis: rows = each step on
+                                        % independent axis, columns = each
+                                        % model configuration
                                         DepAxis(Ii,Ci)=max(FullState(:));
                                     case lower(app.AvailStates{2}) % Max Melt Frac
                                         YLabel='Min Melt Frac (all features, all time)';
@@ -327,6 +346,8 @@ classdef PostProcessResults_exported < matlab.apps.AppBase
                                         YLabel='Unknown Dependent Variable';
                                         DepAxis(Ii,Ci)=NaN;
                                 end
+                                
+                                
                             end
                             
                         end
