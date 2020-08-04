@@ -254,10 +254,14 @@ classdef PostProcessResults_exported < matlab.apps.AppBase
             VarBxH=findobj(VarBxH,'enable',true);
             
             NumCurves=1;
-            %Curves = {Var1_Val1 Var2_Val1 Var2_Val1
-            %          Var1_Val1 Var2_Val1 Var2_Val2
-            %          Var1_Val1 Var2_Val2 Var2_Val1
-            %          Var1_Val1 Var2_Val2 Var2_Val2 }
+            %Curves = {Var1_Val1 Var2_Val1 Var3_Val1 ... VarN_Vali
+            %          Var1_Val1 Var2_Val1 Var3_Val2 ... VarN_Vali
+            %          Var1_Val1 Var2_Val2 Var3_Val1 ... VarN_Vali
+            %          Var1_Val1 Var2_Val2 Var3_Val2 ... VarN_Vali }
+            %Each row of Curves corresponds to a curve being plotted, each
+            %column defines the values for each variable that define that curve.
+            %One column per dependent variable
+            %
             %CurveName = Names of curves corresponding to rows above (only includes vars that have multiple values)
             Curves={};
             CurveName={};
