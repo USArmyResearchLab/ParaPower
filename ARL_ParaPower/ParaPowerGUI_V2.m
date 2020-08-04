@@ -2570,6 +2570,17 @@ function HelpButton_Callback(hObject, eventdata, handles)
     HelpText{end+1}='         to the end of global time.';
     HelpText{end+1}='';
     HelpText{end+1}='   Stress Models';
+    HelpText{end+1}='      Nondirectional: Boteler, L. M., and Miner, S. M. "Evaluation of Low Order Stress';
+    HelpText{end+1}='      Models for Use in Co-Design Analysis of Electronics Packaging." Proceedings of';
+    HelpText{end+1}='      the ASME 2019 International Technical Conference and Exhibition on Packaging ';
+    HelpText{end+1}='      and Integration of Electronic and Photonic Microsystems. ASME 2019 International';
+    HelpText{end+1}='      Technical Conference and Exhibition on Packaging and Integration of Electronic';
+    HelpText{end+1}='      and Photonic Microsystems. Anaheim, California, USA. October 7–9, 2019. ';
+    HelpText{end+1}='      V001T06A003. ASME. https://doi.org/10.1115/IPACK2019-6381';
+    HelpText{end+1}='
+    HelpText{end+1}='      Hsueh: Substrate based stress model';
+    HelpText{end+1}='      Substrate-based: Hsueh, C. H. "Thermal stresses in elastic multilayer systems.';
+    HelpText{end+1}='      Thin solid films 418, no. 2 (2002): 182-188. https://doi.org/10.1016/S0040-6090(02)00699-5';
     HelpText{end+1}='';
     HelpText{end+1}='Contributors:';
     HelpText{end+1}='   Dr. Lauren Boteler (ARL)';
@@ -2578,6 +2589,7 @@ function HelpButton_Callback(hObject, eventdata, handles)
     HelpText{end+1}='   Mr. Morris Berman (ARL)';
     HelpText{end+1}='   Mr. Michael Rego (Drexel)';
     HelpText{end+1}='   Mr. Michael Deckard (Texas A&M)';
+    HelpText{end+1}='   Ms. Trinity Cheng (Riverhill High School)';
     HelpText{end+1}='';  
     HelpText{end+1}='For additional informatoin contact Dr. Lauren Boteler (lauren.m.boteler.civ@mail.mil)';
     HelpText{end+1}='';

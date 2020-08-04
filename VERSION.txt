@@ -41,6 +41,7 @@ V0.4.01d - .gitignore in validation/cases now allows .lnk, Master renamed to Rel
 V0.4.02  - Fine tuned workflow docs
 V0.4.02b - Added .gitignore to user models
 V0.4.02b - Added .json file for code.mil
+V0.5.0   - Added non-directional stress model with vectorization
 		 
 Features to Add
 1. Enable 'stop' button on GUI

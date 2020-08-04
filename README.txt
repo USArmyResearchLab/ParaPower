@@ -25,6 +25,7 @@ The following developers have directly contributed to the current code base:
 	Morris Berman (US Army Research Laboratory)
 	Dr. Steven Miner (US Naval Academy)
 	Dr. Michael Fish (Postdoc at Army Research Laboratory)
+	Trinity Cheng
 
 Questions/comments/issues can be directed to the "Issues" forum on the GITHUB.
 
