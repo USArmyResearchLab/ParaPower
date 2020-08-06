@@ -1,4 +1,4 @@
-#Ignore files in this directory
+*_Results.ppmodel
 *.m
-#*.lnk
-
+*.lnk
+*.ppmodel
