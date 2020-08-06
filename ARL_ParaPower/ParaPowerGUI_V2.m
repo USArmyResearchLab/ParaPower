@@ -2577,7 +2577,7 @@ function HelpButton_Callback(hObject, eventdata, handles)
     HelpText{end+1}='      Technical Conference and Exhibition on Packaging and Integration of Electronic';
     HelpText{end+1}='      and Photonic Microsystems. Anaheim, California, USA. October 7–9, 2019. ';
     HelpText{end+1}='      V001T06A003. ASME. https://doi.org/10.1115/IPACK2019-6381';
-    HelpText{end+1}='
+    HelpText{end+1}=''
     HelpText{end+1}='      Hsueh: Substrate based stress model';
     HelpText{end+1}='      Substrate-based: Hsueh, C. H. "Thermal stresses in elastic multilayer systems.';
     HelpText{end+1}='      Thin solid films 418, no. 2 (2002): 182-188. https://doi.org/10.1016/S0040-6090(02)00699-5';
