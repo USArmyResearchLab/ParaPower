@@ -115,7 +115,12 @@ for Icase=1:length(testcasefiles)
         NewResults.Computer=computer();
         NewResults.Matlab=ver('matlab');
         if exist([MFILE '.m'],'file')
-            ResultsFile=[MFILE, '_Results.ppmodel'];
+            ResultsFile = [MFILE, '_Results.ppmodel'];
+            ResultsFile = strrep(ResultsFile,'\','/');
+            % check to see if benchmark exists
+            if ~exist(ResultsFile,'file')
+                ResultsFile=strrep(ResultsFile,'/Cases/','/CasesHold/');
+            end
             if exist(ResultsFile,'file')
                 OldResults=load(ResultsFile,'-mat');
                 if ~isfield(OldResults,'NewResults')

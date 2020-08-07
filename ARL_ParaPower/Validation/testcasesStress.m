@@ -187,7 +187,11 @@ for Icase=1:length(testcasefiles)
         if exist([MFILE '.m'],'file')
             % create .ppmodel file with same name as test case skeleton
             ResultsFile = [MFILE, '_Results.ppmodel'];
+            ResultsFile = strrep(ResultsFile,'\','/');
             % check to see if benchmark exists
+            if ~exist(ResultsFile,'file')
+                ResultsFile=strrep(ResultsFile,'/Cases/','/CasesHold/');
+            end
             if exist(ResultsFile,'file')
                 % load benchmark results as .mat file
                 OldResults = load(ResultsFile,'-mat');
