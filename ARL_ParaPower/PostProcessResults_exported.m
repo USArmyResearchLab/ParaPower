@@ -81,8 +81,6 @@ classdef PostProcessResults_exported < matlab.apps.AppBase
              % TC 08-03-2020
              VarName{end+1} = 'Time';
              VarVals{end+1}=lResults(1).Model.GlobalTime;
-         
-             % add something here to append time to VarName and VarVals?
         
         % GUI formatting
              P=app.ListBoxTemplate.Position;
@@ -187,7 +185,7 @@ classdef PostProcessResults_exported < matlab.apps.AppBase
             % if time selected as independent, all list boxes enabled
             % otherwise, gray out the selected box
             if ~strcmpi(value,'Time')
-                VarBlock=app.getvarbox(value);
+                VarBlock = app.getvarbox(value);
                 set(VarBlock,'enable',false)
             end
         end
@@ -228,14 +226,26 @@ classdef PostProcessResults_exported < matlab.apps.AppBase
 
         % Button pushed function: PlotButton
         function PlotButtonPushed(app, event)
-            lResults=app.Results;
-            VarBxH=findobj(app.PPPP,'tag','VarLB');
+            lResults = app.Results;
+            VarBxH = findobj(app.PPPP,'tag','VarLB');
             Independent = app.IndependentVariableDropDown.Value;
-            time_flag = 0
+            time_flag = 0;
+            max_time = lResults(1).Model.GlobalTime(end);
+            max_results = 1;
+
             if strcmpi(Independent,'Time')
-                IndepAxis = lResults(1).Model.GlobalTime;
+                for I = 2:length(lResults)
+                    current_max_time = lResults(I).Model.GlobalTime(end);
+                    if current_max_time > max_time
+                        max_time = current_max_time;
+                        max_results = I;
+                    end
+                end
+                % greatest time vector (necessary when delta t and time are
+                % parameters)
+                IndepAxis_max = lResults(max_results).Model.GlobalTime;
                 XLabel = 'Time (seconds)';
-                time_flag = 1
+                time_flag = 1;
             else
                 % get ind. var. name and value by looking for obj that is
                 % disabled
@@ -286,6 +296,16 @@ classdef PostProcessResults_exported < matlab.apps.AppBase
             if isempty(Curves)
                 Curves={nan};
             end
+            
+            if time_flag
+                % if delta t and time are parameters, models with shorter
+                % times will be filled with NaNs at the end
+                % rows = max number of time steps
+                % columns = number of curves plotted
+                DepAxis = nan(length(IndepAxis_max),length(Curves(:,1)));
+                IndepAxis = nan(length(IndepAxis_max),length(Curves(:,1)));
+            end
+            
             DepVariableName=lower(app.DependentVariableDropDown.Value);
             % loop through all results, all cases
             for I=1:length(lResults)
@@ -295,22 +315,26 @@ classdef PostProcessResults_exported < matlab.apps.AppBase
                         D = [Descriptor([VarPosit ],2)];
                         C = [Curves(Ci,:)]';
                         if all(strcmp(D,C))
+                            current_IndepAxis = length(lResults(I).Model.GlobalTime)
+                            IndepAxis([1:current_IndepAxis],Ci) = lResults(I).Model.GlobalTime;
                             switch DepVariableName
                                 case lower(app.AvailStates{1})
                                     YLabel='Max Temp (all features)';
-                                    full_thermal = lResults(I).getState('Thermal')
-                                    reshaped_thermal = reshape(full_thermal,[],length(IndepAxis))
+                                    % get full thermal state
+                                    full_thermal = lResults(I).getState('Thermal');
+                                    reshaped_thermal = reshape(full_thermal,[],DepAxis([1:current_IndepAxis],Ci));
+                                    % get max for each time step
                                     max_reshaped_thermal = max(reshaped_thermal,[],1);
-                                    DepAxis(:,Ci)= max_reshaped_thermal;
+                                    DepAxis([1:current_IndepAxis],Ci) = max_reshaped_thermal;
                                 case lower(app.AvailStates{2})
                                     YLabel='Min Temp (all features)';
-                                    full_melt = lResults(I).getState('MeltFrac')
-                                    reshaped_thermal = reshape(full_thermal,[],length(IndepAxis))
+                                    full_melt = lResults(I).getState('MeltFrac');
+                                    reshaped_thermal = reshape(full_thermal,[],DepAxis([1:current_IndepAxis],Ci));
                                     min_reshaped_melt = min(reshaped_melt,[],1);
-                                    DepAxis(:,Ci)= min_reshaped_melt;
+                                    DepAxis([1:current_IndepAxis],Ci) = min_reshaped_melt;
                                 otherwise
                                     YLabel='Unknown Dependent Variable';
-                                    DepAxis(Ii,Ci)=NaN;
+                                    DepAxis([1:current_IndepAxis],Ci) =NaN;
                             end
                         end
                     else
@@ -358,7 +382,7 @@ classdef PostProcessResults_exported < matlab.apps.AppBase
             set(app.PlotWindows(end),'name','ARL ParaPower Post')
             clf
             PlotAxis=axes;
-            plot(PlotAxis,IndepAxis,DepAxis,'marker','o')
+            plot(IndepAxis,DepAxis,'marker','o')
             ylabel(PlotAxis,YLabel);
             xlabel(PlotAxis,XLabel);
             if ~isempty(CurveName)
