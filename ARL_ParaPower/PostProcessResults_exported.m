@@ -32,10 +32,12 @@ classdef PostProcessResults_exported < matlab.apps.AppBase
     
     methods (Access = private)
         
+        % findobj locates all objs in app.PPPP that have tag "varLB"
         function results = getvarbox(app, VarName)
             LBh=findobj(app.PPPP, 'tag', 'VarLB');
             LB=[];
             for I=1:length(LBh)
+                % retrieve info from UserData (info related to obj)
                 U=LBh(I).UserData;
                 if strcmpi(U{2},VarName)
                     LB=LBh(I);
@@ -45,34 +47,42 @@ classdef PostProcessResults_exported < matlab.apps.AppBase
             if ~isempty(LB)
                 LBL=findobj(app.PPPP,'tag','VarLBL','userdata',LBi);
             end
+            % end with results to plot
             results=[LB LBL];
         end
         
         function results = PopulateResults(app)
-             lResults=app.Results;
+            % save PPResults (obj) in lResults 
+            lResults=app.Results;
              figure(app.PPPP)
-             if isempty(app.Results(1).Model.Descriptor)
-                 app.AddStatusLine('Results file contains only a single model.')
-                 NumVars=0;
-                 VarName='';
-                 VarVals={};
-             else
-                 NumVars=length(app.Results(1).Model.Descriptor(:,1));
-             end
+             % number of variables = first column
+             % PPResults.Model.Descriptor
+             NumVars=length(app.Results(1).Model.Descriptor(:,1));
+             % iterate through each variable
              for Vi=1:NumVars
-                VarName{Vi}=lResults(1).Model.Descriptor{Vi,1};
-                VarVals{Vi}={};
-                for Ri=1:length(lResults)
-                    DataValue=lResults(Ri).Model.Descriptor{Vi,2};
-                    if ~ischar(DataValue)
-                        DataValue=num2str(DataValue);
-                    end
-                    SC=strcmp(VarVals{Vi},DataValue);
-                    if isempty(SC) | SC==0
-                        VarVals{Vi}{end+1}=DataValue;
-                    end
-                end
+                 % variable name = 1st column PPResults.Model.Descriptor
+                 % (str)
+                 VarName{Vi}=lResults(1).Model.Descriptor{Vi,1};
+                 VarVals{Vi}={};
+                 % iterate through each model configuration
+                 for Ri=1:length(lResults)
+                     % variable value = 2nd column PPResults.Model.Descriptor
+                     % (scalar that is input by user, e.g. one value from vector)
+                     DataValue=lResults(Ri).Model.Descriptor{Vi,2};
+                     if ~ischar(DataValue)
+                         DataValue=num2str(DataValue);
+                     end
+                     SC=strcmp(VarVals{Vi},DataValue);
+                     if isempty(SC) | SC==0
+                         VarVals{Vi}{end+1}=DataValue;
+                     end
+                 end
              end
+             % TC 08-03-2020
+             VarName{end+1} = 'Time';
+             VarVals{end+1}=lResults(1).Model.GlobalTime;
+        
+        % GUI formatting
              P=app.ListBoxTemplate.Position;
              Pl=app.ListBoxLabel.Position;
              app.ListBoxTemplate.Visible=false;
@@ -86,6 +96,9 @@ classdef PostProcessResults_exported < matlab.apps.AppBase
              delete(findobj(app.PPPP,'tag','VarLBL'));
              for I=1:NumVars
                  TagNum=num2str(I);
+                 % VarLB = list box
+                 % VarLBL = list box label
+                 % create each list box, add title
                  UI=uilistbox(app.PPPP,'items',VarVals{I},'tag',['VarLB'],'user',{I VarName{I}},'position',[Xpos Ypos-(Pl(2)-P(2)) P(3) P(4)],'MultiSelect',true);
                  UIt=uieditfield(app.PPPP,'value',VarName{I},'tag',['VarLBL'],'user',I,'position',[Xpos Ypos P(3) Pl(4)],'enable',true);
                  RestoreUIt=@(A,B)set(UIt,'value',VarName{I});
@@ -97,15 +110,12 @@ classdef PostProcessResults_exported < matlab.apps.AppBase
                     Xpos=Pl(1);
                  end
              end
-             if isempty(VarName)
-                 app.IndependentVariableDropDown.Enable=false;
-             else
-                 app.IndependentVariableDropDown.Items=VarName;
-                 app.DependentVariableDropDown.Items=app.AvailStates;
-                 IndependentVariableDropDownValueChanged(app)
-                 app.IndependentVariableDropDown.Enable=true;
-                 app.DependentVariableDropDown.Enable=true;
-             end
+             app.IndependentVariableDropDown.Items=VarName;
+             app.DependentVariableDropDown.Items=app.AvailStates;
+             IndependentVariableDropDownValueChanged(app)
+             app.IndependentVariableDropDown.Enable=true;
+             app.DependentVariableDropDown.Enable=true;
+
         end
         
         function results = AddStatusLine(app,StatusText, Flag)
@@ -168,13 +178,16 @@ classdef PostProcessResults_exported < matlab.apps.AppBase
 
         % Value changed function: IndependentVariableDropDown
         function IndependentVariableDropDownValueChanged(app, event)
+            %Value is the text of the independent variable.  should be able to have it match other.
             value = app.IndependentVariableDropDown.Value;
-            %Gray out the box that's selected here.
-            %Value is the text of the independent variable.  shoudl be able to have it match other.
-            VarBlock=app.getvarbox(value);
             set(findobj(app.PPPP,'tag','VarLB'),'enable',true);
             set(findobj(app.PPPP,'tag','VarLBL'),'enable',true);
-            set(VarBlock,'enable',false)
+            % if time selected as independent, all list boxes enabled
+            % otherwise, gray out the selected box
+            if ~strcmpi(value,'Time')
+                VarBlock = app.getvarbox(value);
+                set(VarBlock,'enable',false)
+            end
         end
 
         % Button pushed function: FileLoadButton
@@ -213,28 +226,51 @@ classdef PostProcessResults_exported < matlab.apps.AppBase
 
         % Button pushed function: PlotButton
         function PlotButtonPushed(app, event)
-            lResults=app.Results;
-            LabelH=findobj(app.PPPP,'tag','VarLBL');
-            VarBxH=findobj(app.PPPP,'tag','VarLB');
-            IndepVar=get(findobj(VarBxH,'enable',false),'userdata');
-            IndepAxisC=get(findobj(VarBxH,'enable',false),'Items');
-            if isempty(IndepVar)
-                app.AddStatusLine('Nothing to plot.')
-                return
+            lResults = app.Results;
+            VarBxH = findobj(app.PPPP,'tag','VarLB');
+            Independent = app.IndependentVariableDropDown.Value;
+            time_flag = 0;
+            max_time = lResults(1).Model.GlobalTime(end);
+            max_results = 1;
+
+            if strcmpi(Independent,'Time')
+                for I = 2:length(lResults)
+                    current_max_time = lResults(I).Model.GlobalTime(end);
+                    if current_max_time > max_time
+                        max_time = current_max_time;
+                        max_results = I;
+                    end
+                end
+                % greatest time vector (necessary when delta t and time are
+                % parameters)
+                IndepAxis_max = lResults(max_results).Model.GlobalTime;
+                XLabel = 'Time (seconds)';
+                time_flag = 1;
             else
+                % get ind. var. name and value by looking for obj that is
+                % disabled
+                IndepVar=get(findobj(VarBxH,'enable',false),'userdata');
+                % IndepAxis is matrix with doubles
+                % IndepAxisC is cell with strings
+                IndepAxisC=get(findobj(VarBxH,'enable',false),'Items');
+                for I=1:length(IndepAxisC)
+                    IndepAxis{I}=str2double(IndepAxisC{I});
+                end
+                IndepAxis=cell2mat(IndepAxis);
                 XLabel=IndepVar{2};
             end
+            
             VarBxH=findobj(VarBxH,'enable',true);
-            for I=1:length(IndepAxisC)
-                IndepAxis{I}=str2double(IndepAxisC{I});
-            end
-            IndepAxis=cell2mat(IndepAxis);
+            
             NumCurves=1;
-            %Curves = {Var1_Val1 Var2_Val1 Var2_Val1
-            %          Var1_Val1 Var2_Val1 Var2_Val2
-            %          Var1_Val1 Var2_Val2 Var2_Val1
-            %          Var1_Val1 Var2_Val2 Var2_Val2 }
-            %CurveName = Names of curves corresponding to rows above (only includes vars that have multiple values)
+            % Curves = {Var1_Val1 Var2_Val1 Var3_Val1
+            %          Var1_Val1 Var2_Val1 Var3_Val2
+            %          Var1_Val1 Var2_Val2 Var3_Val1
+            %          Var1_Val1 Var2_Val2 Var3_Val2 }
+            % CurveName = Names of curves corresponding to rows above (only includes vars that have multiple values)
+            % Curves contains the dependent variable permutations that need
+            % to be plotted (each row is one curve, each column is a
+            % descriptor)
             Curves={};
             CurveName={};
             VarPosit=[];
@@ -255,39 +291,89 @@ classdef PostProcessResults_exported < matlab.apps.AppBase
                     CurveName(end-NumCurves+1:end,end)={[VarName '=' VarVals{NumVal}]};
                 end
             end
+            
             DepAxis=[];
             if isempty(Curves)
                 Curves={nan};
             end
+            
+            if time_flag
+                % if delta t and time are parameters, models with shorter
+                % times will be filled with NaNs at the end
+                % rows = max number of time steps
+                % columns = number of curves plotted
+                DepAxis = nan(length(IndepAxis_max),length(Curves(:,1)));
+                IndepAxis = nan(length(IndepAxis_max),length(Curves(:,1)));
+            end
+            
             DepVariableName=lower(app.DependentVariableDropDown.Value);
+            % loop through all results, all cases
             for I=1:length(lResults)
                 Descriptor=lResults(I).Model.Descriptor;
                 for Ci=1:length(Curves(:,1))
-                    for Ii=1:length(IndepAxisC)
-                        if isnan(Curves{Ci})
-                            D=[Descriptor([IndepVar{1}],2)];
-                            C=[IndepAxisC(Ii)]';
-                        else
-                            D=[Descriptor([VarPosit IndepVar{1}],2)];
-                            C=[Curves(Ci,:) IndepAxisC(Ii)]';
-                        end
-                        %[C'; D']
+                    if time_flag
+                        D = [Descriptor([VarPosit ],2)];
+                        C = [Curves(Ci,:)]';
                         if all(strcmp(D,C))
-                            %Extract max temp over all features for all time
+                            current_IndepAxis = length(lResults(I).Model.GlobalTime)
+                            IndepAxis([1:current_IndepAxis],Ci) = lResults(I).Model.GlobalTime;
                             switch DepVariableName
-                                case lower(app.AvailStates{1}) %Max Temp
-                                    YLabel='Max Temp (all features, all time)';
-                                    FullState=lResults(I).getState('Thermal');
-                                    DepAxis(Ii,Ci)=max(FullState(:));
-                                case lower(app.AvailStates{2}) % Max Melt Frac
-                                    YLabel='Min Melt Frac (all features, all time)';
-                                    FullState=lResults(I).getState('MeltFrac');
-                                    DepAxis(Ii,Ci)=min(FullState(:));
+                                case lower(app.AvailStates{1})
+                                    YLabel='Max Temp (all features)';
+                                    % get full thermal state
+                                    full_thermal = lResults(I).getState('Thermal');
+                                    reshaped_thermal = reshape(full_thermal,[],DepAxis([1:current_IndepAxis],Ci));
+                                    % get max for each time step
+                                    max_reshaped_thermal = max(reshaped_thermal,[],1);
+                                    DepAxis([1:current_IndepAxis],Ci) = max_reshaped_thermal;
+                                case lower(app.AvailStates{2})
+                                    YLabel='Min Temp (all features)';
+                                    full_melt = lResults(I).getState('MeltFrac');
+                                    reshaped_thermal = reshape(full_thermal,[],DepAxis([1:current_IndepAxis],Ci));
+                                    min_reshaped_melt = min(reshaped_melt,[],1);
+                                    DepAxis([1:current_IndepAxis],Ci) = min_reshaped_melt;
                                 otherwise
                                     YLabel='Unknown Dependent Variable';
-                                    DepAxis(Ii,Ci)=NaN;
+                                    DepAxis([1:current_IndepAxis],Ci) =NaN;
                             end
-                                    
+                        end
+                    else
+                        for Ii=1:length(IndepAxisC)
+                            if isnan(Curves{Ci})
+                                D=[Descriptor([IndepVar{1}],2)];
+                                C=[IndepAxisC(Ii)]';
+                            else
+                                % contains descriptor of each case
+                                D=[Descriptor([VarPosit IndepVar{1}],2)];
+                                % descriptor of interest
+                                % curves holds the predetermined curves of
+                                % interest
+                                C=[Curves(Ci,:) IndepAxisC(Ii)]';
+                            end
+                            % if C and D match, then it is a case of interest
+                            if all(strcmp(D,C))
+                                %Extract max temp over all features for all time
+                                
+                                switch DepVariableName
+                                    case lower(app.AvailStates{1}) %Max Temp
+                                        YLabel='Max Temp (all features, all time)';
+                                        FullState=lResults(I).getState('Thermal');
+                                        % DepAxis: rows = each step on
+                                        % independent axis, columns = each
+                                        % model configuration
+                                        DepAxis(Ii,Ci)=max(FullState(:));
+                                    case lower(app.AvailStates{2}) % Max Melt Frac
+                                        YLabel='Min Melt Frac (all features, all time)';
+                                        FullState=lResults(I).getState('MeltFrac');
+                                        DepAxis(Ii,Ci)=min(FullState(:));
+                                    otherwise
+                                        YLabel='Unknown Dependent Variable';
+                                        DepAxis(Ii,Ci)=NaN;
+                                end
+                                
+                                
+                            end
+                            
                         end
                     end
                 end
@@ -296,7 +382,7 @@ classdef PostProcessResults_exported < matlab.apps.AppBase
             set(app.PlotWindows(end),'name','ARL ParaPower Post')
             clf
             PlotAxis=axes;
-            plot(PlotAxis,IndepAxis,DepAxis,'marker','o')
+            plot(IndepAxis,DepAxis,'marker','o')
             ylabel(PlotAxis,YLabel);
             xlabel(PlotAxis,XLabel);
             if ~isempty(CurveName)
