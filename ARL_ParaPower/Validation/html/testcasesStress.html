@@ -1,0 +1,771 @@
+
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      --><title>Run Stress Test Cases for Validation</title><meta name="generator" content="MATLAB 9.8"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2020-07-31"><meta name="DC.source" content="testcasesStress.m"><style type="text/css">
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,sub,sup,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
+
+html { min-height:100%; margin-bottom:1px; }
+html body { height:100%; margin:0px; font-family:Arial, Helvetica, sans-serif; font-size:10px; color:#000; line-height:140%; background:#fff none; overflow-y:scroll; }
+html body td { vertical-align:top; text-align:left; }
+
+h1 { padding:0px; margin:0px 0px 25px; font-family:Arial, Helvetica, sans-serif; font-size:1.5em; color:#d55000; line-height:100%; font-weight:normal; }
+h2 { padding:0px; margin:0px 0px 8px; font-family:Arial, Helvetica, sans-serif; font-size:1.2em; color:#000; font-weight:bold; line-height:140%; border-bottom:1px solid #d6d4d4; display:block; }
+h3 { padding:0px; margin:0px 0px 5px; font-family:Arial, Helvetica, sans-serif; font-size:1.1em; color:#000; font-weight:bold; line-height:140%; }
+
+a { color:#005fce; text-decoration:none; }
+a:hover { color:#005fce; text-decoration:underline; }
+a:visited { color:#004aa0; text-decoration:none; }
+
+p { padding:0px; margin:0px 0px 20px; }
+img { padding:0px; margin:0px 0px 20px; border:none; }
+p img, pre img, tt img, li img, h1 img, h2 img { margin-bottom:0px; }
+
+ul { padding:0px; margin:0px 0px 20px 23px; list-style:square; }
+ul li { padding:0px; margin:0px 0px 7px 0px; }
+ul li ul { padding:5px 0px 0px; margin:0px 0px 7px 23px; }
+ul li ol li { list-style:decimal; }
+ol { padding:0px; margin:0px 0px 20px 0px; list-style:decimal; }
+ol li { padding:0px; margin:0px 0px 7px 23px; list-style-type:decimal; }
+ol li ol { padding:5px 0px 0px; margin:0px 0px 7px 0px; }
+ol li ol li { list-style-type:lower-alpha; }
+ol li ul { padding-top:7px; }
+ol li ul li { list-style:square; }
+
+.content { font-size:1.2em; line-height:140%; padding: 20px; }
+
+pre, code { font-size:12px; }
+tt { font-size: 1.2em; }
+pre { margin:0px 0px 20px; }
+pre.codeinput { padding:10px; border:1px solid #d3d3d3; background:#f7f7f7; }
+pre.codeoutput { padding:10px 11px; margin:0px 0px 20px; color:#4c4c4c; }
+pre.error { color:red; }
+
+@media print { pre.codeinput, pre.codeoutput { word-wrap:break-word; width:100%; } }
+
+span.keyword { color:#0000FF }
+span.comment { color:#228B22 }
+span.string { color:#A020F0 }
+span.untermstring { color:#B20000 }
+span.syscmd { color:#B28C00 }
+span.typesection { color:#A0522D }
+
+.footer { width:auto; padding:10px 0px; margin:25px 0px 0px; border-top:1px dotted #878787; font-size:0.8em; line-height:140%; font-style:italic; color:#878787; text-align:left; float:none; }
+.footer p { margin:0px; }
+.footer a { color:#878787; }
+.footer a:hover { color:#878787; text-decoration:underline; }
+.footer a:visited { color:#878787; }
+
+table th { padding:7px 5px; text-align:left; vertical-align:middle; border: 1px solid #d6d4d4; font-weight:bold; }
+table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px solid #d6d4d4; }
+
+
+
+
+
+  </style></head><body><div class="content"><h1>Run Stress Test Cases for Validation</h1><!--introduction--><p>This M file executes a specified set of validation test cases for ParaPower, producing two figures: 1) the model geometry and 2) temperature, melt fraction, and stress states. A third figure comparing execurtion time and available degrees of freedom will also be generated if there is a canonical case stored in the Validation/CasesHold directory.</p><!--/introduction--><h2>Contents</h2><div><ul><li><a href="#1">Description</a></li><li><a href="#2">Initialization</a></li><li><a href="#4">1. Eval the skeleton file (creates the material database, geometry and analysis parameters)</a></li><li><a href="#6">2. Creates MI data structure (this is the fully created model that is evaluated)</a></li><li><a href="#7">3. Run Thermal Analysis</a></li><li><a href="#8">4. Store the results in PPResult object</a></li><li><a href="#9">5. Run Stress Analysis</a></li><li><a href="#10">6. Store the results in PPResult object</a></li><li><a href="#11">7. Store various analysis meta-data</a></li><li><a href="#12">8. Checks to see if a benchmark (previous analysis that has already been validated) for this case exists, if so creates a new compare data structure that includes:</a></li><li><a href="#14">9.  If no old case existed, save this analysis as the new benchmark.</a></li><li><a href="#16">10. Generate temperature, melt fraction, and stress figures.</a></li><li><a href="#19">11. Calculate and store RMS differences for each DoF</a></li><li><a href="#20">11. Figure 10: Bar graphs that illustrate timing and accuracy of current analytical method</a></li><li><a href="#21">Retrieve skeleton test case filenames to be evaluated</a></li></ul></div><h2 id="1">Description</h2><p>The test cases to run exist as shortcuts/links in the Validation/Cases directory. The actual file should exist in the Validation/CasesHold directory.</p><pre class="codeinput"><span class="comment">% The first time a case is run, a file is generated with the name</span>
+<span class="comment">% CASENAME_Results.ppmodel. This file holds both the model definition as</span>
+<span class="comment">% well as the results of the analysis at the time, and is used as the</span>
+<span class="comment">% canonical model for comparison.</span>
+
+<span class="comment">% The file can be loaded into ParaPower_GUIV2 using the "load profile" GUI</span>
+<span class="comment">% button. The model/geometry will be loaded, but not the results.</span>
+</pre><h2 id="2">Initialization</h2><p>clear variables</p><pre class="codeinput">clearvars <span class="string">-EXCEPT</span> <span class="string">TestCaseWildCard</span>
+
+<span class="comment">% Must start in ARL_ParaPower/Validation</span>
+fprintf(<span class="string">'Make sure the program run from the ARL_ParaPower/Validation folder\n'</span>)
+
+<span class="comment">% Set path</span>
+addpath(<span class="string">'..'</span>);  <span class="comment">%include above directory which contains the parapower code, i.e., ARL_ParaPower</span>
+CaseDir = <span class="string">'Cases'</span>;  <span class="comment">%Update this to include the directory that will hold the case files.</span>
+StressPath = <span class="string">'../Stress_Models'</span>;
+
+<span class="comment">% did the user specify the wildcard?</span>
+<span class="keyword">if</span> exist(<span class="string">'TestCaseWildCard'</span>)
+    disp([<span class="string">'Only running cases meeting the following wildcard (TestCaseWildCard): '</span> TestCaseWildCard])
+<span class="keyword">else</span>
+    disp(<span class="string">'TestCaseWildCard variable doesn''t exist, running all testcases.'</span>)
+    TestCaseWildCard = <span class="string">'s*.m'</span>;
+<span class="keyword">end</span>
+fprintf(<span class="string">'\n'</span>)
+
+<span class="comment">% get all filenames in the folder matching the wildcard</span>
+testcasefiles = get_all_filenames(CaseDir,TestCaseWildCard);
+
+<span class="comment">%</span>
+<span class="comment">% read the data</span>
+<span class="comment">%</span>
+load(<span class="string">'DefaultMaterials.mat'</span>,<span class="string">'MatLib'</span>)
+
+<span class="comment">% rename the data</span>
+OrigMatLib = MatLib;
+clear <span class="string">MatLib</span>
+
+<span class="comment">% Initialize "Compare" cell</span>
+Compare = [];
+
+<span class="comment">% start graphics</span>
+figure(1);clf
+figure(2);clf
+drawnow
+
+<span class="comment">% iterate through all filenames</span>
+<span class="keyword">for</span> Icase=1:length(testcasefiles)
+</pre><pre class="codeinput">    clearvars <span class="string">-EXCEPT</span> <span class="string">TestCaseWildCard</span> <span class="string">Icase</span> <span class="string">testcasefiles</span> <span class="string">StressPath</span> <span class="string">StressModel</span> <span class="string">Compare</span>
+    CaseName = char(testcasefiles(Icase).name);
+    <span class="keyword">if</span> ispc &amp;&amp; strcmpi(CaseName(end-3:end),<span class="string">'.lnk'</span>)
+      [path,name,ext] = fileparts(getTargetFromLink([testcasefiles(Icase).folder <span class="string">'\'</span> CaseName]));
+      CaseName = [name ext];
+      testcasefiles(Icase).folder = path;
+    <span class="keyword">end</span>
+    CaseName = CaseName(1:end-2);
+    clear <span class="string">path</span>
+</pre><h2 id="4">1. Eval the skeleton file (creates the material database, geometry and analysis parameters)</h2><pre class="codeinput">    <span class="keyword">if</span> isempty(str2num(CaseName(1)))
+		clear <span class="string">StressModel</span>
+        fprintf(<span class="string">'Executing test case %s...\n'</span>,CaseName)
+        VarsOrig = who;
+        addpath(testcasefiles(Icase).folder);
+        eval(CaseName)
+        rmpath(testcasefiles(Icase).folder)
+        CaseExists = true;
+    <span class="keyword">else</span>
+        fprintf(<span class="string">'Can''t execute ''%s''. Name cannot start with a number.\n'</span>,CaseName)
+        CaseExists = false;
+    <span class="keyword">end</span>
+
+    <span class="keyword">if</span> CaseExists
+</pre><pre class="codeinput">        <span class="comment">% Erase all newly created variables in the test case M file</span>
+        VarsNew = who;
+        VarsOrig = [VarsOrig; <span class="string">'VarsOrig'</span>; <span class="string">'TestCaseModel'</span>; <span class="string">'VarsNew'</span>; <span class="string">'Vi'</span>; <span class="string">'MFILE'</span>; <span class="string">'StressModel'</span>];
+        <span class="comment">% Iterate through each variable in VarsNew</span>
+        <span class="keyword">for</span> Vi = 1:length(VarsNew)
+            <span class="keyword">if</span> isempty(cell2mat(regexp(VarsOrig,[<span class="string">'^'</span> VarsNew{Vi} <span class="string">'$'</span>])))
+    <span class="comment">%            fprintf('Clearing %s\n',VarsNew{Vi});</span>
+                clear (VarsNew{Vi})
+    <span class="comment">%        else</span>
+    <span class="comment">%            fprintf('Leaving %s\n',VarsNew{Vi});</span>
+            <span class="keyword">end</span>
+        <span class="keyword">end</span>
+        clear <span class="string">VarsOrig</span> <span class="string">VarsNew</span>
+
+        <span class="comment">% Material Properties</span>
+        <span class="keyword">if</span> isfield(TestCaseModel.TCM,<span class="string">'MatLib'</span>) || isprop(TestCaseModel.TCM,<span class="string">'MatLib'</span>)
+            MatLib = TestCaseModel.TCM.MatLib;
+        <span class="keyword">else</span>
+            disp(<span class="string">'Adding default materials from the material database to the model'</span>)
+            TestCaseModel.TCM.MatLib = OrigMatLib;
+            <span class="comment">%return</span>
+        <span class="keyword">end</span>
+        <span class="comment">%save([MFILE '.ppmodel'], '-mat', 'TestCaseModel');</span>
+</pre><h2 id="6">2. Creates MI data structure (this is the fully created model that is evaluated)</h2><pre class="codeinput">        MI = FormModel(TestCaseModel.TCM);
+        <span class="keyword">if</span> length(testcasefiles)==Icase
+            figure(1);clf; figure(2);clf; figure(1)
+            <span class="comment">%</span>
+            <span class="comment">% Fig. 1 (Geometry)</span>
+            <span class="comment">%</span>
+            Visualize (<span class="string">'Model Input'</span>, MI, <span class="string">'modelgeom'</span>,<span class="string">'ShowQ'</span>)
+        <span class="keyword">end</span>
+        fprintf(<span class="string">'Analysis executing...'</span>)
+</pre><pre class="codeoutput">Analysis executing...</pre><img vspace="5" hspace="5" src="testcasesStress_01.png" alt=""> <img vspace="5" hspace="5" src="testcasesStress_02.png" alt=""> <h2 id="7">3. Run Thermal Analysis</h2><pre class="codeinput">        tic;        <span class="comment">% timing start ^^^^^^^^^^^^^^^^^^^^^^^</span>
+        GlobalTimeOrig = MI.GlobalTime;
+        MI.GlobalTime = GlobalTimeOrig(1);  <span class="comment">%Setup initialization</span>
+        S1 = scPPT(<span class="string">'MI'</span>,MI); <span class="comment">%Initialize object</span>
+        setup(S1,[]);
+        <span class="comment">%</span>
+        <span class="comment">% Compute states at times in ComputeTime (S1 must be called with 1 arg in 2017b)</span>
+        <span class="comment">%</span>
+        [Tprnt_partial, T_in, MeltFrac_partial,MeltFrac_in] = S1(GlobalTimeOrig(1:end));
+        <span class="comment">% concatenate along 4th dimension (time)</span>
+        Temperature    = cat(4, T_in        , Tprnt_partial  );
+        MeltFrac = cat(4, MeltFrac_in , MeltFrac_partial);
+        NewResults.Temperature = Temperature;
+        NewResults.MeltFrac = MeltFrac;
+        <span class="comment">% Reassemble MI's global time to match initialization and computed states.</span>
+        MI.GlobalTime = GlobalTimeOrig;
+        Fi = 1; <span class="comment">%Could be used to mask for features; (Tprnt would be Tprnt(Mask)</span>
+        <span class="comment">% First column of MaxTemp/MaxMeltFrac is time vector, second column is the</span>
+        <span class="comment">% max for each time</span>
+        <span class="comment">% TC 07-31-2020: changed DoutT and DoutM into MaxTemp and</span>
+        <span class="comment">% MaxMeltFrac</span>
+        NewResults.MaxTemp(:,1+Fi) = max(reshape(NewResults.Temperature,[],length(MI.GlobalTime)),[],1);
+        NewResults.MaxMeltFrac(:,1+Fi) = max(reshape(NewResults.MeltFrac,[],length(MI.GlobalTime)),[],1);
+        NewResults.MaxTemp(:,1) = MI.GlobalTime;
+        NewResults.MaxMeltFrac(:,1) = MI.GlobalTime;
+</pre><pre class="codeoutput">Transient Analysis
+</pre><h2 id="8">4. Store the results in PPResult object</h2><pre class="codeinput">        ResultsObj = PPResults(now, MI, TestCaseModel.TCM,<span class="string">'Thermal'</span>,<span class="string">'MeltFrac'</span>);
+        ResultsObj = ResultsObj.setState(<span class="string">'Thermal'</span>, Temperature);
+        ResultsObj = ResultsObj.setState(<span class="string">'MeltFrac'</span>, MeltFrac);
+
+        OldPath = path;
+        addpath(StressPath);
+        <span class="comment">%</span>
+        <span class="comment">%</span>
+</pre><h2 id="9">5. Run Stress Analysis</h2><pre class="codeinput">        eval([<span class="string">'Stress = Stress_'</span> StressModel <span class="string">'(ResultsObj);'</span>]);
+        ExecTime = toc; <span class="comment">% timing end vvvvvvvvvvvvvvvvvvvvvvvvvvv</span>
+
+        path(OldPath);
+</pre><pre class="codeoutput">Thermal: 12x12x7x101
+MeltFrac: 12x12x7x101
+
+Stress = 
+
+  struct with fields:
+
+     X: [12&times;12&times;7&times;101 double]
+     Y: [12&times;12&times;7&times;101 double]
+     Z: [12&times;12&times;7&times;101 double]
+    VM: [12&times;12&times;7&times;101 double]
+
+</pre><h2 id="10">6. Store the results in PPResult object</h2><pre class="codeinput">        NewResults.Stress = Stress.VM;
+        disp(<span class="string">'Taking only the stress VM part'</span>)
+        <span class="comment">% TC 07-31-2020: added in MaxStress</span>
+        NewResults.MaxStress(:,1+Fi) = max(reshape(NewResults.Stress,[],length(MI.GlobalTime)),[],1);
+        NewResults.MaxStress(:,1) = MI.GlobalTime;
+</pre><pre class="codeoutput">Taking only the stress VM part
+</pre><h2 id="11">7. Store various analysis meta-data</h2><pre>  a. Date/Time of analysis</pre><pre class="codeinput">        NewResults.DateTime = datetime;
+        <span class="comment">%    b. Timing information (how long the analysis took)</span>
+        NewResults.ExecTime = ExecTime;
+        <span class="comment">%    d. Description of model</span>
+        NewResults.Desc = TestCaseModel.Desc;
+        <span class="comment">%    c. Computer architecture of analysis (PC/Linux/Mac/etc)</span>
+        NewResults.Computer = computer();
+        <span class="comment">%    e. MATLAB version</span>
+        NewResults.Matlab = ver(<span class="string">'matlab'</span>);
+</pre><h2 id="12">8. Checks to see if a benchmark (previous analysis that has already been validated) for this case exists, if so creates a new compare data structure that includes:</h2><p>check if MFILE exists (file address of test case)</p><pre class="codeinput">        <span class="keyword">if</span> exist([MFILE <span class="string">'.m'</span>],<span class="string">'file'</span>)
+            <span class="comment">% create .ppmodel file with same name as test case skeleton</span>
+            ResultsFile = [MFILE, <span class="string">'_Results.ppmodel'</span>];
+            <span class="comment">% check to see if benchmark exists</span>
+            <span class="keyword">if</span> exist(ResultsFile,<span class="string">'file'</span>)
+                <span class="comment">% load benchmark results as .mat file</span>
+                OldResults = load(ResultsFile,<span class="string">'-mat'</span>);
+                <span class="keyword">if</span> ~isfield(OldResults,<span class="string">'NewResults'</span>)
+                    disp([ResultsFile <span class="string">' uses older version of stored results file.  ''Results'' variable is now named ''NewResults''.'</span>])
+                    OldResults = OldResults.(<span class="string">'Results'</span>);
+                <span class="keyword">else</span>
+                    OldResults = OldResults.(<span class="string">'NewResults'</span>);
+                <span class="keyword">end</span>
+                <span class="comment">% populate Compare struct with time comparison</span>
+                Compare{Icase}.Desc = TestCaseModel.Desc;
+                <span class="comment">%   a. Time comparison (current time for analysis/previous time for analysis)</span>
+                Compare{Icase}.DeltaTime = NewResults.ExecTime / OldResults.ExecTime;
+                Compare{Icase}.GlobalTime = MI.GlobalTime;
+                <span class="comment">%   b. For each DoF (Temperature, Melt Fraction, Stress) compute difference between old results and new results</span>
+                DoFList = {<span class="string">'Temperature'</span> <span class="string">'MeltFrac'</span> <span class="string">'Stress'</span> <span class="string">'MaxTemp'</span> <span class="string">'MaxMeltFrac'</span> <span class="string">'MaxStress'</span>};
+                <span class="keyword">try</span>
+                    <span class="keyword">if</span> size(NewResults.Temperature) == size(OldResults.Temperature)
+                        <span class="comment">% iterate through each degree of freedom</span>
+                        <span class="keyword">for</span> Idof=1:length(DoFList)
+                            <span class="comment">% look for each degree of freedom (Temperature,</span>
+                            <span class="comment">% MeltFrac, Stress) in NewResults.</span>
+                            <span class="keyword">if</span> isfield(NewResults,DoFList{Idof})
+                                Compare{Icase}.DOFdesc{Idof} = DoFList{Idof};
+                                <span class="comment">% find difference between old (canonical)</span>
+                                <span class="comment">% case and current case</span>
+                                Compare{Icase}.DOFdelt{Idof} = OldResults.(DoFList{Idof}) - NewResults.(DoFList{Idof});
+                            <span class="keyword">end</span>
+                        <span class="keyword">end</span>
+<span class="comment">%                         DoFList = {'MaxTemp' 'MaxMeltFrac' 'Stress'};</span>
+<span class="comment">%                         for Idof = 1:length(DoFList)</span>
+<span class="comment">%                             if isfield(NewResults,DoFList{Idof})</span>
+<span class="comment">%                                 % append DoFList descriptions to end of</span>
+<span class="comment">%                                 % Compare</span>
+<span class="comment">%                                 Compare{Icase}.DOFdesc{end+1} = DoFList{Idof};</span>
+<span class="comment">%                                 Compare{Icase}.DOFdelt{end+1} = OldResults.(DoFList{Idof}) - NewResults.(DoFList{Idof});</span>
+<span class="comment">%                             end</span>
+<span class="comment">%                         end</span>
+                    <span class="keyword">else</span>
+                        Compare{Icase}.DOFdesc = {<span class="string">'N/A'</span>};
+                        Compare{Icase}.DOFdelt = [];
+                        disp([<span class="string">'Saved case does not match current case for '</span> TestCaseModel.Desc ]);
+                    <span class="keyword">end</span>
+                <span class="keyword">catch</span> ME
+                    Compare{Icase} = [];
+                    Compare{Icase}.Desc = <span class="string">''</span>;
+                    Compare{Icase}.DOFdelt = {[]};
+                    Compare{Icase}.DOFdesc = {<span class="string">''</span>};
+                    disp(<span class="string">'Previous data comparison impossible'</span>)
+                <span class="keyword">end</span>
+            <span class="keyword">else</span>
+</pre><h2 id="14">9.  If no old case existed, save this analysis as the new benchmark.</h2><pre class="codeinput">                fprintf(<span class="string">'Results file not found.  A new one will be created (%s)\n'</span>, ResultsFile);
+                save (ResultsFile,<span class="string">'-mat'</span>,<span class="string">'NewResults'</span>,<span class="string">'TestCaseModel'</span>)
+</pre><pre class="codeinput">            <span class="keyword">end</span>
+        <span class="keyword">else</span>
+            disp(<span class="string">'Results file not requested.'</span>)
+        <span class="keyword">end</span>
+
+       fprintf(<span class="string">'Complete.\n'</span>)
+</pre><pre class="codeoutput">Complete.
+</pre><h2 id="16">10. Generate temperature, melt fraction, and stress figures.</h2><pre class="codeinput">       <span class="keyword">if</span> length(testcasefiles)==Icase
+           figure(2);clf; pause(.001)
+           StateN = length(MI.GlobalTime);
+           subplot(1,3,1);
+
+           <span class="comment">%</span>
+           <span class="comment">% plot temperature state at last time step</span>
+           <span class="comment">%</span>
+           Visualize(sprintf(<span class="string">'t=%1.2f ms, State: %i of %i'</span>,MI.GlobalTime(end), StateN,length(NewResults.Temperature(1,1,1,:))),MI <span class="keyword">...</span>
+           ,<span class="string">'state'</span>, NewResults.Temperature(:,:,:,StateN) <span class="keyword">...</span>
+           ,<span class="string">'scaletitle'</span>, <span class="string">'Temperature'</span> <span class="keyword">...</span>
+           )
+           subplot(1,3,2);
+           <span class="comment">%</span>
+           <span class="comment">% plot melt frac at last time step</span>
+           <span class="comment">%</span>
+           Visualize(sprintf(<span class="string">'t=%1.2f ms, State: %i of %i'</span>,MI.GlobalTime(end), StateN,length(NewResults.MeltFrac(1,1,1,:))),MI <span class="keyword">...</span>
+           ,<span class="string">'state'</span>, NewResults.MeltFrac(:,:,:,StateN) <span class="keyword">...</span>
+           ,<span class="string">'scaletitle'</span>, <span class="string">'Melt Fraction'</span> <span class="keyword">...</span>
+           )
+
+           subplot(1,3,3);
+           <span class="comment">%</span>
+           <span class="comment">% plot stress at last time step</span>
+           <span class="comment">%</span>
+           Visualize(sprintf(<span class="string">'t=%1.2f ms, State: %i of %i'</span>,MI.GlobalTime(end), StateN,length(NewResults.Stress(1,1,1,:))),MI <span class="keyword">...</span>
+           ,<span class="string">'state'</span>, NewResults.Stress(:,:,:,StateN) <span class="keyword">...</span>
+           ,<span class="string">'scaletitle'</span>, <span class="string">'Stress'</span> <span class="keyword">...</span>
+           )
+       <span class="keyword">end</span>
+       <span class="comment">%figure(3);clf; pause(.001)</span>
+       <span class="comment">%Visualize(sprintf('t=%1.2f ms, State: %i of %i',StateN*MI.DeltaT*1000, StateN,length(Temperature(1,1,1,:))),[0 0 0 ],{MI.X MI.Y MI.Z}, MI.Model, MeltFrac(:,:,:,StateN),'Melt Fraction')</span>
+       <span class="comment">%disp('Press key to continue.');pause</span>
+</pre><img vspace="5" hspace="5" src="testcasesStress_03.png" alt=""> <img vspace="5" hspace="5" src="testcasesStress_04.png" alt=""> <pre class="codeinput">    <span class="keyword">end</span>
+</pre><pre class="codeoutput">Executing test case s022_iPACK...
+</pre><pre class="codeinput"><span class="keyword">end</span>  <span class="comment">% end of iterator</span>
+
+<span class="comment">% start preparing to plot fig. 10 (comparison)</span>
+DOFDesc = {};
+CaseDesc = {};
+</pre><pre class="codeoutput">Make sure the program run from the ARL_ParaPower/Validation folder
+Only running cases meeting the following wildcard (TestCaseWildCard): s*.m
+
+</pre><h2 id="19">11. Calculate and store RMS differences for each DoF</h2><pre class="codeinput"><span class="keyword">for</span> I = 1:length(Compare)
+    <span class="keyword">if</span> ~isempty(Compare{I}.Desc)
+        CaseDesc{I} = Compare{I}.Desc;
+        <span class="keyword">for</span> J = 1:length(Compare{I}.DOFdelt)
+            <span class="keyword">if</span> size(Compare{I}.DOFdelt{J}(:))==2
+                <span class="comment">% PlotCompare stores RMS comparison values</span>
+                PlotCompare(I,J) = sum((Compare{I}.DOFdelt{J}(:)).^2);
+            <span class="keyword">else</span>
+                PlotCompare(I,J) = sum((Compare{I}.DOFdelt{J}(:,2)).^2);
+            <span class="keyword">end</span>
+            DOFDesc{J} = Compare{I}.DOFdesc{J};
+            DeltaTime(I) = Compare{I}.DeltaTime;
+        <span class="keyword">end</span>
+    <span class="keyword">end</span>
+<span class="keyword">end</span>
+</pre><h2 id="20">11. Figure 10: Bar graphs that illustrate timing and accuracy of current analytical method</h2><pre class="codeinput"><span class="keyword">if</span> ~isempty(DOFDesc)
+    figure(10);
+    clf
+    NumCols = 2;  <span class="comment">% dimension of subplot</span>
+    NumRows = ceil((1+length(DOFDesc))/NumCols); <span class="comment">% dimension of subplot</span>
+
+    <span class="comment">% subplot from #2 to the last</span>
+    <span class="keyword">for</span> I = 1:length(DOFDesc)
+        subplot(NumRows,NumCols,I+1)
+        barh(PlotCompare(:,I));
+        set(gca,<span class="string">'yticklabel'</span>,strrep(CaseDesc,<span class="string">'_'</span>,<span class="string">' '</span>))
+        xlabel(<span class="string">'Sum[RMS(Cur-Canon)]'</span>)
+        title(DOFDesc{I})
+        set(gca,<span class="string">'xscal'</span>,<span class="string">'log'</span>)
+    <span class="keyword">end</span>
+
+    <span class="comment">% subplot #1</span>
+    <span class="keyword">if</span> exist(<span class="string">'DeltaTime'</span>,<span class="string">'var'</span>)
+        subplot(NumRows,NumCols,1)
+        barh(DeltaTime)
+        set(gca,<span class="string">'yticklabel'</span>,strrep(CaseDesc,<span class="string">'_'</span>,<span class="string">' '</span>))
+        title(<span class="string">'Wall Time (Current/Canon)'</span>)
+        xlabel(<span class="string">'time (s)'</span>)
+    <span class="keyword">end</span>
+<span class="keyword">else</span>
+    disp(<span class="string">'No comparison possible, third figure not generated.'</span>)
+<span class="keyword">end</span>
+</pre><img vspace="5" hspace="5" src="testcasesStress_05.png" alt=""> <h2 id="21">Retrieve skeleton test case filenames to be evaluated</h2><pre class="codeinput"><span class="keyword">function</span> testcasefiles = get_all_filenames (CaseDir,TestCaseWildCard)
+
+<span class="comment">% CaseDir == 'Cases'</span>
+<span class="comment">% TestCasesFspec == 'Cases/s*.m'</span>
+
+<span class="comment">% construct the pathname according to the wildcard</span>
+TestCasesFspec = [CaseDir <span class="string">'/'</span> TestCaseWildCard ];
+
+<span class="comment">% replace '**' with '*', for situations with multiple wild cards</span>
+TestCasesFspec = strrep(TestCasesFspec,<span class="string">'**'</span>,<span class="string">'*'</span>);
+
+<span class="comment">% get all of the filenames</span>
+testcasefiles = dir([TestCasesFspec <span class="string">'*'</span>]);
+
+<span class="comment">% adjust filenames for Windows file system vs. Linux</span>
+<span class="keyword">if</span> ispc
+    testcasefiles = [testcasefiles dir([TestCasesFspec <span class="string">'.lnk'</span>])];
+<span class="keyword">end</span>
+
+<span class="keyword">end</span>
+</pre><p class="footer"><br><a href="https://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2020a</a><br></p></div><!--
+##### SOURCE BEGIN #####
+%% Run Stress Test Cases for Validation
+% This M file executes a specified set of validation test cases for
+% ParaPower, producing two figures: 1) the model geometry and 2)
+% temperature, melt fraction, and stress states. A third figure comparing
+% execurtion time and available degrees of freedom will also be generated
+% if there is a canonical case stored in the Validation/CasesHold
+% directory. 
+
+%% Description
+% The test cases to run exist as shortcuts/links in the Validation/Cases
+% directory. The actual file should exist in the Validation/CasesHold
+% directory. 
+
+% The first time a case is run, a file is generated with the name
+% CASENAME_Results.ppmodel. This file holds both the model definition as
+% well as the results of the analysis at the time, and is used as the
+% canonical model for comparison. 
+
+% The file can be loaded into ParaPower_GUIV2 using the "load profile" GUI
+% button. The model/geometry will be loaded, but not the results. 
+
+%% Initialization
+% clear variables
+clearvars -EXCEPT TestCaseWildCard
+
+% Must start in ARL_ParaPower/Validation
+fprintf('Make sure the program run from the ARL_ParaPower/Validation folder\n')
+
+% Set path
+addpath('..');  %include above directory which contains the parapower code, i.e., ARL_ParaPower
+CaseDir = 'Cases';  %Update this to include the directory that will hold the case files.
+StressPath = '../Stress_Models';
+
+% did the user specify the wildcard?
+if exist('TestCaseWildCard')
+    disp(['Only running cases meeting the following wildcard (TestCaseWildCard): ' TestCaseWildCard])
+else
+    disp('TestCaseWildCard variable doesn''t exist, running all testcases.')
+    TestCaseWildCard = 's*.m';
+end
+fprintf('\n')
+
+% get all filenames in the folder matching the wildcard
+testcasefiles = get_all_filenames(CaseDir,TestCaseWildCard);
+
+%
+% read the data
+%
+load('DefaultMaterials.mat','MatLib')
+
+% rename the data
+OrigMatLib = MatLib;
+clear MatLib
+
+% Initialize "Compare" cell
+Compare = [];
+
+% start graphics
+figure(1);clf
+figure(2);clf
+drawnow
+
+% iterate through all filenames
+for Icase=1:length(testcasefiles)    
+    clearvars -EXCEPT TestCaseWildCard Icase testcasefiles StressPath StressModel Compare
+    CaseName = char(testcasefiles(Icase).name);
+    if ispc && strcmpi(CaseName(end-3:end),'.lnk')
+      [path,name,ext] = fileparts(getTargetFromLink([testcasefiles(Icase).folder '\' CaseName]));
+      CaseName = [name ext];
+      testcasefiles(Icase).folder = path;
+    end
+    CaseName = CaseName(1:end-2);
+    clear path
+    
+    %% 1. Eval the skeleton file (creates the material database, geometry and analysis parameters)
+    if isempty(str2num(CaseName(1))) 
+		clear StressModel
+        fprintf('Executing test case %s...\n',CaseName)
+        VarsOrig = who;
+        addpath(testcasefiles(Icase).folder);
+        eval(CaseName)
+        rmpath(testcasefiles(Icase).folder)
+        CaseExists = true;
+    else
+        fprintf('Can''t execute ''%s''. Name cannot start with a number.\n',CaseName)
+        CaseExists = false;
+    end
+    
+    if CaseExists
+        % Erase all newly created variables in the test case M file
+        VarsNew = who;
+        VarsOrig = [VarsOrig; 'VarsOrig'; 'TestCaseModel'; 'VarsNew'; 'Vi'; 'MFILE'; 'StressModel'];
+        % Iterate through each variable in VarsNew
+        for Vi = 1:length(VarsNew)
+            if isempty(cell2mat(regexp(VarsOrig,['^' VarsNew{Vi} '$'])))
+    %            fprintf('Clearing %s\n',VarsNew{Vi});
+                clear (VarsNew{Vi})
+    %        else
+    %            fprintf('Leaving %s\n',VarsNew{Vi});
+            end
+        end
+        clear VarsOrig VarsNew
+    
+        % Material Properties
+        if isfield(TestCaseModel.TCM,'MatLib') || isprop(TestCaseModel.TCM,'MatLib')
+            MatLib = TestCaseModel.TCM.MatLib;
+        else
+            disp('Adding default materials from the material database to the model')
+            TestCaseModel.TCM.MatLib = OrigMatLib;
+            %return
+        end        
+        %save([MFILE '.ppmodel'], '-mat', 'TestCaseModel');
+
+        %% 2. Creates MI data structure (this is the fully created model that is evaluated)
+        MI = FormModel(TestCaseModel.TCM);
+        if length(testcasefiles)==Icase
+            figure(1);clf; figure(2);clf; figure(1)
+            % 
+            % Fig. 1 (Geometry)
+            %
+            Visualize ('Model Input', MI, 'modelgeom','ShowQ')
+        end
+        fprintf('Analysis executing...')
+
+        %% 3. Run Thermal Analysis
+        tic;        % timing start ^^^^^^^^^^^^^^^^^^^^^^^
+        GlobalTimeOrig = MI.GlobalTime;
+        MI.GlobalTime = GlobalTimeOrig(1);  %Setup initialization
+        S1 = scPPT('MI',MI); %Initialize object
+        setup(S1,[]);
+        %
+        % Compute states at times in ComputeTime (S1 must be called with 1 arg in 2017b)
+        %
+        [Tprnt_partial, T_in, MeltFrac_partial,MeltFrac_in] = S1(GlobalTimeOrig(1:end));  
+        % concatenate along 4th dimension (time)
+        Temperature    = cat(4, T_in        , Tprnt_partial  );
+        MeltFrac = cat(4, MeltFrac_in , MeltFrac_partial);
+        NewResults.Temperature = Temperature;      
+        NewResults.MeltFrac = MeltFrac;
+        % Reassemble MI's global time to match initialization and computed states.
+        MI.GlobalTime = GlobalTimeOrig; 
+        Fi = 1; %Could be used to mask for features; (Tprnt would be Tprnt(Mask)
+        % First column of MaxTemp/MaxMeltFrac is time vector, second column is the
+        % max for each time
+        % TC 07-31-2020: changed DoutT and DoutM into MaxTemp and
+        % MaxMeltFrac
+        NewResults.MaxTemp(:,1+Fi) = max(reshape(NewResults.Temperature,[],length(MI.GlobalTime)),[],1);
+        NewResults.MaxMeltFrac(:,1+Fi) = max(reshape(NewResults.MeltFrac,[],length(MI.GlobalTime)),[],1);
+        NewResults.MaxTemp(:,1) = MI.GlobalTime;
+        NewResults.MaxMeltFrac(:,1) = MI.GlobalTime;
+        
+        %% 4. Store the results in PPResult object
+        ResultsObj = PPResults(now, MI, TestCaseModel.TCM,'Thermal','MeltFrac');
+        ResultsObj = ResultsObj.setState('Thermal', Temperature);
+        ResultsObj = ResultsObj.setState('MeltFrac', MeltFrac);
+        
+        OldPath = path;
+        addpath(StressPath);
+        %
+        %
+        %% 5. Run Stress Analysis
+        eval(['Stress = Stress_' StressModel '(ResultsObj);']);
+        ExecTime = toc; % timing end vvvvvvvvvvvvvvvvvvvvvvvvvvv
+        
+        path(OldPath);
+        %% 6. Store the results in PPResult object
+        NewResults.Stress = Stress.VM; 
+        disp('Taking only the stress VM part')
+        % TC 07-31-2020: added in MaxStress
+        NewResults.MaxStress(:,1+Fi) = max(reshape(NewResults.Stress,[],length(MI.GlobalTime)),[],1);
+        NewResults.MaxStress(:,1) = MI.GlobalTime;
+        
+        %% 7. Store various analysis meta-data
+        %    a. Date/Time of analysis
+        NewResults.DateTime = datetime;
+        %    b. Timing information (how long the analysis took)
+        NewResults.ExecTime = ExecTime;
+        %    d. Description of model
+        NewResults.Desc = TestCaseModel.Desc;
+        %    c. Computer architecture of analysis (PC/Linux/Mac/etc)
+        NewResults.Computer = computer();
+        %    e. MATLAB version
+        NewResults.Matlab = ver('matlab');
+        
+        %% 8. Checks to see if a benchmark (previous analysis that has already been validated) for this case exists, if so creates a new compare data structure that includes:
+        % check if MFILE exists (file address of test case)
+        if exist([MFILE '.m'],'file')
+            % create .ppmodel file with same name as test case skeleton
+            ResultsFile = [MFILE, '_Results.ppmodel'];
+            % check to see if benchmark exists
+            if exist(ResultsFile,'file')
+                % load benchmark results as .mat file
+                OldResults = load(ResultsFile,'-mat');
+                if ~isfield(OldResults,'NewResults')
+                    disp([ResultsFile ' uses older version of stored results file.  ''Results'' variable is now named ''NewResults''.'])
+                    OldResults = OldResults.('Results');
+                else
+                    OldResults = OldResults.('NewResults');
+                end
+                % populate Compare struct with time comparison
+                Compare{Icase}.Desc = TestCaseModel.Desc;
+                %   a. Time comparison (current time for analysis/previous time for analysis)
+                Compare{Icase}.DeltaTime = NewResults.ExecTime / OldResults.ExecTime;
+                Compare{Icase}.GlobalTime = MI.GlobalTime;
+                %   b. For each DoF (Temperature, Melt Fraction, Stress) compute difference between old results and new results
+                DoFList = {'Temperature' 'MeltFrac' 'Stress' 'MaxTemp' 'MaxMeltFrac' 'MaxStress'};
+                try
+                    if size(NewResults.Temperature) == size(OldResults.Temperature)
+                        % iterate through each degree of freedom
+                        for Idof=1:length(DoFList)
+                            % look for each degree of freedom (Temperature,
+                            % MeltFrac, Stress) in NewResults.
+                            if isfield(NewResults,DoFList{Idof})
+                                Compare{Icase}.DOFdesc{Idof} = DoFList{Idof};
+                                % find difference between old (canonical)
+                                % case and current case
+                                Compare{Icase}.DOFdelt{Idof} = OldResults.(DoFList{Idof}) - NewResults.(DoFList{Idof});
+                            end
+                        end
+%                         DoFList = {'MaxTemp' 'MaxMeltFrac' 'Stress'};
+%                         for Idof = 1:length(DoFList)
+%                             if isfield(NewResults,DoFList{Idof})
+%                                 % append DoFList descriptions to end of
+%                                 % Compare
+%                                 Compare{Icase}.DOFdesc{end+1} = DoFList{Idof};
+%                                 Compare{Icase}.DOFdelt{end+1} = OldResults.(DoFList{Idof}) - NewResults.(DoFList{Idof});
+%                             end
+%                         end
+                    else
+                        Compare{Icase}.DOFdesc = {'N/A'};
+                        Compare{Icase}.DOFdelt = [];
+                        disp(['Saved case does not match current case for ' TestCaseModel.Desc ]);
+                    end
+                catch ME
+                    Compare{Icase} = [];
+                    Compare{Icase}.Desc = '';
+                    Compare{Icase}.DOFdelt = {[]};
+                    Compare{Icase}.DOFdesc = {''};
+                    disp('Previous data comparison impossible')
+                end
+            else
+                
+                %% 9.  If no old case existed, save this analysis as the new benchmark.
+                fprintf('Results file not found.  A new one will be created (%s)\n', ResultsFile);
+                save (ResultsFile,'-mat','NewResults','TestCaseModel')
+            end
+        else
+            disp('Results file not requested.')
+        end
+        
+       fprintf('Complete.\n')
+       
+       %% 10. Generate temperature, melt fraction, and stress figures.                                    
+       if length(testcasefiles)==Icase
+           figure(2);clf; pause(.001)
+           StateN = length(MI.GlobalTime);
+           subplot(1,3,1);
+           
+           %
+           % plot temperature state at last time step
+           %
+           Visualize(sprintf('t=%1.2f ms, State: %i of %i',MI.GlobalTime(end), StateN,length(NewResults.Temperature(1,1,1,:))),MI ...
+           ,'state', NewResults.Temperature(:,:,:,StateN) ...
+           ,'scaletitle', 'Temperature' ...
+           )       
+           subplot(1,3,2);
+           %
+           % plot melt frac at last time step
+           %
+           Visualize(sprintf('t=%1.2f ms, State: %i of %i',MI.GlobalTime(end), StateN,length(NewResults.MeltFrac(1,1,1,:))),MI ...
+           ,'state', NewResults.MeltFrac(:,:,:,StateN) ...
+           ,'scaletitle', 'Melt Fraction' ...
+           )       
+       
+           subplot(1,3,3);
+           %
+           % plot stress at last time step
+           %
+           Visualize(sprintf('t=%1.2f ms, State: %i of %i',MI.GlobalTime(end), StateN,length(NewResults.Stress(1,1,1,:))),MI ...
+           ,'state', NewResults.Stress(:,:,:,StateN) ...
+           ,'scaletitle', 'Stress' ...
+           )
+       end
+       %figure(3);clf; pause(.001)
+       %Visualize(sprintf('t=%1.2f ms, State: %i of %i',StateN*MI.DeltaT*1000, StateN,length(Temperature(1,1,1,:))),[0 0 0 ],{MI.X MI.Y MI.Z}, MI.Model, MeltFrac(:,:,:,StateN),'Melt Fraction')                                
+       %disp('Press key to continue.');pause
+    end
+end  % end of iterator
+
+% start preparing to plot fig. 10 (comparison)
+DOFDesc = {};
+CaseDesc = {};
+
+%% 11. Calculate and store RMS differences for each DoF
+for I = 1:length(Compare)
+    if ~isempty(Compare{I}.Desc)
+        CaseDesc{I} = Compare{I}.Desc;
+        for J = 1:length(Compare{I}.DOFdelt)
+            if size(Compare{I}.DOFdelt{J}(:))==2
+                % PlotCompare stores RMS comparison values
+                PlotCompare(I,J) = sum((Compare{I}.DOFdelt{J}(:)).^2);
+            else
+                PlotCompare(I,J) = sum((Compare{I}.DOFdelt{J}(:,2)).^2);
+            end
+            DOFDesc{J} = Compare{I}.DOFdesc{J};
+            DeltaTime(I) = Compare{I}.DeltaTime;
+        end
+    end
+end
+
+
+%% 11. Figure 10: Bar graphs that illustrate timing and accuracy of current analytical method
+if ~isempty(DOFDesc)
+    figure(10);
+    clf
+    NumCols = 2;  % dimension of subplot
+    NumRows = ceil((1+length(DOFDesc))/NumCols); % dimension of subplot
+
+    % subplot from #2 to the last
+    for I = 1:length(DOFDesc)
+        subplot(NumRows,NumCols,I+1)
+        barh(PlotCompare(:,I));
+        set(gca,'yticklabel',strrep(CaseDesc,'_',' '))
+        xlabel('Sum[RMS(Cur-Canon)]')
+        title(DOFDesc{I})
+        set(gca,'xscal','log')
+    end
+
+    % subplot #1
+    if exist('DeltaTime','var')
+        subplot(NumRows,NumCols,1)
+        barh(DeltaTime)
+        set(gca,'yticklabel',strrep(CaseDesc,'_',' '))
+        title('Wall Time (Current/Canon)')
+        xlabel('time (s)')
+    end  
+else
+    disp('No comparison possible, third figure not generated.')
+end
+
+%% Retrieve skeleton test case filenames to be evaluated
+function testcasefiles = get_all_filenames (CaseDir,TestCaseWildCard)
+
+% CaseDir == 'Cases'
+% TestCasesFspec == 'Cases/s*.m'
+
+% construct the pathname according to the wildcard
+TestCasesFspec = [CaseDir '/' TestCaseWildCard ];
+
+% replace '**' with '*', for situations with multiple wild cards
+TestCasesFspec = strrep(TestCasesFspec,'**','*');
+
+% get all of the filenames
+testcasefiles = dir([TestCasesFspec '*']);
+
+% adjust filenames for Windows file system vs. Linux
+if ispc
+    testcasefiles = [testcasefiles dir([TestCasesFspec '.lnk'])];
+end
+
+end
+##### SOURCE END #####
+--></body></html>

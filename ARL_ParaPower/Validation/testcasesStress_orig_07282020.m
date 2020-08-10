@@ -14,12 +14,14 @@ clearvars -EXCEPT TestCaseWildCard
 
 addpath('..');  %include above directory which contains the parapower code
 CaseDir='Cases';  %Update this to include the directory that will hold the case files.
+StressPath='../Stress_Models';
+
 
 if exist('TestCaseWildCard')
-    disp(['Only running casing meeting the following wildcard (TestCaseWildCard): ' TestCaseWildCard])
+    disp(['Only running cases meeting the following wildcard (TestCaseWildCard): ' TestCaseWildCard])
 else
     disp('TestCaseWildCard variable doesn''t exist, running all testcases.')
-    TestCaseWildCard='c*.m';
+    TestCaseWildCard='s*.m';
 end
 TestCasesFspec=[CaseDir '/' TestCaseWildCard ];
 TestCasesFspec=strrep(TestCasesFspec,'**','*');
@@ -42,7 +44,7 @@ Compare=[];
      
 for Icase=1:length(testcasefiles)
     
-    clearvars -EXCEPT TestCaseWildCard Icase testcasefiles Compare
+    clearvars -EXCEPT TestCaseWildCard Icase testcasefiles StressPath StressModel Compare
     CaseName=char(testcasefiles(Icase).name);
     if ispc && strcmpi(CaseName(end-3:end),'.lnk')
       [path,name,ext]=fileparts(getTargetFromLink([testcasefiles(Icase).folder '\' CaseName]));
@@ -50,8 +52,10 @@ for Icase=1:length(testcasefiles)
       testcasefiles(Icase).folder=path;
     end
     CaseName=CaseName(1:end-2);
+    clear path
     
     if isempty(str2num(CaseName(1))) 
+		clear StressModel
         fprintf('Executing test case %s...\n',CaseName)
         VarsOrig=who;
         addpath(testcasefiles(Icase).folder);
@@ -66,7 +70,7 @@ for Icase=1:length(testcasefiles)
     if CaseExists
         %Erase all newly created variables in the test case M file
         VarsNew=who;
-        VarsOrig=[VarsOrig; 'VarsOrig'; 'TestCaseModel'; 'VarsNew'; 'Vi'; 'MFILE'];
+        VarsOrig=[VarsOrig; 'VarsOrig'; 'TestCaseModel'; 'VarsNew'; 'Vi'; 'MFILE'; 'StressModel'];
         for Vi=1:length(VarsNew)
             if isempty(cell2mat(regexp(VarsOrig,['^' VarsNew{Vi} '$'])))
     %            fprintf('Clearing %s\n',VarsNew{Vi});
@@ -108,19 +112,25 @@ for Icase=1:length(testcasefiles)
         NewResults.DoutM(:,1+Fi)=max(reshape(NewResults.Tprnt,[],length(MI.GlobalTime)),[],1);
         NewResults.DoutT(:,1)=MI.GlobalTime;
         NewResults.DoutM(:,1)=MI.GlobalTime;
+        
+        ResultsObj=PPResults(now, MI, TestCaseModel.TCM,'Thermal','MeltFrac');
+        ResultsObj=ResultsObj.setState('Thermal',Tprnt);
+        ResultsObj=ResultsObj.setState('MeltFrac',MeltFrac);
+        
+        OldPath=path;
+        addpath(StressPath);
+        eval(['Stress=Stress_' StressModel '(ResultsObj);']);
         ExecTime=toc;
+        path(OldPath);
+        NewResults.Stress=Stress.X; disp('Taking only the stress X part')
+
         NewResults.ExecTime=ExecTime;
         NewResults.DateTime=datetime;
         NewResults.Desc=TestCaseModel.Desc;
         NewResults.Computer=computer();
         NewResults.Matlab=ver('matlab');
         if exist([MFILE '.m'],'file')
-            ResultsFile = [MFILE, '_Results.ppmodel'];
-            ResultsFile = strrep(ResultsFile,'\','/');
-            % check to see if benchmark exists
-            if ~exist(ResultsFile,'file')
-                ResultsFile=strrep(ResultsFile,'/Cases/','/CasesHold/');
-            end
+            ResultsFile=[MFILE, '_Results.ppmodel'];
             if exist(ResultsFile,'file')
                 OldResults=load(ResultsFile,'-mat');
                 if ~isfield(OldResults,'NewResults')
@@ -132,7 +142,7 @@ for Icase=1:length(testcasefiles)
                 Compare{Icase}.Desc=TestCaseModel.Desc;
                 Compare{Icase}.DeltaTime=NewResults.ExecTime / OldResults.ExecTime;
                 Compare{Icase}.GlobalTime=MI.GlobalTime;
-                DoFList={'Tprnt' 'MeltFrac'};
+                DoFList={'Tprnt' 'MeltFrac' 'Stress'};
                 try
                     if size(NewResults.Tprnt) == size(OldResults.Tprnt)
                         for Idof=1:length(DoFList)
@@ -141,7 +151,7 @@ for Icase=1:length(testcasefiles)
                                 Compare{Icase}.DOFdelt{Idof}=OldResults.(DoFList{Idof}) - NewResults.(DoFList{Idof});
                             end
                         end
-                        DoFList={'DoutT' 'DoutM'};
+                        DoFList={'DoutT' 'DoutM' 'Stress'};
                         for Idof=1:length(DoFList)
                             if isfield(NewResults,DoFList{Idof})
                                 Compare{Icase}.DOFdesc{end+1}=DoFList{Idof};
