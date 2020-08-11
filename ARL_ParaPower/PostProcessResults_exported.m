@@ -132,64 +132,32 @@ classdef PostProcessResults_exported < matlab.apps.AppBase
 
         end
         
-        function masked_state = getFeatureMask(app, results_index, full_state)
+        function [masked_state] = getFeatureMask(app, results_index, full_state)
            
            % get ppresults obj. (maybe parameter?)
            template_resultsobj = app.Results(results_index);
            % get user-selected features from FeatureListBox
            selected_features = get(app.FeatureListBox,'value');
-           if isempty(selected_features)
+           if app.MaxoverFeaturesCheckBox.Value == false
                masked_state = full_state;
+           else
+               % get full feature matrix (3D, no time)
+               feature_matrix = template_resultsobj.Model.FeatureMatrix;
+               % expand feature matrix along time dimension (4D)
+               time = length(template_resultsobj.Model.GlobalTime);
+               feature_matrix_full = repmat(feature_matrix,[1 1 1 time]);
+               % initialize matrix, same size as temp/melt frac state
+               masked_state = nan(size(full_state));
+               % loop through each feature to create mask
+               % extract only temps/melt fracs from user-selected features
+               for feature = 1:length(selected_features)
+                   current_feature = selected_features(feature);
+                   current_feature_mask = (current_feature==feature_matrix_full);
+                   masked_state(current_feature_mask) = full_state(current_feature_mask);
+               end
+
            end
-           % get full feature matrix (3D, no time)
-           feature_matrix = template_resultsobj.Model.FeatureMatrix;
-           % expand feature matrix along time dimension (4D)
-           time = length(template_resultsobj.Model.GlobalTime)
-           feature_matrix_full = repmat(feature_matrix,[1 1 1 time]);
-           % initialize matrix, same size as temp/melt frac state
-           masked_state = nan(size(full_state));
-           % create mask, extract only temperatures/melt frac from
-           % user-selected features
-           for feature = 1:length(selected_features)
-               current_feature = selected_features(feature);
-               current_feature_mask = (current_feature==feature_matrix_full);
-               masked_state(current_feature_mask) = full_state(current_feature_mask);
-           end
            
-           
-           
-           % loop through each feature and create a mask
-%            DoutT(:,1)=MI.GlobalTime;
-%            DoutM(:,1)=MI.GlobalTime;
-%            DoutS(:,1)=MI.GlobalTime;
-%            Ftext=[];
-%            FeatureMat=[];
-%            Fs=unique(MI.FeatureMatrix(~isnan(MI.FeatureMatrix)));
-%            Fs=Fs(Fs~=0);
-%            for Fi=1:length(Fs)
-%                ThisMat=TestCaseModel.MatLib.GetMatName(TestCaseModel.Features(Fi).Matl);
-%                if ThisMat.MaxPlot
-%                    Ftext{end+1}=MI.FeatureDescr{Fs(Fi)};
-%                    Fmask=ismember(MI.FeatureMatrix,Fs(Fi));
-%                    Fmask=repmat(Fmask,1,1,1,length(MI.GlobalTime));
-%                    if ~isempty(Results.getState('thermal'))
-%                         DoutT(:,end+1)=max(reshape(Results.getState('thermal',Fmask),[],length(MI.GlobalTime)),[],1);
-%                    end
-%                    if ~isempty(Results.getState('MeltFrac'))
-%                         DoutM(:,end+1)=max(reshape(Results.getState('meltfrac',Fmask),[],length(MI.GlobalTime)),[],1);
-%                    end
-%                    if ~isempty(Results.getState('Stress'))
-%                         DoutS(:,end+1)=max(reshape(Results.getState('stress',Fmask),[],length(MI.GlobalTime)),[],1);
-%                    end
-%                    FeatureMat{end+1}=TestCaseModel.Features(Fi).Matl;
-%                end
-%            end
-%            PCMFeatures=[];
-%            for Fi=1:length(FeatureMat)
-%                if ~isempty(findstr(lower(MI.MatLib.GetMatName(FeatureMat{Fi}).Type),'pcm'))
-%                    PCMFeatures=[PCMFeatures Fi];
-%                end
-%            end
         end
         
         function results = AddStatusLine(app,StatusText, Flag)
@@ -435,7 +403,7 @@ classdef PostProcessResults_exported < matlab.apps.AppBase
                                     case lower(app.AvailStates{1}) %Max Temp
                                         YLabel='Max Temp (all features, all time)';
                                         FullState = lResults(I).getState('Thermal');
-                                        MaskedState = app.getFeatureMask(I,FullState);
+                                        [MaskedState] = app.getFeatureMask(I,FullState);
                                         % DepAxis: rows = each step on
                                         % independent axis, columns = each
                                         % model configuration
@@ -449,14 +417,46 @@ classdef PostProcessResults_exported < matlab.apps.AppBase
                                         YLabel='Unknown Dependent Variable';
                                         DepAxis(Ii,Ci)=NaN;
                                 end
-                                
-                                
                             end
                             
                         end
                     end
                 end
             end
+
+           selected_features = get(app.FeatureListBox,'Value');
+           all_feature_names = get(app.FeatureListBox,'Items');
+           
+           % create feature string list for title
+           % only include first three selected features
+           if length(selected_features) <=3
+            number_features = length(selected_features);
+           else
+               number_features = 3
+           end
+           % if no features selected, dependent variable calculated over
+           % all features
+           if app.MaxoverFeaturesCheckBox.Value == false
+               title_string = '(All Features)';
+           else
+               title_string = '('
+               for feature = 1:number_features-1
+                   featurename = all_feature_names{feature}
+                   title_string = append(title_string,featurename,', ');
+               end
+               
+               lastfeature = all_feature_names(number_features);
+               
+               % if more than three features, use ellipse (...) to indicate
+               % more features
+               if number_features > 3
+                   title_string = append(title_string,lastfeature,'...)')
+               else
+                   title_string = append(title_string,lastfeature,')');
+               end
+           end
+
+            
             app.PlotWindows=[app.PlotWindows figure];
             set(app.PlotWindows(end),'name','ARL ParaPower Post')
             clf
@@ -464,6 +464,8 @@ classdef PostProcessResults_exported < matlab.apps.AppBase
             plot(IndepAxis,DepAxis,'marker','o')
             ylabel(PlotAxis,YLabel);
             xlabel(PlotAxis,XLabel);
+            title_depvar = app.DependentVariableDropDown.Value
+            title([title_depvar title_string])
             if ~isempty(CurveName)
                 LegText=CurveName(:,1);
                 for Ci=1:length(CurveName(:,1))
@@ -588,14 +590,14 @@ classdef PostProcessResults_exported < matlab.apps.AppBase
             % Create FeatureListBox
             app.FeatureListBox = uilistbox(app.PPPP);
             app.FeatureListBox.Multiselect = 'on';
-            app.FeatureListBox.Position = [464 332 100 74];
+            app.FeatureListBox.Position = [487 332 114 74];
             app.FeatureListBox.Value = {'Item 1'};
 
             % Create MaxoverFeaturesCheckBox
             app.MaxoverFeaturesCheckBox = uicheckbox(app.PPPP);
             app.MaxoverFeaturesCheckBox.ValueChangedFcn = createCallbackFcn(app, @MaxoverFeaturesCheckBoxValueChanged, true);
             app.MaxoverFeaturesCheckBox.Text = 'Max over Features';
-            app.MaxoverFeaturesCheckBox.Position = [464 405 122 22];
+            app.MaxoverFeaturesCheckBox.Position = [487 405 122 22];
 
             % Show the figure after all components are created
             app.PPPP.Visible = 'on';
