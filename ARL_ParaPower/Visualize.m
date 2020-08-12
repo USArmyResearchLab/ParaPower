@@ -8,7 +8,7 @@ function Visualize (PlotTitle, MI, varargin)
 %   MI is the model information structure provided by FormModel
 %
 %   2D - X+, X-, Y+, Y-, Z+, Z- - plot only those faces. Can be called
-%      multiplie time to include multiple faces.
+%      multiple times to include multiple faces.
 %   ScaleTitle  - title of the colorbar, value is a char array
 %   State - a matrix the same dimenstions as modelmat with the state to plot, value is 3 dim array
 %   PlotParms.RemoveMaterial=[] - Which materials to remove from the plot, value is array of mat numbers
@@ -305,7 +305,8 @@ function Visualize (PlotTitle, MI, varargin)
         error('The dimensions of the plotstate provided do not match the dimensions of the model.')
     end
     ButtonColors=colormap(parula(length(MatListNumbers)));
-        
+    
+    % plot model geometry if no other parameters called
     if PlotGeom
         ColorList=unique(PlotState(:));  
         for Ci=1:length(PlotParms.RemoveMatl)
@@ -531,6 +532,9 @@ function Visualize (PlotTitle, MI, varargin)
         end
         %size(ColorList)
         if ~isempty(FList{Imat})
+            %
+            % Construct model geometry
+            %
             F   =patch('faces',FList{Imat},'vertices',VList{Imat}, ...
                         'facevertexcdata',ColorList, ...
                         'facealpha',FaceAlpha, ...

@@ -17,12 +17,15 @@ function Stress = Stress_NonDirectional(Results)
         return
     else
         
-        [StressX,StressY,StressZ]=Stress_NoSubstrateTrinity(Results);        
+        % second parameter: 1 = vectorized
+        [StressX, StressY, StressZ, StressVM] = Stress_NoSubstrate3D_time(Results);  
+        
         path(OldPath);
-        Stress.X=StressX;
-        Stress.Y=StressY;
-        Stress.Z=StressZ;
-        Stress.VM=(((Stress.X-Stress.Z).^2 + (Stress.X-Stress.Y).^2 + (Stress.Y-Stress.Z).^2)/2).^.5;
+        Stress.X = StressX;
+        Stress.Y = StressY;
+        Stress.Z = StressZ;
+        Stress.VM = StressVM
+        
     end
 
 end
