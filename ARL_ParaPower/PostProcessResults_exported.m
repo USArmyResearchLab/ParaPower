@@ -93,6 +93,8 @@ classdef PostProcessResults_exported < matlab.apps.AppBase
                  end
              end
              % TC 08-03-2020
+             % append "Time" independent variable to every model,
+             % regardless of input parameters
              VarName{end+1} = 'Time';
              VarVals{end+1} = lResults(1).Model.GlobalTime;
         
@@ -132,7 +134,8 @@ classdef PostProcessResults_exported < matlab.apps.AppBase
 
         end
         
-        function [masked_state] = getFeatureMask(app, results_index, full_state)
+        % obtain dependent variable only over the features selected
+        function masked_state = getFeatureMask(app, results_index, full_state)
            
            % get ppresults obj. (maybe parameter?)
            template_resultsobj = app.Results(results_index);
@@ -213,15 +216,14 @@ classdef PostProcessResults_exported < matlab.apps.AppBase
              figure(app.PPPP)
              if isappdata(app.ParaPower,'Results')
                  app.Results=getappdata(app.ParaPower,'Results');
-                 lResults=app.Results;
              else
                  app.AddStatusLine('No Results available.')
                  return
              end
-            app.PopulateResults;
-            app.PopulateFeatures;
-            app.FeatureListBox.Visible = true;
-            app.MaxoverFeaturesCheckBox.Visible = true;
+             app.PopulateResults;
+             app.PopulateFeatures;
+             app.FeatureListBox.Visible = true;
+             app.MaxoverFeaturesCheckBox.Visible = true;
         end
 
         % Value changed function: IndependentVariableDropDown
@@ -254,7 +256,9 @@ classdef PostProcessResults_exported < matlab.apps.AppBase
                     if length(L.Results)>1
                         app.Results=L.Results;
                         app.PopulateResults;
-                        % add callback here to populate features listbox
+                        app.PopulateFeatures;
+                        app.FeatureListBox.Visible = true;
+                        app.MaxoverFeaturesCheckBox.Visible = true;
                         OldName=app.PPPP.Name;
                         Colon=find(OldName==':', 1 );
                         if ~isempty(Colon)
@@ -270,9 +274,7 @@ classdef PostProcessResults_exported < matlab.apps.AppBase
             else
                 app.AddStatusLine('No file selected.')
             end
-            app.PopulateFeatures;
-            app.FeatureListBox.Visible = true;
-            app.MaxoverFeaturesCheckBox.Visible = true;
+
 
         end
 
@@ -424,35 +426,39 @@ classdef PostProcessResults_exported < matlab.apps.AppBase
                 end
             end
 
+           % get user-selected features (returned as indices)
            selected_features = get(app.FeatureListBox,'Value');
+           % get cell array of all feature names as strings
            all_feature_names = get(app.FeatureListBox,'Items');
            
            % create feature string list for title
            % only include first three selected features
            if length(selected_features) <=3
-            number_features = length(selected_features);
+               number_features = length(selected_features);
            else
-               number_features = 3
+               number_features = 3;
            end
            % if no features selected, dependent variable calculated over
            % all features
            if app.MaxoverFeaturesCheckBox.Value == false
-               title_string = '(All Features)';
+               feature_string = '(All Features)';
            else
-               title_string = '('
+               feature_string = '(';
                for feature = 1:number_features-1
-                   featurename = all_feature_names{feature}
-                   title_string = append(title_string,featurename,', ');
+                   featureindex = selected_features(feature);
+                   featurename = all_feature_names{featureindex};
+                   feature_string = append(feature_string,featurename,', ');
                end
                
-               lastfeature = all_feature_names(number_features);
+               lastfeatureindex = selected_features(number_features);
+               lastfeature = all_feature_names{lastfeatureindex};
                
                % if more than three features, use ellipse (...) to indicate
                % more features
-               if number_features > 3
-                   title_string = append(title_string,lastfeature,'...)')
+               if length(selected_features) > 3
+                   feature_string = append(feature_string,lastfeature,',...)');
                else
-                   title_string = append(title_string,lastfeature,')');
+                   feature_string = append(feature_string,lastfeature,')');
                end
            end
 
@@ -464,8 +470,9 @@ classdef PostProcessResults_exported < matlab.apps.AppBase
             plot(IndepAxis,DepAxis,'marker','o')
             ylabel(PlotAxis,YLabel);
             xlabel(PlotAxis,XLabel);
-            title_depvar = app.DependentVariableDropDown.Value
-            title([title_depvar title_string])
+            title_dependent = app.DependentVariableDropDown.Value;
+            full_title_string = append(title_dependent,' ',feature_string);
+            title(full_title_string)
             if ~isempty(CurveName)
                 LegText=CurveName(:,1);
                 for Ci=1:length(CurveName(:,1))
