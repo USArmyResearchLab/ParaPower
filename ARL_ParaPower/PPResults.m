@@ -205,7 +205,7 @@ classdef PPResults  %PP Results
                 error('State %s not available in this results structure',Desc)
                 Units='';
             else
-                if isfield(obj,'iStates')
+                if isprop(obj,'iStates')
                     Units = obj.iStateUnit{Is};
                 else
                     Units='?';
