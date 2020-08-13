@@ -16,6 +16,7 @@ classdef PPResults  %PP Results
     properties (Access = private)
         iStates = {};
         iStateVals = {};
+        iStateUnit = {};
     end
     
     properties (Constant)
@@ -74,7 +75,7 @@ classdef PPResults  %PP Results
         end
         
         % change value of existing state
-        function obj = setState(obj,StateName,StateVal)
+        function obj = setState(obj,StateName,StateVal,StateUnit)
             
             % try to find if the input "StateName" already exists in iStates
             % then return the index or indices as Is
@@ -86,15 +87,25 @@ classdef PPResults  %PP Results
                 % if exists, change value in iStateVals after checking for valid input
                 validateInput(obj, StateVal)
                 obj.iStateVals{Is} = StateVal;
+                if ~exist('StateUnit','var')
+                    warning('State units remain unchanged.')
+                else
+                    obj.iStateUnit{Is} = StateUnit;
+                end
             end
         end
 
         % add state (used when state does not already exist)
-        function obj = addState (obj, StateName, StateVal)
+        function obj = addState (obj, StateName, StateVal, StateUnit)
             
             % check 1: if no StateVal is input, assign empty vector
             if ~exist('StateVal','var')
                 StateVal = [];
+            end
+            
+            if ~exist('StateUnit','var')
+                StateUnit='Undefined';
+                warning('Don''t forget to set units when you set a state!')
             end
 
             % check 2: does StateName already exist?
@@ -110,6 +121,7 @@ classdef PPResults  %PP Results
                 % append StateName to iStates and StateVal to iStateVals
                 obj.iStates{end+1} = StateName;
                 obj.iStateVals{end+1} = StateVal;
+                obj.iStateUnit{end+1} = StateUnit;
             else % if state exists, error
                 error('State %s already exists in this structure', StateName);
             end
@@ -183,6 +195,17 @@ classdef PPResults  %PP Results
                 else
                     Vals = obj.iStateVals{Is};
                 end
+            end
+        end
+        
+        function Units = getStateUnit(obj,Desc)
+            % search for desired state (Desc) in iStates
+            Is = strcmpi(obj.iStates, Desc);
+            if isempty(Is)
+                error('State %s not available in this results structure',Desc)
+                Units='';
+            else
+                Unitss = obj.iStateUnit{Is};
             end
         end
         

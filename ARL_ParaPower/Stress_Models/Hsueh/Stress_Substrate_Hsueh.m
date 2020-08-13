@@ -3,10 +3,7 @@ function [stressX,stressY]=Stress_Substrate_Miner1(Results,nlsub)
 % each element in the model.
 % Based on paper by C. H. Hsueh, Thin Solid Films, Vol 418, 2002
 % Load Temperature Results, Melt Fraction Results and Processing Temp
-<<<<<<< HEAD
-    DEBUG=true;
-=======
->>>>>>> P_20200709_Vectorize_NonDirectional
+    DEBUG=false;
     Temps=Results.getState('Thermal');
     Melts=Results.getState('MeltFrac');
     if size(Temps,4) ~= size(Melts,4)
@@ -14,7 +11,6 @@ function [stressX,stressY]=Stress_Substrate_Miner1(Results,nlsub)
     end
     stressX=nan(size(Temps));
     stressY=nan(size(Temps));
-<<<<<<< HEAD
     if DEBUG
         fprintf('Computing %i states...',size(Temps,4))
     end
@@ -27,9 +23,6 @@ function [stressX,stressY]=Stress_Substrate_Miner1(Results,nlsub)
                 fprintf('\n')
             end
         end
-=======
-    for state=1:size(Temps,4)
->>>>>>> P_20200709_Vectorize_NonDirectional
         Temp=Temps(:,:,:,state);
         Melt=Melts(:,:,:,state);
         ProcT=Results.Model.Tproc;
