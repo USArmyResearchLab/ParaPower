@@ -886,7 +886,7 @@ function RunAnalysis_Callback(hObject, eventdata, handles)
             AddStatusLine(['Stress (' StressModel ')...']);
             Results(ThisCase)=PPResults(now, MI, RunCases(ThisCase),'Thermal','MeltFrac');
             Results(ThisCase)=Results(ThisCase).setState('Thermal',Tprnt, '°C');
-            Results(ThisCase)=Results(ThisCase).setState('MeltFrac',MeltFrac.'%');
+            Results(ThisCase)=Results(ThisCase).setState('MeltFrac',MeltFrac,'%');
             try
                 if strcmpi(StressModel,'none')
                     Stress=[];

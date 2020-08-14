@@ -24,11 +24,12 @@ classdef PostProcessResults_exported < matlab.apps.AppBase
         Results % Description
         ParaPower % Description
         PlotWindows = []% Description
+        AvailStates
     end
     
     properties (Constant)
         %AvailStates={'Max Temperature' 'Min Melt Frac'};
-        AvailStates={'Max Temperature' }; %Removed until it can be limited to PCM only
+        %AvailStates={'Max Temperature' }; %Removed until it can be limited to PCM only
         ParaPowerName='ParaPowerGUI_V2';
     end
     
@@ -122,16 +123,39 @@ classdef PostProcessResults_exported < matlab.apps.AppBase
                  %set(UIt,'ValueChangedFcn',UItRestore);
                  Xpos=Xpos+Wdth;
                  if mod(I,NumInRow)==0
-                    Ypos=Ypos-Hgt-Pl(4) ;
-                    Xpos=Pl(1);
+                     Ypos=Ypos-Hgt-Pl(4) ;
+                     Xpos=Pl(1);
                  end
              end
+             
+             % populate dependent variables with the min and max available
+             % states
+             raw_states = lResults.StatesAvail;
+             states_avail = {};
+             for state = 1:length(raw_states)
+                 current_state = raw_states(state);
+                 % check to see that the state actually exists
+                 if any(size(lResults(1).getState(current_state)))
+                     
+                     if strcmpi(char(current_state),'Thermal')
+                         current_state_str = 'Temperature';
+                     else
+                         current_state_str = char(current_state);
+                     end
+                     states_avail{end+1} = append('Max ',current_state_str);
+                     states_avail{end+1} = append('Min ',current_state_str);
+                 end
+
+             end
+             %states_avail_test = cell2mat(states_avail)
+             app.AvailStates = states_avail;
+             
              app.IndependentVariableDropDown.Items=VarName;
              app.DependentVariableDropDown.Items=app.AvailStates;
-             IndependentVariableDropDownValueChanged(app)
+             IndependentVariableDropDownValueChanged(app);
              app.IndependentVariableDropDown.Enable=true;
              app.DependentVariableDropDown.Enable=true;
-
+             
         end
         
         % obtain dependent variable only over the features selected
@@ -158,9 +182,30 @@ classdef PostProcessResults_exported < matlab.apps.AppBase
                    current_feature_mask = (current_feature==feature_matrix_full);
                    masked_state(current_feature_mask) = full_state(current_feature_mask);
                end
-
+               
            end
            
+        end
+        
+        function max_reshaped_state = get_minmaxstate (app,results,index,state,minmax,time)
+            if time==1
+                full_state = results(index).getState(state);
+                masked_state = app.getFeatureMask(index,full_state);
+                reshaped_state = reshape(masked_state,[],length(results(index).Model.GlobalTime));
+                if strcmp(minmax,'Max')
+                    max_reshaped_state = max(reshaped_state,[],1);
+                else
+                    max_reshaped_state = min(reshaped_state,[],1);
+                end
+            else
+                full_state = results(index).getState(state);
+                masked_state = app.getFeatureMask(index,full_state);
+                if strcmp(minmax,'Max')
+                    max_reshaped_state=max(masked_state(:));
+                else
+                    max_reshaped_state=min(masked_state(:));
+                end
+            end
         end
         
         function results = AddStatusLine(app,StatusText, Flag)
@@ -354,71 +399,49 @@ classdef PostProcessResults_exported < matlab.apps.AppBase
                 IndepAxis = nan(length(IndepAxis_max),length(Curves(:,1)));
             end
             
-            DepVariableName=lower(app.DependentVariableDropDown.Value);
-            % loop through all results, all cases
+            DepVariableName=app.DependentVariableDropDown.Value;
+            minmax = DepVariableName(1:3);
+            statename = DepVariableName(5:end);
+
+            if strcmpi(statename,'Temperature')
+                statename = 'Thermal';
+            end
+            %Assume that the state units for 1st case are the same as for all
+            stateunits = lResults(1).getStateUnit(statename);
             for I=1:length(lResults)
                 Descriptor=lResults(I).Model.Descriptor;
                 for Ci=1:length(Curves(:,1))
+                    % if time is independent variable, reshape along
+                    % GlobalTime rather than IndepVar
                     if time_flag
+                        % set string for ylabel
+                        YLabel = [DepVariableName ' (' stateunits ')'];
+                        % D contains descriptor of each case
                         D = [Descriptor([VarPosit ],2)];
+                        % Curves holds the predetermined curves of interest
                         C = [Curves(Ci,:)]';
+                        % if D and C match = case of interest
                         if all(strcmp(D,C))
                             IndepAxis([1:length(lResults(I).Model.GlobalTime)],Ci) = lResults(I).Model.GlobalTime;
-                            switch DepVariableName
-                                case lower(app.AvailStates{1})
-                                    YLabel='Max Temp (all features)';
-                                    full_thermal = lResults(I).getState('Thermal');
-                                    masked_full = app.getFeatureMask(I,full_thermal);
-                                    reshaped_thermal = reshape(masked_full,[],length(lResults(I).Model.GlobalTime));
-                                    max_reshaped_thermal = max(reshaped_thermal,[],1);
-                                    DepAxis([1:length(lResults(I).Model.GlobalTime)],Ci)= max_reshaped_thermal;
-                                case lower(app.AvailStates{2})
-                                    YLabel='Min Temp (all features)';
-                                    full_melt = lResults(I).getState('MeltFrac');
-                                    masked_full = app.getFeatureMask(I,full_melt);
-                                    reshaped_melt = reshape(masked_full,[],length(IndepAxis));
-                                    min_reshaped_melt = min(reshaped_melt,[],1);
-                                    DepAxis(:,Ci)= min_reshaped_melt;
-                                otherwise
-                                    YLabel='Unknown Dependent Variable';
-                                    DepAxis(Ii,Ci)=NaN;
-                            end
+                            reshaped_state_use = app.get_minmaxstate (lResults,I,statename,minmax,time_flag);
+                            DepAxis([1:length(lResults(I).Model.GlobalTime)],Ci)= reshaped_state_use;
                         end
+                    % if time isn't independent variable
                     else
+                        YLabel = [DepVariableName ' (all time) (' stateunits ')'];
                         for Ii=1:length(IndepAxisC)
                             if isnan(Curves{Ci})
                                 D=[Descriptor([IndepVar{1}],2)];
                                 C=[IndepAxisC(Ii)]';
                             else
-                                % contains descriptor of each case
                                 D=[Descriptor([VarPosit IndepVar{1}],2)];
-                                % descriptor of interest
-                                % curves holds the predetermined curves of
-                                % interest
                                 C=[Curves(Ci,:) IndepAxisC(Ii)]';
                             end
                             % if C and D match, then it is a case of interest
                             if all(strcmp(D,C))
-                                %Extract max temp over all features for all time
-                                
-                                switch DepVariableName
-                                    case lower(app.AvailStates{1}) %Max Temp
-                                        YLabel='Max Temp (all features, all time)';
-                                        FullState = lResults(I).getState('Thermal');
-                                        [MaskedState] = app.getFeatureMask(I,FullState);
-                                        % DepAxis: rows = each step on
-                                        % independent axis, columns = each
-                                        % model configuration
-                                        DepAxis(Ii,Ci)=max(MaskedState(:));
-                                    case lower(app.AvailStates{2}) % Max Melt Frac
-                                        YLabel='Min Melt Frac (all features, all time)';
-                                        FullState = lResults(I).getState('MeltFrac');
-                                        MaskedState = app.getFeatureMask(I,FullState);
-                                        DepAxis(Ii,Ci)=min(MaskedState(:));
-                                    otherwise
-                                        YLabel='Unknown Dependent Variable';
-                                        DepAxis(Ii,Ci)=NaN;
-                                end
+                                %Extract max/min state for all time
+                                reshaped_state_use = app.get_minmaxstate (lResults,I,statename,minmax,time_flag);
+                                DepAxis(Ii,Ci) = reshaped_state_use;
                             end
                             
                         end
@@ -468,11 +491,11 @@ classdef PostProcessResults_exported < matlab.apps.AppBase
             clf
             PlotAxis=axes;
             plot(IndepAxis,DepAxis,'marker','o')
-            ylabel(PlotAxis,YLabel);
+            ylabel(PlotAxis,YLabel,'Interpreter','none');
             xlabel(PlotAxis,XLabel);
             title_dependent = app.DependentVariableDropDown.Value;
             full_title_string = append(title_dependent,' ',feature_string);
-            title(full_title_string)
+            title(full_title_string,'Interpreter','none')
             if ~isempty(CurveName)
                 LegText=CurveName(:,1);
                 for Ci=1:length(CurveName(:,1))
