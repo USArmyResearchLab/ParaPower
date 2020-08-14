@@ -1,7 +1,8 @@
 classdef PPTCM  %PP Test Case Model
     %UNTITLED2 Summary of this class goes here
     %   Detailed explanation goes here
-    
+    %
+ 
     properties (Access = public)
 %        ExternalConditions {ValidStruct(ExternalConditions,{'h_Xminus'  'h_Xplus'  'h_Yminus'  'h_Xplus'  'h_Zminus'  'h_Zplus' ...
 %                                                           'Ta_Xminus' 'Ta_Xplus' 'Ta_Yminus' 'Ta_Xplus' 'Ta_Zminus' 'Ta_Zplus' ...

@@ -885,8 +885,8 @@ function RunAnalysis_Callback(hObject, eventdata, handles)
             end
             AddStatusLine(['Stress (' StressModel ')...']);
             Results(ThisCase)=PPResults(now, MI, RunCases(ThisCase),'Thermal','MeltFrac');
-            Results(ThisCase)=Results(ThisCase).setState('Thermal',Tprnt);
-            Results(ThisCase)=Results(ThisCase).setState('MeltFrac',MeltFrac);
+            Results(ThisCase)=Results(ThisCase).setState('Thermal',Tprnt, '°C');
+            Results(ThisCase)=Results(ThisCase).setState('MeltFrac',MeltFrac,'%');
             try
                 if strcmpi(StressModel,'none')
                     Stress=[];
@@ -930,10 +930,10 @@ function RunAnalysis_Callback(hObject, eventdata, handles)
            
            if ~isempty(Stress) %MSB - 15Jul20
                %Results(ThisCase)=Results(ThisCase).addState('Stress',Stress);
-               Results(ThisCase)=Results(ThisCase).addState('Stress_X',Stress.X);
-               Results(ThisCase)=Results(ThisCase).addState('Stress_Y',Stress.Y);
-               Results(ThisCase)=Results(ThisCase).addState('Stress_Z',Stress.Z);
-               Results(ThisCase)=Results(ThisCase).addState('Stress_VM',Stress.VM);
+               Results(ThisCase)=Results(ThisCase).addState('Stress_X',Stress.X,'Pa');
+               Results(ThisCase)=Results(ThisCase).addState('Stress_Y',Stress.Y,'Pa');
+               Results(ThisCase)=Results(ThisCase).addState('Stress_Z',Stress.Z,'Pa');
+               Results(ThisCase)=Results(ThisCase).addState('Stress_VM',Stress.VM,'Pa');
            end
            
            
