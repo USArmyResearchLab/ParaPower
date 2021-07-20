@@ -485,12 +485,35 @@ classdef PostProcessResults_exported < matlab.apps.AppBase
                end
            end
 
-            
+           
             app.PlotWindows=[app.PlotWindows figure];
             set(app.PlotWindows(end),'name','ARL ParaPower Post')
             clf
-            PlotAxis=axes;
-            plot(IndepAxis,DepAxis,'marker','o')
+            PlotAxis = axes;
+            Hl=plot(IndepAxis,DepAxis,'marker','o');    
+            
+                       
+            set(Hl,'userdata',{[0:.1:2*pi] sin([0:.1:2*pi])})
+            set(Hl,'ButtonDownFcn',@ClickCurve)
+           % set(PlotAxis,'ButtonDownFcn',@ClickAxis)            
+
+            %function ClickAxis(varargin)
+            %disp('click Axis')
+            %end
+            
+            function ClickCurve(varargin)
+            disp('click curve')
+            Line=varargin{1};
+            Event=varargin{2};
+            disp('Line userdata property')
+            UD=get(Line,'userdata');
+            figure()
+            PointClicked=Event.IntersectionPoint
+            hold on
+            plot(UD{1},UD{2}*PointClicked(2))
+            hold off
+            end
+                         
             ylabel(PlotAxis,YLabel,'Interpreter','none');
             xlabel(PlotAxis,XLabel);
             title_dependent = app.DependentVariableDropDown.Value;
