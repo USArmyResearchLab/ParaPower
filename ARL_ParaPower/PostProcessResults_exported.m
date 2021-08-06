@@ -425,7 +425,7 @@ classdef PostProcessResults_exported < matlab.apps.AppBase
                             IndepAxis([1:length(lResults(I).Model.GlobalTime)],Ci) = lResults(I).Model.GlobalTime;
                             reshaped_state_use = app.get_minmaxstate (lResults,I,statename,minmax,time_flag);
                             DepAxis([1:length(lResults(I).Model.GlobalTime)],Ci)= reshaped_state_use;
-                            CurveWResults(Ci) = (I)
+                            CurveWResults(Ci) = (I)%links Curve number with Result number
                             
                         end
                     % if time isn't independent variable
@@ -435,6 +435,7 @@ classdef PostProcessResults_exported < matlab.apps.AppBase
                             if isnan(Curves{Ci})
                                 D=[Descriptor([IndepVar{1}],2)];
                                 C=[IndepAxisC(Ii)]';
+                                
                             else
                                 D=[Descriptor([VarPosit IndepVar{1}],2)];
                                 C=[Curves(Ci,:) IndepAxisC(Ii)]';
@@ -442,10 +443,11 @@ classdef PostProcessResults_exported < matlab.apps.AppBase
                             % if C and D match, then it is a case of interest
                             if all(strcmp(D,C))
                                 %Extract max/min state for all time
-                                reshaped_state_use = app.get_minmaxstate (lResults,I,statename,minmax,time_flag);
-                                DepAxis(Ii,Ci) = reshaped_state_use;
+                                reshaped_state_use = app.get_minmaxstate (lResults,I,statename,minmax,time_flag)
+n                                 DepAxis(Ii,Ci) = reshaped_state_use
+                                CurveWResults(DepAxis) =                                
                             end
-                            
+                                                        
                         end
                     end
                 end
@@ -518,28 +520,25 @@ classdef PostProcessResults_exported < matlab.apps.AppBase
             end
         end
                   
-                
-                  
+         %Point is clicked on 2D plot        
          function ClickCurve(app,varargin)
          Independent = app.IndependentVariableDropDown.Value;
-                if strcmp(Independent,'Time')
-                    disp('click curve')
-                    Line=varargin{1};
-                    Event=varargin{2};
-                    disp('Line userdata property')
-                    HP = get(Line,'UserData')
-                    UR = app.Results(HP{1})
-                    RS = UR.getState(HP{2})
-                    F1= figure();
-                    app.PlotWindows=[app.PlotWindows F1];
-                    PointClicked=Event.IntersectionPoint(1) %gets only x value
-                    TimePoints = get(Line,'xdata');
-                    MaxEps = max(eps(single([TimePoints PointClicked])))                    
-                    PointofInterest = find(abs(TimePoints-PointClicked) < 10*MaxEps )
-                    LineTitle = get(Line,'DisplayName')
-                    TimeTitle = num2str(PointClicked)
-                    ModelTitle = ['Time Location ', TimeTitle,  '_' LineTitle]
-                    Visualize(ModelTitle, UR.Model, 'State', RS(:,:,:,PointofInterest))
+           Line=varargin{1}; 
+           Event=varargin{2};
+           HP = get(Line,'UserData'); 
+           UR = app.Results(HP{1}); 
+           RS = UR.getState(HP{2}); 
+           F1= figure();
+           app.PlotWindows=[app.PlotWindows F1]; % adds the new figures to PlotWindows array
+                if strcmp(Independent,'Time') %specfic for when Time is the independent variable
+                    PointClicked=Event.IntersectionPoint(1); %gets only x value
+                    TimePoints = get(Line,'xdata'); % gets all x values for the line    
+                    [DBP,LOP] = sort(abs([PointClicked-TimePoints])) ;   %sort               
+                    PointofInterest = LOP(1);
+                    LineTitle = get(Line,'DisplayName'); %Gets the curvename from the line
+                    TimeTitle = num2str(TimePoints(PointofInterest)); %changes the time into a string
+                    ModelTitle = ['Feature = ', LineTitle ,  ',  t = '  TimeTitle, 's']; %Creates Figure title 
+                    Visualize(ModelTitle, UR.Model, 'State', RS(:,:,:,PointofInterest)); %makes 3D model
                 else 
                     disp('Independent is not time')
                 end
