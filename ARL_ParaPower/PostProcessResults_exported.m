@@ -425,6 +425,8 @@ classdef PostProcessResults_exported < matlab.apps.AppBase
                             IndepAxis([1:length(lResults(I).Model.GlobalTime)],Ci) = lResults(I).Model.GlobalTime;
                             reshaped_state_use = app.get_minmaxstate (lResults,I,statename,minmax,time_flag);
                             DepAxis([1:length(lResults(I).Model.GlobalTime)],Ci)= reshaped_state_use;
+                            CurveWResults(Ci) = (I)
+                            
                         end
                     % if time isn't independent variable
                     else
@@ -485,17 +487,25 @@ classdef PostProcessResults_exported < matlab.apps.AppBase
                end
            end
 
-            
-            app.PlotWindows=[app.PlotWindows figure];
-            set(app.PlotWindows(end),'name','ARL ParaPower Post')
-            clf
-            PlotAxis=axes;
-            plot(IndepAxis,DepAxis,'marker','o')
-            ylabel(PlotAxis,YLabel,'Interpreter','none');
-            xlabel(PlotAxis,XLabel);
-            title_dependent = app.DependentVariableDropDown.Value;
-            full_title_string = append(title_dependent,' ',feature_string);
-            title(full_title_string,'Interpreter','none')
+           
+                app.PlotWindows=[app.PlotWindows figure];
+                set(app.PlotWindows(end),'name','ARL ParaPower Post')
+                clf
+                PlotAxis = axes;
+                HL=plot(IndepAxis,DepAxis,'marker','o');
+               for CurveSet = 1:length(CurveWResults)
+                    set(HL(CurveSet),'UserData',{CurveWResults(CurveSet) statename}) %The order of the curves may not be set 
+               end
+                                   
+                        
+                set(HL,'ButtonDownFcn',@app.ClickCurve)
+                ylabel(PlotAxis,YLabel,'Interpreter','none');
+                xlabel(PlotAxis,XLabel);
+                title_dependent = app.DependentVariableDropDown.Value;
+                full_title_string = append(title_dependent,' ',feature_string);
+                title(full_title_string,'Interpreter','none')               
+                        
+                        
             if ~isempty(CurveName)
                 LegText=CurveName(:,1);
                 for Ci=1:length(CurveName(:,1))
@@ -506,6 +516,35 @@ classdef PostProcessResults_exported < matlab.apps.AppBase
                 Lg=legend(PlotAxis,LegText);
                 set(Lg,'interpreter','none')
             end
+        end
+                  
+                
+                  
+         function ClickCurve(app,varargin)
+         Independent = app.IndependentVariableDropDown.Value;
+                if strcmp(Independent,'Time')
+                    disp('click curve')
+                    Line=varargin{1};
+                    Event=varargin{2};
+                    disp('Line userdata property')
+                    HP = get(Line,'UserData')
+                    UR = app.Results(HP{1})
+                    RS = UR.getState(HP{2})
+                    F1= figure();
+                    app.PlotWindows=[app.PlotWindows F1];
+                    PointClicked=Event.IntersectionPoint(1) %gets only x value
+                    TimePoints = get(Line,'xdata');
+                    MaxEps = max(eps(single([TimePoints PointClicked])))                    
+                    PointofInterest = find(abs(TimePoints-PointClicked) < 10*MaxEps )
+                    LineTitle = get(Line,'DisplayName')
+                    TimeTitle = num2str(PointClicked)
+                    ModelTitle = ['Time Location ', TimeTitle,  '_' LineTitle]
+                    Visualize(ModelTitle, UR.Model, 'State', RS(:,:,:,PointofInterest))
+                else 
+                    disp('Independent is not time')
+                end
+                    
+                                      
         end
 
         % Close request function: PPPP
@@ -609,6 +648,7 @@ classdef PostProcessResults_exported < matlab.apps.AppBase
             title(app.LogoSpace, 'Title')
             xlabel(app.LogoSpace, 'X')
             ylabel(app.LogoSpace, 'Y')
+            app.LogoSpace.PlotBoxAspectRatio = [3.93333333333333 1 1];
             app.LogoSpace.Position = [1 1 105 73];
 
             % Create ClosePlotWindowsButton

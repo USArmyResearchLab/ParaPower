@@ -1464,7 +1464,7 @@ if Confirm
     set(handles.figure1,'posit',NewPosit)
 end
 GUIDisable(handles.figure1)
-axes(GetVisAxis(handles.VisualizePanel))
+axes(GetVisAxis(handles.Panel))
 cla reset;  
 
 %Clear figures external to GUI 
