@@ -3,12 +3,12 @@ function Visualize (PlotTitle, MI, varargin)
 %Visualize creates a graphic visualization of the model and takes two forms
 %(one for results and one for initial conditions)
 %
-%visualize (PlotTitle, MI, 'propery_1','value_1', 'propery_n','value_n')
+%visualize (PlotTitle, MI, 'property_1','value_1', 'property_n','value_n')
 %
 %   MI is the model information structure provided by FormModel
 %
 %   2D - X+, X-, Y+, Y-, Z+, Z- - plot only those faces. Can be called
-%      multiple times to include multiple faces.
+%      multiplie time to include multiple faces.
 %   ScaleTitle  - title of the colorbar, value is a char array
 %   State - a matrix the same dimenstions as modelmat with the state to plot, value is 3 dim array
 %   PlotParms.RemoveMaterial=[] - Which materials to remove from the plot, value is array of mat numbers
@@ -26,6 +26,7 @@ function Visualize (PlotTitle, MI, varargin)
 %   ShowExtent=false - Show extent of the model by a box
 %   HideBC - Do not show H/Temp boundary conditions on plot
 %   HideMatbuttons - Flag to not show material buttons
+%   Parent - Define axes on which the 3D figure should be drawn
 %
 %To Do Features:
 %  X cross section
@@ -305,8 +306,7 @@ function Visualize (PlotTitle, MI, varargin)
         error('The dimensions of the plotstate provided do not match the dimensions of the model.')
     end
     ButtonColors=colormap(parula(length(MatListNumbers)));
-    
-    % plot model geometry if no other parameters called
+        
     if PlotGeom
         ColorList=unique(PlotState(:));  
         for Ci=1:length(PlotParms.RemoveMatl)
@@ -532,9 +532,6 @@ function Visualize (PlotTitle, MI, varargin)
         end
         %size(ColorList)
         if ~isempty(FList{Imat})
-            %
-            % Construct model geometry
-            %
             F   =patch('faces',FList{Imat},'vertices',VList{Imat}, ...
                         'facevertexcdata',ColorList, ...
                         'facealpha',FaceAlpha, ...
